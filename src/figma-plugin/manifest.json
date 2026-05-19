@@ -1,0 +1,12 @@
+{
+  "name": "Figma Prototype MCP",
+  "id": "figma-prototype-mcp-local",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": ["ws://localhost:3055"],
+    "reasoning": "Local WebSocket relay for MCP server bridge"
+  }
+}

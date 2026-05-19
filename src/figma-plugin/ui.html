@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { font-family: -apple-system, system-ui, sans-serif; font-size: 13px; padding: 12px; margin: 0; }
+      label { display: block; margin: 8px 0 4px; font-weight: 500; }
+      input { width: 100%; padding: 6px 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+      button { margin-top: 12px; padding: 8px 12px; cursor: pointer; }
+      #status { margin-top: 12px; font-size: 12px; }
+      .ok { color: #18a058; }
+      .err { color: #d03050; }
+      .pending { color: #888; }
+    </style>
+  </head>
+  <body>
+    <label for="channel">Channel</label>
+    <input id="channel" placeholder="e.g. my-session" />
+    <button id="connect">Connect</button>
+    <div id="status" class="pending">Not connected</div>
+
+    <script>
+      // ui.ts is compiled inline by tsup. We use vanilla JS here for the build to be trivial.
+      const channelInput = document.getElementById('channel');
+      const connectBtn = document.getElementById('connect');
+      const statusEl = document.getElementById('status');
+      let ws = null;
+
+      function setStatus(text, cls) {
+        statusEl.textContent = text;
+        statusEl.className = cls;
+      }
+
+      connectBtn.onclick = () => {
+        const channel = channelInput.value.trim();
+        if (!channel) { setStatus('Channel name required', 'err'); return; }
+        if (ws) ws.close();
+        setStatus('Connecting...', 'pending');
+        ws = new WebSocket('ws://localhost:3055');
+
+        ws.onopen = () => {
+          ws.send(JSON.stringify({ type: 'join', channel, id: 'plugin-join' }));
+        };
+        ws.onerror = () => setStatus('Connection failed', 'err');
+        ws.onclose = () => setStatus('Disconnected', 'err');
+
+        ws.onmessage = (e) => {
+          let data;
+          try { data = JSON.parse(e.data); } catch { return; }
+
+          if (data.type === 'system' && data.message && data.message.id === 'plugin-join') {
+            setStatus('Connected on channel: ' + channel, 'ok');
+            parent.postMessage({ pluginMessage: { type: 'set-channel', channel } }, '*');
+            return;
+          }
+
+          if (data.type === 'broadcast' && data.message && data.message.type === 'command') {
+            // Forward command into the plugin sandbox.
+            parent.postMessage({ pluginMessage: { type: 'command', envelope: data.message } }, '*');
+          }
+        };
+      };
+
+      // Forward responses from the plugin sandbox out to WebSocket.
+      window.onmessage = (event) => {
+        const msg = event.data.pluginMessage;
+        if (!msg) return;
+        if (msg.type === 'response' && ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'message',
+            channel: channelInput.value.trim(),
+            message: msg.envelope,
+          }));
+        }
+      };
+    </script>
+  </body>
+</html>
