@@ -38,8 +38,8 @@ describe("CreateNavigateReactionsInput", () => {
     const r = CreateNavigateReactionsInput.parse({
       connections: [{ sourceNodeId: "1:1", targetFrameId: "1:2" }],
     });
-    expect(r.connections[0].trigger).toBe("ON_CLICK");
-    expect(r.connections[0].transition).toBe("INSTANT");
+    expect(r.connections[0]!.trigger).toBe("ON_CLICK");
+    expect(r.connections[0]!.transition).toBe("INSTANT");
     expect(r.replaceExisting).toBe(false);
   });
   it("rejects empty connections", () => {
