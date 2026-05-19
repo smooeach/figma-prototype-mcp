@@ -29,11 +29,17 @@ export class PluginBridge {
   }
 
   async connect(): Promise<void> {
+    if (this.ws) {
+      throw new Error("Bridge already connected (or connection in progress)");
+    }
     this.ws = new WebSocket(this.url);
 
     await new Promise<void>((resolve, reject) => {
       this.ws!.once("open", () => resolve());
-      this.ws!.once("error", (err) => reject(err));
+      this.ws!.once("error", (err) => {
+        this.ws = null;
+        reject(err);
+      });
     });
 
     this.ws.on("message", (raw) => this.handleMessage(raw.toString()));
