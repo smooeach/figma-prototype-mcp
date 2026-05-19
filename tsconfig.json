@@ -13,5 +13,6 @@
     "outDir": "dist",
     "rootDir": "."
   },
-  "include": ["src/**/*", "tests/**/*"]
+  "include": ["src/**/*", "tests/**/*"],
+  "files": ["node_modules/@figma/plugin-typings/index.d.ts"]
 }
