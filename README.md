@@ -52,7 +52,7 @@ Configure your MCP client (e.g. Claude Code) to launch the server with the match
 |---|---|
 | `get_canvas_overview` | One-shot context primer: current page, frames, selection |
 | `find_nodes` | Search nodes by name (and optional type) |
-| `create_navigate_reactions` | **Write**: batch create On-click → Navigate to <frame> reactions |
+| `create_reactions` | **Write**: batch create prototype reactions. Each connection's `action` chooses between Navigate To (action.type=navigate, targetFrameId) and Scroll To (action.type=scroll, targetNodeId). Each succeeds or fails independently; scroll targets without a scrollable ancestor return a `warning`. |
 | `list_reactions` | Inspect existing reactions on a node |
 | `clear_reactions` | Remove reactions from one or more nodes |
 
@@ -65,10 +65,14 @@ After install + all three components running, verify these scenarios in Figma. E
 - [x] **3. Inspection**: Select a wired button. Ask: "이 버튼 어디로 연결돼 있어?". Expected: Claude reports the destination frame name correctly.
 - [x] **4. Undo**: After scenario 1, ask: "방금 만든 연결 다 지워줘". Expected: reactions removed from all 3 buttons.
 - [x] **5. Error path**: Ask: "Login 버튼을 NonexistentFrame으로 연결해줘". Expected: Claude reports a friendly error (target not found) without crashing.
+- [ ] **6. Scroll wiring + warning path**:
+  Setup: Create a tall frame with Scroll behavior set to "Vertical scrolling" (Figma Inspector → Frame → Overflow: Vertical). Inside it, place a section node named "Pricing". Outside any scrollable frame, place another node named "Footer".
+  (a) Ask: "이 버튼을 Pricing 섹션으로 스크롤되게 해줘". Expected: reaction created, no `warning` field in the response.
+  (b) Ask: "이 버튼을 Footer로 스크롤되게 해줘". Expected: reaction created BUT the response result includes a `warning` field naming "Footer" and the missing scrollable ancestor; `warningCount` in the summary is 1.
 
 ## Known limitations (v1)
 
-- Only **Navigate To** action. No overlays, variables, scroll-to, set-variant.
+- Reaction actions: **Navigate To** and **Scroll To**. No overlays, variables, set-variant, open-url.
 - Default transition is **Instant**. Smart Animate is available as an option but requires matching layer designs.
 - **Figma desktop/web app must be open and the plugin running** — no headless execution.
 - Single-page scope (cross-page navigation untested).
