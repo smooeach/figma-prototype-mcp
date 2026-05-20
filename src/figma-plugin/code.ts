@@ -34,7 +34,10 @@ type Command =
                 duration?: number;
                 easing?:
                   | "LINEAR" | "EASE_IN" | "EASE_OUT" | "EASE_IN_AND_OUT"
-                  | "EASE_IN_BACK" | "EASE_OUT_BACK" | "EASE_IN_AND_OUT_BACK";
+                  | "EASE_IN_BACK" | "EASE_OUT_BACK" | "EASE_IN_AND_OUT_BACK"
+                  | "GENTLE" | "QUICK" | "BOUNCY" | "SLOW"
+                  | { type: "CUSTOM_CUBIC_BEZIER"; x1: number; y1: number; x2: number; y2: number }
+                  | { type: "CUSTOM_SPRING"; mass: number; stiffness: number; damping: number; initialVelocity: number };
               };
           action:
             | { type: "navigate"; targetFrameId: string }
@@ -217,7 +220,10 @@ async function handleCreateReactions(params: {
           duration?: number;
           easing?:
             | "LINEAR" | "EASE_IN" | "EASE_OUT" | "EASE_IN_AND_OUT"
-            | "EASE_IN_BACK" | "EASE_OUT_BACK" | "EASE_IN_AND_OUT_BACK";
+            | "EASE_IN_BACK" | "EASE_OUT_BACK" | "EASE_IN_AND_OUT_BACK"
+            | "GENTLE" | "QUICK" | "BOUNCY" | "SLOW"
+            | { type: "CUSTOM_CUBIC_BEZIER"; x1: number; y1: number; x2: number; y2: number }
+            | { type: "CUSTOM_SPRING"; mass: number; stiffness: number; damping: number; initialVelocity: number };
         };
     action:
       | { type: "navigate"; targetFrameId: string }
