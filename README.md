@@ -52,7 +52,7 @@ Configure your MCP client (e.g. Claude Code) to launch the server with the match
 |---|---|
 | `get_canvas_overview` | One-shot context primer: current page, frames, selection |
 | `find_nodes` | Search nodes by name (and optional type) |
-| `create_reactions` | **Write**: batch create prototype reactions. Each connection's `action` picks between Navigate To (action.type=navigate, targetFrameId), Scroll To (scroll, targetNodeId), Open Overlay (overlay, targetFrameId), Close Overlay (close, no destination), Back (back, no destination), Open URL (url, url, openInNewTab?), and Swap Overlay (swap_overlay, targetFrameId). Triggers: `ON_CLICK` (default), `ON_HOVER`, `ON_PRESS`, or `AFTER_TIMEOUT` (requires `afterTimeoutSeconds`). Each succeeds or fails independently; scroll targets without a scrollable ancestor return a `warning`. |
+| `create_reactions` | **Write**: batch create prototype reactions. Each connection's `action` picks between Navigate To (action.type=navigate, targetFrameId), Scroll To (scroll, targetNodeId), Open Overlay (overlay, targetFrameId), Close Overlay (close, no destination), Back (back, no destination), Open URL (url, url, openInNewTab?), and Swap Overlay (swap_overlay, targetFrameId). Triggers: string shortcuts `ON_CLICK` (default) / `ON_HOVER` / `ON_PRESS` / `AFTER_TIMEOUT` (with top-level `afterTimeoutSeconds`); object form additionally supports `{type:"ON_DRAG"}`, `{type:"MOUSE_UP"\|"MOUSE_DOWN", delay?}`, `{type:"MOUSE_ENTER"\|"MOUSE_LEAVE", delay?, deprecatedVersion?}`, `{type:"ON_KEY_DOWN", device, keyCodes}`, `{type:"ON_MEDIA_HIT", mediaHitTime}`, `{type:"ON_MEDIA_END"}`, and a self-contained `{type:"AFTER_TIMEOUT", timeout}`. Transitions: string shortcuts `INSTANT` / `DISSOLVE` / `SMART_ANIMATE`, simple object form (DISSOLVE/SMART_ANIMATE/SCROLL_ANIMATE + duration + easing), and directional form (`MOVE_IN`/`MOVE_OUT`/`PUSH`/`SLIDE_IN`/`SLIDE_OUT` × `direction` LEFT/RIGHT/TOP/BOTTOM × optional `matchLayers`). Each succeeds or fails independently; scroll targets without a scrollable ancestor return a `warning`. |
 | `list_reactions` | Inspect existing reactions on a node |
 | `clear_reactions` | Remove reactions from one or more nodes |
 
@@ -110,6 +110,20 @@ After install + all three components running, verify these scenarios in Figma. E
   Setup: any existing source button + target frame fixture.
   (a) Ask: "Material 3 emphasized 곡선 SMART_ANIMATE 0.5초" → `transition.easing = { type: "CUSTOM_CUBIC_BEZIER", x1: 0.2, y1: 0, x2: 0, y2: 1 }`. Expected: list_reactions echoes `easing.type = "CUSTOM_CUBIC_BEZIER"` plus `easing.easingFunctionCubicBezier` with those values.
   (b) Ask: "엄청 튀는 스프링 (mass 1, stiffness 600, damping 10) SMART_ANIMATE 0.6초". Expected: `easing.type = "CUSTOM_SPRING"` plus `easing.easingFunctionSpring` with mass/stiffness/damping. (`initialVelocity` is documented in Figma typings but rejected by the runtime — omitted.)
+- [x] **17. Directional transitions (Phase 3 — MOVE / PUSH / SLIDE × LEFT / RIGHT / TOP / BOTTOM)**:
+  Setup: any source button + target frame fixture. Use `replaceExisting: true` (or clear between cases) so each sub-case is the sole reaction on the button.
+  (a) Ask: "RIGHT에서 MOVE_IN matchLayers true 0.4초". Expected: list_reactions echoes `type=MOVE_IN`, `direction=RIGHT`, `matchLayers=true`, `duration=0.4`.
+  (b) Ask: "LEFT에서 PUSH 0.3초". Expected: `type=PUSH`, `direction=LEFT`, `matchLayers=false` (default).
+  (c) Ask: "BOTTOM에서 SLIDE_IN BOUNCY". Expected: `type=SLIDE_IN`, `direction=BOTTOM`, `easing.type=BOUNCY`.
+  (d) Ask: "TOP으로 MOVE_OUT 0.5초". Expected: `type=MOVE_OUT`, `direction=TOP`, `duration=0.5`.
+  (e) Ask: "RIGHT로 SLIDE_OUT". Expected: `type=SLIDE_OUT`, `direction=RIGHT`.
+- [x] **18. New trigger types (practical subset — ON_DRAG / MOUSE_UP / MOUSE_ENTER)**:
+  Setup: source button on screenA, target frame screenB, overlay frame reusable from earlier scenarios.
+  (a) Ask: "이 frame을 드래그하면 screenB로 가게 (SMART_ANIMATE)". Expected: `trigger.type=ON_DRAG` echoed. **Note: ON_DRAG requires a FRAME as source (not RECTANGLE) and a non-INSTANT transition such as SMART_ANIMATE — Figma rejects the reaction otherwise.**
+  (b) Ask: "MOUSE_UP 0.2초 뒤에 screenB로". Expected: `trigger.type=MOUSE_UP`, `delay=0.2`.
+  (c) Ask: "MOUSE_ENTER 시 overlay 열게". Expected: `trigger.type=MOUSE_ENTER`, `delay=0`.
+
+  **Note:** `ON_KEY_DOWN` / `ON_MEDIA_HIT` / `ON_MEDIA_END` are schema-supported (Zod + builder + tests) but live-verify is deferred — controller/key behavior is desktop-app-specific, and media triggers need a video-node fixture. `deprecatedVersion` field for MOUSE_ENTER/LEAVE is documented in Figma typings but rejected by the runtime — omitted (same pattern as `initialVelocity` in v1.12).
 
 ## Known limitations (v1)
 
