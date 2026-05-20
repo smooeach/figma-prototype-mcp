@@ -67,7 +67,7 @@ const TOOLS = [
 ];
 
 const server = new Server(
-  { name: "figma-prototype-mcp", version: "0.5.0" },
+  { name: "figma-prototype-mcp", version: "0.6.0" },
   { capabilities: { tools: {} } }
 );
 

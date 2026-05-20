@@ -5,8 +5,13 @@
     <style>
       body { font-family: -apple-system, system-ui, sans-serif; font-size: 13px; padding: 12px; margin: 0; }
       label { display: block; margin: 8px 0 4px; font-weight: 500; }
-      input { width: 100%; padding: 6px 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-      button { margin-top: 12px; padding: 8px 12px; cursor: pointer; }
+      input { width: 100%; padding: 6px 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; background: #ffffff; color: #111; }
+      input:disabled { background: #f0f0f0; color: #888; border-color: #ddd; cursor: not-allowed; }
+      button { margin-top: 12px; padding: 8px 12px; cursor: pointer; border-radius: 4px; border: 1px solid transparent; font-weight: 500; }
+      #connect { background: #18a058; color: #fff; border-color: #148e4d; }
+      #connect:hover { background: #148e4d; }
+      #disconnect { background: #d03050; color: #fff; border-color: #b02540; }
+      #disconnect:hover { background: #b02540; }
       #status { margin-top: 12px; font-size: 12px; }
       .ok { color: #18a058; }
       .err { color: #d03050; }
