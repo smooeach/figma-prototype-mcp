@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildNavigateReaction, buildTransition, buildScrollReaction } from "../src/figma-plugin/reaction-builder.js";
+import { buildNavigateReaction, buildTransition, buildScrollReaction, buildOverlayReaction, buildCloseReaction } from "../src/figma-plugin/reaction-builder.js";
 
 describe("buildNavigateReaction", () => {
   it("builds ON_CLICK + INSTANT by default", () => {
@@ -106,6 +106,55 @@ describe("buildScrollReaction", () => {
       trigger: "ON_HOVER",
       transition: "INSTANT",
     });
+    expect(r.trigger).toEqual({ type: "ON_HOVER" });
+  });
+});
+
+describe("buildOverlayReaction", () => {
+  it("builds ON_CLICK + INSTANT OVERLAY by default", () => {
+    const r = buildOverlayReaction({
+      targetFrameId: "1:7",
+      trigger: "ON_CLICK",
+      transition: "INSTANT",
+    });
+    expect(r.trigger).toEqual({ type: "ON_CLICK" });
+    expect(r.actions).toHaveLength(1);
+    expect(r.actions[0]).toEqual({
+      type: "NODE",
+      destinationId: "1:7",
+      navigation: "OVERLAY",
+      transition: null,
+      preserveScrollPosition: false,
+      overlayRelativePosition: { x: 0, y: 0 },
+      overlayBackgroundInteraction: "CLOSE_ON_CLICK_OUTSIDE",
+      overlayBackground: { type: "NONE" },
+    });
+  });
+
+  it("uses DISSOLVE transition shape when requested", () => {
+    const r = buildOverlayReaction({
+      targetFrameId: "1:7",
+      trigger: "ON_CLICK",
+      transition: "DISSOLVE",
+    });
+    expect(r.actions[0]!.transition).toEqual({
+      type: "DISSOLVE",
+      duration: 0.3,
+      easing: { type: "EASE_OUT" },
+    });
+  });
+});
+
+describe("buildCloseReaction", () => {
+  it("builds a CLOSE action with the given trigger", () => {
+    const r = buildCloseReaction({ trigger: "ON_CLICK" });
+    expect(r.trigger).toEqual({ type: "ON_CLICK" });
+    expect(r.actions).toHaveLength(1);
+    expect(r.actions[0]).toEqual({ type: "CLOSE" });
+  });
+
+  it("honors non-default trigger", () => {
+    const r = buildCloseReaction({ trigger: "ON_HOVER" });
     expect(r.trigger).toEqual({ type: "ON_HOVER" });
   });
 });
