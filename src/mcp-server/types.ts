@@ -94,8 +94,13 @@ export interface ReactionConnectionInput {
         type: "DISSOLVE" | "SMART_ANIMATE" | "SCROLL_ANIMATE";
         duration?: number;
         easing?:
+          // 11 named
           | "LINEAR" | "EASE_IN" | "EASE_OUT" | "EASE_IN_AND_OUT"
-          | "EASE_IN_BACK" | "EASE_OUT_BACK" | "EASE_IN_AND_OUT_BACK";
+          | "EASE_IN_BACK" | "EASE_OUT_BACK" | "EASE_IN_AND_OUT_BACK"
+          | "GENTLE" | "QUICK" | "BOUNCY" | "SLOW"
+          // 2 custom flat
+          | { type: "CUSTOM_CUBIC_BEZIER"; x1: number; y1: number; x2: number; y2: number }
+          | { type: "CUSTOM_SPRING"; mass: number; stiffness: number; damping: number; initialVelocity: number };
       };
   action: ReactionAction;
 }
@@ -125,6 +130,14 @@ export interface ReactionSummary {
     openInNewTab?: boolean;
     destinationId?: string;
     destinationName?: string;
-    transition?: { type: string; duration?: number; easing?: { type: string } };
+    transition?: {
+      type: string;
+      duration?: number;
+      easing?: {
+        type: string;
+        easingFunctionCubicBezier?: { x1: number; y1: number; x2: number; y2: number };
+        easingFunctionSpring?: { mass: number; stiffness: number; damping: number; initialVelocity: number };
+      };
+    };
   };
 }

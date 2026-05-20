@@ -337,3 +337,76 @@ describe("CreateReactionsInput transition Phase 1", () => {
     expect(r.connections[0]!.transition).toBe("SMART_ANIMATE");
   });
 });
+
+describe("CreateReactionsInput easing spring + custom", () => {
+  it("accepts each of the 4 spring presets", () => {
+    for (const easing of ["GENTLE", "QUICK", "BOUNCY", "SLOW"] as const) {
+      const r = CreateReactionsInput.parse({
+        connections: [{
+          sourceNodeId: "1:1",
+          transition: { type: "SMART_ANIMATE", easing },
+          action: { type: "navigate", targetFrameId: "1:2" },
+        }],
+      });
+      expect((r.connections[0]!.transition as any).easing).toBe(easing);
+    }
+  });
+
+  it("accepts CUSTOM_CUBIC_BEZIER flat shape", () => {
+    const r = CreateReactionsInput.parse({
+      connections: [{
+        sourceNodeId: "1:1",
+        transition: {
+          type: "SMART_ANIMATE",
+          easing: { type: "CUSTOM_CUBIC_BEZIER", x1: 0.2, y1: 0, x2: 0, y2: 1 },
+        },
+        action: { type: "navigate", targetFrameId: "1:2" },
+      }],
+    });
+    expect((r.connections[0]!.transition as any).easing).toEqual({
+      type: "CUSTOM_CUBIC_BEZIER", x1: 0.2, y1: 0, x2: 0, y2: 1,
+    });
+  });
+
+  it("accepts CUSTOM_SPRING flat shape", () => {
+    const r = CreateReactionsInput.parse({
+      connections: [{
+        sourceNodeId: "1:1",
+        transition: {
+          type: "SMART_ANIMATE",
+          easing: { type: "CUSTOM_SPRING", mass: 1, stiffness: 600, damping: 10, initialVelocity: 0 },
+        },
+        action: { type: "navigate", targetFrameId: "1:2" },
+      }],
+    });
+    expect((r.connections[0]!.transition as any).easing).toEqual({
+      type: "CUSTOM_SPRING", mass: 1, stiffness: 600, damping: 10, initialVelocity: 0,
+    });
+  });
+
+  it("rejects CUSTOM_CUBIC_BEZIER with x1 > 1", () => {
+    expect(() => CreateReactionsInput.parse({
+      connections: [{
+        sourceNodeId: "1:1",
+        transition: {
+          type: "SMART_ANIMATE",
+          easing: { type: "CUSTOM_CUBIC_BEZIER", x1: 1.5, y1: 0, x2: 0, y2: 1 },
+        },
+        action: { type: "navigate", targetFrameId: "1:2" },
+      }],
+    })).toThrow();
+  });
+
+  it("rejects CUSTOM_SPRING with negative mass", () => {
+    expect(() => CreateReactionsInput.parse({
+      connections: [{
+        sourceNodeId: "1:1",
+        transition: {
+          type: "SMART_ANIMATE",
+          easing: { type: "CUSTOM_SPRING", mass: -1, stiffness: 100, damping: 10, initialVelocity: 0 },
+        },
+        action: { type: "navigate", targetFrameId: "1:2" },
+      }],
+    })).toThrow();
+  });
+});

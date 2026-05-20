@@ -14,15 +14,34 @@ export const FindNodesInput = z.object({
 const TriggerEnum = z.enum(["ON_CLICK", "ON_HOVER", "ON_PRESS", "AFTER_TIMEOUT"]);
 const TransitionEnum = z.enum(["INSTANT", "DISSOLVE", "SMART_ANIMATE"]);
 
-const EasingInputEnum = z.enum([
+const NamedEasingEnum = z.enum([
   "LINEAR", "EASE_IN", "EASE_OUT", "EASE_IN_AND_OUT",
   "EASE_IN_BACK", "EASE_OUT_BACK", "EASE_IN_AND_OUT_BACK",
+  "GENTLE", "QUICK", "BOUNCY", "SLOW",
 ]);
+
+const CustomCubicBezierEasing = z.object({
+  type: z.literal("CUSTOM_CUBIC_BEZIER"),
+  x1: z.number().min(0).max(1),
+  y1: z.number(),
+  x2: z.number().min(0).max(1),
+  y2: z.number(),
+});
+
+const CustomSpringEasing = z.object({
+  type: z.literal("CUSTOM_SPRING"),
+  mass: z.number().positive(),
+  stiffness: z.number().positive(),
+  damping: z.number().positive(),
+  initialVelocity: z.number(),
+});
+
+const EasingInputUnion = z.union([NamedEasingEnum, CustomCubicBezierEasing, CustomSpringEasing]);
 
 const SimpleTransitionObject = z.object({
   type: z.enum(["DISSOLVE", "SMART_ANIMATE", "SCROLL_ANIMATE"]),
   duration: z.number().positive().max(10).optional(),
-  easing: EasingInputEnum.optional(),
+  easing: EasingInputUnion.optional(),
 });
 
 const TransitionInput = z.union([TransitionEnum, SimpleTransitionObject]);
