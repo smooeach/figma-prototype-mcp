@@ -33,7 +33,7 @@ type Command =
             | { type: "overlay"; targetFrameId: string }
             | { type: "close" }
             | { type: "back" }
-            | { type: "url"; url: string }
+            | { type: "url"; url: string; openInNewTab?: boolean }
             | { type: "swap_overlay"; targetFrameId: string };
         }>;
         replaceExisting: boolean;
@@ -189,7 +189,7 @@ async function handleCreateReactions(params: {
       | { type: "overlay"; targetFrameId: string }
       | { type: "close" }
       | { type: "back" }
-      | { type: "url"; url: string }
+      | { type: "url"; url: string; openInNewTab?: boolean }
       | { type: "swap_overlay"; targetFrameId: string };
   }>;
   replaceExisting: boolean;
@@ -256,7 +256,11 @@ async function handleCreateReactions(params: {
       } else if (conn.action.type === "back") {
         newReaction = buildBackReaction({ trigger: conn.trigger });
       } else if (conn.action.type === "url") {
-        newReaction = buildUrlReaction({ trigger: conn.trigger, url: conn.action.url });
+        newReaction = buildUrlReaction({
+          trigger: conn.trigger,
+          url: conn.action.url,
+          openInNewTab: conn.action.openInNewTab,
+        });
       } else {
         // swap_overlay
         const target = figma.getNodeById(conn.action.targetFrameId);
@@ -323,6 +327,8 @@ async function handleListReactions(params: { nodeId: string }) {
         action: {
           type: action.type ?? "UNKNOWN",
           navigation: action.navigation,
+          url: action.url,
+          openInNewTab: action.openInNewTab,
           destinationId: destId,
           destinationName: destNode?.name,
           transition: action.transition,
