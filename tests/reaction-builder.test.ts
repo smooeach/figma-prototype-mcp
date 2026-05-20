@@ -131,9 +131,6 @@ describe("buildOverlayReaction", () => {
       navigation: "OVERLAY",
       transition: null,
       preserveScrollPosition: false,
-      overlayRelativePosition: { x: 0, y: 0 },
-      overlayBackgroundInteraction: "CLOSE_ON_CLICK_OUTSIDE",
-      overlayBackground: { type: "NONE" },
     });
   });
 
