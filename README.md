@@ -119,7 +119,7 @@ After install + all three components running, verify these scenarios in Figma. E
   (e) Ask: "RIGHT로 SLIDE_OUT". Expected: `type=SLIDE_OUT`, `direction=RIGHT`.
 - [x] **18. New trigger types (practical subset — ON_DRAG / MOUSE_UP / MOUSE_ENTER)**:
   Setup: source button on screenA, target frame screenB, overlay frame reusable from earlier scenarios.
-  (a) Ask: "이 frame을 드래그하면 screenB로 가게 (SMART_ANIMATE)". Expected: `trigger.type=ON_DRAG` echoed. **Note: ON_DRAG requires a FRAME as source (not RECTANGLE) and a non-INSTANT transition such as SMART_ANIMATE — Figma rejects the reaction otherwise.**
+  (a) Ask: "이 frame을 드래그하면 screenB로 가게 (SMART_ANIMATE)". Expected: `trigger.type=ON_DRAG` echoed. **Note: ON_DRAG requires a FRAME as source (not RECTANGLE) and a non-INSTANT transition such as SMART_ANIMATE — Figma rejects the reaction otherwise.** **Prototype Play verified** with a 3-screen carousel: screen01/02/03 each containing a same-named child frame `slider`; chained `slider → next-screen` ON_DRAG SMART_ANIMATE on all three so the matched `slider` layer interpolates position during drag (drag direction inferred from screen layout — horizontal here).
   (b) Ask: "MOUSE_UP 0.2초 뒤에 screenB로". Expected: `trigger.type=MOUSE_UP`, `delay=0.2`.
   (c) Ask: "MOUSE_ENTER 시 overlay 열게". Expected: `trigger.type=MOUSE_ENTER`, `delay=0`.
 
