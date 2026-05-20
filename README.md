@@ -52,7 +52,7 @@ Configure your MCP client (e.g. Claude Code) to launch the server with the match
 |---|---|
 | `get_canvas_overview` | One-shot context primer: current page, frames, selection |
 | `find_nodes` | Search nodes by name (and optional type) |
-| `create_reactions` | **Write**: batch create prototype reactions. Each connection's `action` chooses between Navigate To (action.type=navigate, targetFrameId) and Scroll To (action.type=scroll, targetNodeId). Each succeeds or fails independently; scroll targets without a scrollable ancestor return a `warning`. |
+| `create_reactions` | **Write**: batch create prototype reactions. Each connection's `action` picks between Navigate To (action.type=navigate, targetFrameId), Scroll To (scroll, targetNodeId), Open Overlay (overlay, targetFrameId), and Close Overlay (close, no destination). Each succeeds or fails independently; scroll targets without a scrollable ancestor return a `warning`. |
 | `list_reactions` | Inspect existing reactions on a node |
 | `clear_reactions` | Remove reactions from one or more nodes |
 
@@ -69,10 +69,14 @@ After install + all three components running, verify these scenarios in Figma. E
   Setup: Create a tall frame with Scroll behavior set to "Vertical scrolling" (Figma Inspector → Frame → Overflow: Vertical). Inside it, place a section node named "Pricing". Outside any scrollable frame, place another node named "Footer".
   (a) Ask: "이 버튼을 Pricing 섹션으로 스크롤되게 해줘". Expected: reaction created, no `warning` field in the response.
   (b) Ask: "이 버튼을 Footer로 스크롤되게 해줘". Expected: reaction created BUT the response result includes a `warning` field naming "Footer" and the missing scrollable ancestor; `warningCount` in the summary is 1.
+- [ ] **7. Overlay open + close pair**:
+  Setup: Create two frames in the test zone — `mainFrame` and `modal`. Place a button `openBtn` inside `mainFrame`, and a button `closeBtn` inside `modal`.
+  (a) Ask: "openBtn을 modal로 오버레이로 열어줘". Expected: reaction created, no warning. In Figma prototype play, click openBtn → modal appears as an overlay over mainFrame.
+  (b) Ask: "closeBtn을 누르면 오버레이 닫게 해줘". Expected: reaction created. In prototype play, click closeBtn → overlay dismisses and mainFrame is visible again.
 
 ## Known limitations (v1)
 
-- Reaction actions: **Navigate To** and **Scroll To**. No overlays, variables, set-variant, open-url.
+- Reaction actions: **Navigate To**, **Scroll To**, **Open Overlay**, **Close Overlay**. No variables, set-variant, open-url, back, swap-overlay.
 - Default transition is **Instant**. Smart Animate is available as an option but requires matching layer designs.
 - **Figma desktop/web app must be open and the plugin running** — no headless execution.
 - Single-page scope (cross-page navigation untested).
