@@ -29,7 +29,7 @@ npm run relay
 - Open Figma desktop app.
 - Plugins → Development → Import plugin from manifest...
 - Choose `dist/figma-plugin/manifest.json`.
-- Run the plugin. Enter a channel name (e.g. `my-session`) and click **Connect**. Wait for `Connected on channel: my-session`.
+- Run the plugin. The UI auto-loads your last-used channel and tries to connect. On first launch the input is empty — type a channel name (e.g. `my-session`) and click **Connect**. After a successful connect the channel is remembered via `figma.clientStorage`; later launches reconnect without typing. Click **Disconnect** to switch channels.
 
 **3. MCP server**:
 Configure your MCP client (e.g. Claude Code) to launch the server with the matching channel:
@@ -82,6 +82,11 @@ After install + all three components running, verify these scenarios in Figma. E
   Setup: Reuse scenario 9's buttonExternal (`962:22117` in MCP_Test_05) — the URL action wired to https://figma.com.
   (a) Ask: "buttonExternal에서 https://anthropic.com을 새 탭에서 열게 해줘". Expected: reaction replaced. list_reactions on buttonExternal shows action.type=URL, url=https://anthropic.com, openInNewTab=true.
   (b) Ask: "이 버튼 어디로 연결돼 있어?" (buttonExternal selected). Expected: response includes the URL string and the openInNewTab flag.
+- [ ] **11. Plugin auto-connect**:
+  Setup: plugin already connected to `test1` from earlier scenarios.
+  (a) Close the Figma plugin UI, then reopen it (Plugins → Development → figma-prototype). Expected: input is pre-filled with `test1` and the status flips to "Connected on channel: test1" automatically — no user input.
+  (b) Click **Disconnect**. Input becomes editable. Type a different channel (e.g. `test2`) and click **Connect**. Reload the plugin once more. Expected: input auto-fills with `test2`.
+  (c) (Optional cleanup) restore channel back to `test1` before continuing other scenarios.
 
 ## Known limitations (v1)
 
