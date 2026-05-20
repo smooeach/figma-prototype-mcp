@@ -25,7 +25,8 @@ type Command =
       params: {
         connections: Array<{
           sourceNodeId: string;
-          trigger: "ON_CLICK" | "ON_HOVER" | "ON_PRESS";
+          trigger: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "AFTER_TIMEOUT";
+          afterTimeoutSeconds?: number;
           transition: "INSTANT" | "DISSOLVE" | "SMART_ANIMATE";
           action:
             | { type: "navigate"; targetFrameId: string }
@@ -199,7 +200,8 @@ function pathOf(node: BaseNode): string {
 async function handleCreateReactions(params: {
   connections: Array<{
     sourceNodeId: string;
-    trigger: "ON_CLICK" | "ON_HOVER" | "ON_PRESS";
+    trigger: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "AFTER_TIMEOUT";
+    afterTimeoutSeconds?: number;
     transition: "INSTANT" | "DISSOLVE" | "SMART_ANIMATE";
     action:
       | { type: "navigate"; targetFrameId: string }
@@ -244,6 +246,7 @@ async function handleCreateReactions(params: {
         newReaction = buildNavigateReaction({
           targetFrameId: conn.action.targetFrameId,
           trigger: conn.trigger,
+          afterTimeoutSeconds: conn.afterTimeoutSeconds,
           transition: conn.transition,
         });
       } else if (conn.action.type === "scroll") {
@@ -256,6 +259,7 @@ async function handleCreateReactions(params: {
         newReaction = buildScrollReaction({
           targetNodeId: conn.action.targetNodeId,
           trigger: conn.trigger,
+          afterTimeoutSeconds: conn.afterTimeoutSeconds,
           transition: conn.transition,
         });
       } else if (conn.action.type === "overlay") {
@@ -267,15 +271,17 @@ async function handleCreateReactions(params: {
         newReaction = buildOverlayReaction({
           targetFrameId: conn.action.targetFrameId,
           trigger: conn.trigger,
+          afterTimeoutSeconds: conn.afterTimeoutSeconds,
           transition: conn.transition,
         });
       } else if (conn.action.type === "close") {
-        newReaction = buildCloseReaction({ trigger: conn.trigger });
+        newReaction = buildCloseReaction({ trigger: conn.trigger, afterTimeoutSeconds: conn.afterTimeoutSeconds });
       } else if (conn.action.type === "back") {
-        newReaction = buildBackReaction({ trigger: conn.trigger });
+        newReaction = buildBackReaction({ trigger: conn.trigger, afterTimeoutSeconds: conn.afterTimeoutSeconds });
       } else if (conn.action.type === "url") {
         newReaction = buildUrlReaction({
           trigger: conn.trigger,
+          afterTimeoutSeconds: conn.afterTimeoutSeconds,
           url: conn.action.url,
           openInNewTab: conn.action.openInNewTab,
         });
@@ -288,6 +294,7 @@ async function handleCreateReactions(params: {
         }
         newReaction = buildSwapOverlayReaction({
           trigger: conn.trigger,
+          afterTimeoutSeconds: conn.afterTimeoutSeconds,
           transition: conn.transition,
           targetFrameId: conn.action.targetFrameId,
         });
@@ -341,7 +348,7 @@ async function handleListReactions(params: { nodeId: string }) {
       const destNode = destId ? figma.getNodeById(destId) : null;
       return {
         index: i,
-        trigger: { type: r.trigger?.type ?? "UNKNOWN" },
+        trigger: { type: r.trigger?.type ?? "UNKNOWN", timeout: r.trigger?.timeout },
         action: {
           type: action.type ?? "UNKNOWN",
           navigation: action.navigation,
