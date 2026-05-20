@@ -52,7 +52,7 @@ Configure your MCP client (e.g. Claude Code) to launch the server with the match
 |---|---|
 | `get_canvas_overview` | One-shot context primer: current page, frames, selection |
 | `find_nodes` | Search nodes by name (and optional type) |
-| `create_reactions` | **Write**: batch create prototype reactions. Each connection's `action` picks between Navigate To (action.type=navigate, targetFrameId), Scroll To (scroll, targetNodeId), Open Overlay (overlay, targetFrameId), and Close Overlay (close, no destination). Each succeeds or fails independently; scroll targets without a scrollable ancestor return a `warning`. |
+| `create_reactions` | **Write**: batch create prototype reactions. Each connection's `action` picks between Navigate To (action.type=navigate, targetFrameId), Scroll To (scroll, targetNodeId), Open Overlay (overlay, targetFrameId), Close Overlay (close, no destination), Back (back, no destination), Open URL (url, url), and Swap Overlay (swap_overlay, targetFrameId). Each succeeds or fails independently; scroll targets without a scrollable ancestor return a `warning`. |
 | `list_reactions` | Inspect existing reactions on a node |
 | `clear_reactions` | Remove reactions from one or more nodes |
 
@@ -73,10 +73,15 @@ After install + all three components running, verify these scenarios in Figma. E
   Setup: Create two frames in the test zone — `mainFrame` and `modal`. Place a button `openBtn` inside `mainFrame`, and a button `closeBtn` inside `modal`.
   (a) Ask: "openBtn을 modal로 오버레이로 열어줘". Expected: reaction created, no warning. In Figma prototype play, click openBtn → modal appears as an overlay over mainFrame.
   (b) Ask: "closeBtn을 누르면 오버레이 닫게 해줘". Expected: reaction created. In prototype play, click closeBtn → overlay dismisses and mainFrame is visible again.
+- [ ] **9. Back / Open URL / Swap Overlay**:
+  Setup: Two regular frames `screenA` and `screenB` with three buttons inside `screenA` (`goB`, `openExternal`, `dismissThis`). Two overlay frames `overlayP` and `overlayQ`. A button `swapBtn` inside `overlayP`. Pre-wire `goB` → screenB and `screenA → overlayP` (via overlay) using prior tools as needed.
+  (a) Ask: "openExternal에서 https://figma.com 열게 해줘". Expected: reaction created with action.type=URL and the exact url echoed. In play mode, click opens figma.com in the browser.
+  (b) Ask: "dismissThis는 뒤로 가기로". Expected: reaction created with action.type=BACK (no destination). In play, after navigating screenA→screenB, dismissThis returns to screenA.
+  (c) Ask: "swapBtn을 overlayQ로 swap하게". Expected: reaction created with action.type=NODE and navigation=SWAP, destinationId echoed. In play, open overlayP from screenA, then click swapBtn → overlayP is replaced (not stacked) by overlayQ.
 
 ## Known limitations (v1)
 
-- Reaction actions: **Navigate To**, **Scroll To**, **Open Overlay**, **Close Overlay**. No variables, set-variant, open-url, back, swap-overlay.
+- Reaction actions: **Navigate To**, **Scroll To**, **Open Overlay**, **Close Overlay**, **Back**, **Open URL**, **Swap Overlay**. No variables, set-variant (component swap), conditional, media-runtime.
 - Default transition is **Instant**. Smart Animate is available as an option but requires matching layer designs.
 - **Figma desktop/web app must be open and the plugin running** — no headless execution.
 - Single-page scope (cross-page navigation untested).
