@@ -9,6 +9,7 @@ import {
   buildBackReaction,
   buildUrlReaction,
   buildSwapOverlayReaction,
+  resolveEasing,
 } from "../src/figma-plugin/reaction-builder.js";
 
 describe("buildNavigateReaction", () => {
@@ -352,5 +353,77 @@ describe("buildNavigateReaction with AFTER_TIMEOUT trigger", () => {
     if (action.type !== "NODE") throw new Error("expected NODE action");
     expect(action.destinationId).toBe("1:2");
     expect(action.navigation).toBe("NAVIGATE");
+  });
+});
+
+describe("resolveEasing", () => {
+  it("returns { type: EASE_OUT } for undefined (default)", () => {
+    expect(resolveEasing(undefined)).toEqual({ type: "EASE_OUT" });
+  });
+
+  it("returns { type } for a named easing string", () => {
+    for (const name of [
+      "LINEAR", "EASE_IN", "EASE_OUT", "EASE_IN_AND_OUT",
+      "EASE_IN_BACK", "EASE_OUT_BACK", "EASE_IN_AND_OUT_BACK",
+      "GENTLE", "QUICK", "BOUNCY", "SLOW",
+    ] as const) {
+      expect(resolveEasing(name)).toEqual({ type: name });
+    }
+  });
+
+  it("wraps CUSTOM_CUBIC_BEZIER flat input into easingFunctionCubicBezier", () => {
+    const r = resolveEasing({ type: "CUSTOM_CUBIC_BEZIER", x1: 0.2, y1: 0, x2: 0, y2: 1 });
+    expect(r).toEqual({
+      type: "CUSTOM_CUBIC_BEZIER",
+      easingFunctionCubicBezier: { x1: 0.2, y1: 0, x2: 0, y2: 1 },
+    });
+  });
+
+  it("wraps CUSTOM_SPRING flat input into easingFunctionSpring", () => {
+    const r = resolveEasing({ type: "CUSTOM_SPRING", mass: 1, stiffness: 600, damping: 10, initialVelocity: 0 });
+    expect(r).toEqual({
+      type: "CUSTOM_SPRING",
+      easingFunctionSpring: { mass: 1, stiffness: 600, damping: 10, initialVelocity: 0 },
+    });
+  });
+});
+
+describe("buildTransition with spring + custom easings", () => {
+  it("accepts BOUNCY spring preset", () => {
+    expect(buildTransition({ type: "SMART_ANIMATE", duration: 0.4, easing: "BOUNCY" })).toEqual({
+      type: "SMART_ANIMATE",
+      duration: 0.4,
+      easing: { type: "BOUNCY" },
+    });
+  });
+
+  it("accepts CUSTOM_CUBIC_BEZIER", () => {
+    expect(buildTransition({
+      type: "SMART_ANIMATE",
+      duration: 0.5,
+      easing: { type: "CUSTOM_CUBIC_BEZIER", x1: 0.2, y1: 0, x2: 0, y2: 1 },
+    })).toEqual({
+      type: "SMART_ANIMATE",
+      duration: 0.5,
+      easing: {
+        type: "CUSTOM_CUBIC_BEZIER",
+        easingFunctionCubicBezier: { x1: 0.2, y1: 0, x2: 0, y2: 1 },
+      },
+    });
+  });
+
+  it("accepts CUSTOM_SPRING", () => {
+    expect(buildTransition({
+      type: "SMART_ANIMATE",
+      duration: 0.6,
+      easing: { type: "CUSTOM_SPRING", mass: 1, stiffness: 600, damping: 10, initialVelocity: 0 },
+    })).toEqual({
+      type: "SMART_ANIMATE",
+      duration: 0.6,
+      easing: {
+        type: "CUSTOM_SPRING",
+        easingFunctionSpring: { mass: 1, stiffness: 600, damping: 10, initialVelocity: 0 },
+      },
+    });
   });
 });

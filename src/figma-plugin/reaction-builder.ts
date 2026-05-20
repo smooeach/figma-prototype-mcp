@@ -6,14 +6,47 @@ export type TransitionName = "INSTANT" | "DISSOLVE" | "SMART_ANIMATE";
 
 export type SimpleTransitionType = "DISSOLVE" | "SMART_ANIMATE" | "SCROLL_ANIMATE";
 
-export type EasingName =
+export type NamedEasingName =
   | "LINEAR" | "EASE_IN" | "EASE_OUT" | "EASE_IN_AND_OUT"
-  | "EASE_IN_BACK" | "EASE_OUT_BACK" | "EASE_IN_AND_OUT_BACK";
+  | "EASE_IN_BACK" | "EASE_OUT_BACK" | "EASE_IN_AND_OUT_BACK"
+  | "GENTLE" | "QUICK" | "BOUNCY" | "SLOW";
+
+// Backward-compat alias.
+export type EasingName = NamedEasingName;
+
+export interface CustomCubicBezierEasing {
+  type: "CUSTOM_CUBIC_BEZIER";
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+export interface CustomSpringEasing {
+  type: "CUSTOM_SPRING";
+  mass: number;
+  stiffness: number;
+  damping: number;
+  initialVelocity: number;
+}
+
+export type EasingInput = NamedEasingName | CustomCubicBezierEasing | CustomSpringEasing;
+
+export type EasingShape =
+  | { type: NamedEasingName }
+  | {
+      type: "CUSTOM_CUBIC_BEZIER";
+      easingFunctionCubicBezier: { x1: number; y1: number; x2: number; y2: number };
+    }
+  | {
+      type: "CUSTOM_SPRING";
+      easingFunctionSpring: { mass: number; stiffness: number; damping: number; initialVelocity: number };
+    };
 
 export interface SimpleTransitionInput {
   type: SimpleTransitionType;
   duration?: number;       // seconds, default 0.3
-  easing?: EasingName;     // default "EASE_OUT"
+  easing?: EasingInput;    // default "EASE_OUT"
 }
 
 export type TransitionInput = TransitionName | SimpleTransitionInput;
@@ -24,7 +57,7 @@ export type TransitionShape =
   | {
       type: SimpleTransitionType;
       duration: number;
-      easing: { type: EasingName };
+      easing: EasingShape;
     };
 
 // Figma's Action union: NODE actions cover NAVIGATE/SCROLL_TO/OVERLAY/SWAP navigations.
@@ -93,6 +126,27 @@ export interface SwapOverlayBuildInput {
   afterTimeoutSeconds?: number;
 }
 
+export function resolveEasing(input: EasingInput | undefined): EasingShape {
+  if (input === undefined) return { type: "EASE_OUT" };
+  if (typeof input === "string") return { type: input };
+  if (input.type === "CUSTOM_CUBIC_BEZIER") {
+    return {
+      type: "CUSTOM_CUBIC_BEZIER",
+      easingFunctionCubicBezier: { x1: input.x1, y1: input.y1, x2: input.x2, y2: input.y2 },
+    };
+  }
+  // CUSTOM_SPRING
+  return {
+    type: "CUSTOM_SPRING",
+    easingFunctionSpring: {
+      mass: input.mass,
+      stiffness: input.stiffness,
+      damping: input.damping,
+      initialVelocity: input.initialVelocity,
+    },
+  };
+}
+
 export function buildTransition(input: TransitionInput): TransitionShape {
   if (input === "INSTANT") return null;
 
@@ -106,11 +160,10 @@ export function buildTransition(input: TransitionInput): TransitionShape {
 
   // Nested object — resolve defaults.
   const duration = input.duration ?? 0.3;
-  const easing: EasingName = input.easing ?? "EASE_OUT";
   return {
     type: input.type,
     duration,
-    easing: { type: easing },
+    easing: resolveEasing(input.easing),
   };
 }
 
