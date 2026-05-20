@@ -338,6 +338,60 @@ describe("buildTrigger", () => {
   it("throws when AFTER_TIMEOUT is requested without seconds", () => {
     expect(() => buildTrigger("AFTER_TIMEOUT")).toThrow(/afterTimeoutSeconds/);
   });
+
+  it("string ON_CLICK → { type: ON_CLICK }", () => {
+    expect(buildTrigger("ON_CLICK")).toEqual({ type: "ON_CLICK" });
+  });
+  it("string AFTER_TIMEOUT requires legacy afterTimeoutSeconds", () => {
+    expect(() => buildTrigger("AFTER_TIMEOUT")).toThrow(/afterTimeoutSeconds/);
+    expect(buildTrigger("AFTER_TIMEOUT", 2.5)).toEqual({
+      type: "AFTER_TIMEOUT", timeout: 2.5,
+    });
+  });
+  it("object { type: ON_CLICK } → { type: ON_CLICK }", () => {
+    expect(buildTrigger({ type: "ON_CLICK" })).toEqual({ type: "ON_CLICK" });
+  });
+  it("object ON_DRAG no params", () => {
+    expect(buildTrigger({ type: "ON_DRAG" })).toEqual({ type: "ON_DRAG" });
+  });
+  it("object MOUSE_UP with delay", () => {
+    expect(buildTrigger({ type: "MOUSE_UP", delay: 0.2 })).toEqual({
+      type: "MOUSE_UP", delay: 0.2,
+    });
+  });
+  it("object MOUSE_UP default delay 0", () => {
+    expect(buildTrigger({ type: "MOUSE_UP" })).toEqual({
+      type: "MOUSE_UP", delay: 0,
+    });
+  });
+  it("object MOUSE_ENTER defaults delay 0 + deprecatedVersion false", () => {
+    expect(buildTrigger({ type: "MOUSE_ENTER" })).toEqual({
+      type: "MOUSE_ENTER", delay: 0, deprecatedVersion: false,
+    });
+  });
+  it("object MOUSE_LEAVE with explicit fields", () => {
+    expect(buildTrigger({ type: "MOUSE_LEAVE", delay: 0.5, deprecatedVersion: true })).toEqual({
+      type: "MOUSE_LEAVE", delay: 0.5, deprecatedVersion: true,
+    });
+  });
+  it("object ON_KEY_DOWN with device + keyCodes", () => {
+    expect(buildTrigger({ type: "ON_KEY_DOWN", device: "KEYBOARD", keyCodes: [32] })).toEqual({
+      type: "ON_KEY_DOWN", device: "KEYBOARD", keyCodes: [32],
+    });
+  });
+  it("object ON_MEDIA_HIT with mediaHitTime", () => {
+    expect(buildTrigger({ type: "ON_MEDIA_HIT", mediaHitTime: 5 })).toEqual({
+      type: "ON_MEDIA_HIT", mediaHitTime: 5,
+    });
+  });
+  it("object ON_MEDIA_END no params", () => {
+    expect(buildTrigger({ type: "ON_MEDIA_END" })).toEqual({ type: "ON_MEDIA_END" });
+  });
+  it("object AFTER_TIMEOUT self-contained (legacy arg ignored)", () => {
+    expect(buildTrigger({ type: "AFTER_TIMEOUT", timeout: 3 })).toEqual({
+      type: "AFTER_TIMEOUT", timeout: 3,
+    });
+  });
 });
 
 describe("buildNavigateReaction with AFTER_TIMEOUT trigger", () => {

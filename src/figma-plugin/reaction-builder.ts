@@ -55,6 +55,18 @@ export interface SimpleTransitionInput {
 export type TransitionInput = TransitionName | SimpleTransitionInput;
 export type TriggerName = "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "AFTER_TIMEOUT";
 
+export type KeyboardDevice =
+  | "KEYBOARD" | "XBOX_ONE" | "PS4" | "SWITCH_PRO" | "UNKNOWN_CONTROLLER";
+
+export type TriggerInput =
+  | "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "AFTER_TIMEOUT"
+  | { type: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "ON_DRAG" | "ON_MEDIA_END" }
+  | { type: "AFTER_TIMEOUT"; timeout: number }
+  | { type: "MOUSE_UP" | "MOUSE_DOWN"; delay?: number }
+  | { type: "MOUSE_ENTER" | "MOUSE_LEAVE"; delay?: number; deprecatedVersion?: boolean }
+  | { type: "ON_KEY_DOWN"; device: KeyboardDevice; keyCodes: number[] }
+  | { type: "ON_MEDIA_HIT"; mediaHitTime: number };
+
 export type TransitionShape =
   | null
   | {
@@ -77,7 +89,13 @@ export type BuiltAction =
   | { type: "BACK" }
   | { type: "URL"; url: string; openInNewTab: boolean };
 
-export type TriggerShape = { type: string; timeout?: number };
+export type TriggerShape =
+  | { type: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "ON_DRAG" | "ON_MEDIA_END" }
+  | { type: "AFTER_TIMEOUT"; timeout: number }
+  | { type: "MOUSE_UP" | "MOUSE_DOWN"; delay: number }
+  | { type: "MOUSE_ENTER" | "MOUSE_LEAVE"; delay: number; deprecatedVersion: boolean }
+  | { type: "ON_KEY_DOWN"; device: KeyboardDevice; keyCodes: number[] }
+  | { type: "ON_MEDIA_HIT"; mediaHitTime: number };
 
 export interface BuiltReaction {
   trigger: TriggerShape;
@@ -86,44 +104,44 @@ export interface BuiltReaction {
 
 export interface NavigateBuildInput {
   targetFrameId: string;
-  trigger: TriggerName;
+  trigger: TriggerInput;
   transition: TransitionInput;
   afterTimeoutSeconds?: number;
 }
 
 export interface ScrollBuildInput {
   targetNodeId: string;
-  trigger: TriggerName;
+  trigger: TriggerInput;
   transition: TransitionInput;
   afterTimeoutSeconds?: number;
 }
 
 export interface OverlayBuildInput {
   targetFrameId: string;
-  trigger: TriggerName;
+  trigger: TriggerInput;
   transition: TransitionInput;
   afterTimeoutSeconds?: number;
 }
 
 export interface CloseBuildInput {
-  trigger: TriggerName;
+  trigger: TriggerInput;
   afterTimeoutSeconds?: number;
 }
 
 export interface BackBuildInput {
-  trigger: TriggerName;
+  trigger: TriggerInput;
   afterTimeoutSeconds?: number;
 }
 
 export interface UrlBuildInput {
-  trigger: TriggerName;
+  trigger: TriggerInput;
   url: string;
   openInNewTab?: boolean;
   afterTimeoutSeconds?: number;
 }
 
 export interface SwapOverlayBuildInput {
-  trigger: TriggerName;
+  trigger: TriggerInput;
   transition: TransitionInput;
   targetFrameId: string;
   afterTimeoutSeconds?: number;
@@ -169,14 +187,43 @@ export function buildTransition(input: TransitionInput): TransitionShape {
   };
 }
 
-export function buildTrigger(name: TriggerName, afterTimeoutSeconds?: number): TriggerShape {
-  if (name === "AFTER_TIMEOUT") {
-    if (afterTimeoutSeconds === undefined) {
-      throw new Error("buildTrigger: afterTimeoutSeconds is required when name is AFTER_TIMEOUT");
+export function buildTrigger(
+  input: TriggerInput,
+  legacyAfterTimeoutSeconds?: number
+): TriggerShape {
+  if (typeof input === "string") {
+    if (input === "AFTER_TIMEOUT") {
+      if (legacyAfterTimeoutSeconds === undefined) {
+        throw new Error("buildTrigger: afterTimeoutSeconds is required when name is AFTER_TIMEOUT");
+      }
+      return { type: "AFTER_TIMEOUT", timeout: legacyAfterTimeoutSeconds };
     }
-    return { type: "AFTER_TIMEOUT", timeout: afterTimeoutSeconds };
+    return { type: input };
   }
-  return { type: name };
+  switch (input.type) {
+    case "ON_CLICK":
+    case "ON_HOVER":
+    case "ON_PRESS":
+    case "ON_DRAG":
+    case "ON_MEDIA_END":
+      return { type: input.type };
+    case "AFTER_TIMEOUT":
+      return { type: "AFTER_TIMEOUT", timeout: input.timeout };
+    case "MOUSE_UP":
+    case "MOUSE_DOWN":
+      return { type: input.type, delay: input.delay ?? 0 };
+    case "MOUSE_ENTER":
+    case "MOUSE_LEAVE":
+      return {
+        type: input.type,
+        delay: input.delay ?? 0,
+        deprecatedVersion: input.deprecatedVersion ?? false,
+      };
+    case "ON_KEY_DOWN":
+      return { type: "ON_KEY_DOWN", device: input.device, keyCodes: input.keyCodes };
+    case "ON_MEDIA_HIT":
+      return { type: "ON_MEDIA_HIT", mediaHitTime: input.mediaHitTime };
+  }
 }
 
 export function buildNavigateReaction(input: NavigateBuildInput): BuiltReaction {
