@@ -87,6 +87,11 @@ After install + all three components running, verify these scenarios in Figma. E
   (a) Close the Figma plugin UI, then reopen it (Plugins → Development → figma-prototype). Expected: input is pre-filled with `test1` and the status flips to "Connected on channel: test1" automatically — no user input.
   (b) Click **Disconnect**. Input becomes editable. Type a different channel (e.g. `test2`) and click **Connect**. Reload the plugin once more. Expected: input auto-fills with `test2`.
   (c) (Optional cleanup) restore channel back to `test1` before continuing other scenarios.
+- [ ] **12. Plugin auto-reconnect**:
+  Setup: plugin connected to `test1`. Relay terminal accessible.
+  (a) Stop the relay (Ctrl-C in the relay terminal). Plugin UI status flips to "Reconnecting to test1 in 1s…" then "Reconnecting to test1…" then "Reconnecting to test1 in 2s…" with the next attempt, doubling each time up to 30s. Input stays disabled and the Disconnect button stays visible during retries.
+  (b) Restart the relay (`npm run relay`). On the next retry attempt the WS reconnects and the status flips back to "Connected on channel: test1" automatically.
+  (c) Drop the relay again, then click **Disconnect** during the reconnect loop. The retry stops immediately, status flips to "Disconnected", input becomes editable, Connect button reappears.
 
 ## Known limitations (v1)
 
