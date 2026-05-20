@@ -6,6 +6,9 @@ import {
   buildScrollReaction,
   buildOverlayReaction,
   buildCloseReaction,
+  buildBackReaction,
+  buildUrlReaction,
+  buildSwapOverlayReaction,
   type BuiltReaction,
 } from "./reaction-builder.js";
 import { CommandQueue } from "./command-queue.js";
@@ -28,7 +31,10 @@ type Command =
             | { type: "navigate"; targetFrameId: string }
             | { type: "scroll"; targetNodeId: string }
             | { type: "overlay"; targetFrameId: string }
-            | { type: "close" };
+            | { type: "close" }
+            | { type: "back" }
+            | { type: "url"; url: string }
+            | { type: "swap_overlay"; targetFrameId: string };
         }>;
         replaceExisting: boolean;
       };
@@ -181,7 +187,10 @@ async function handleCreateReactions(params: {
       | { type: "navigate"; targetFrameId: string }
       | { type: "scroll"; targetNodeId: string }
       | { type: "overlay"; targetFrameId: string }
-      | { type: "close" };
+      | { type: "close" }
+      | { type: "back" }
+      | { type: "url"; url: string }
+      | { type: "swap_overlay"; targetFrameId: string };
   }>;
   replaceExisting: boolean;
 }) {
@@ -242,9 +251,24 @@ async function handleCreateReactions(params: {
           trigger: conn.trigger,
           transition: conn.transition,
         });
-      } else {
-        // close
+      } else if (conn.action.type === "close") {
         newReaction = buildCloseReaction({ trigger: conn.trigger });
+      } else if (conn.action.type === "back") {
+        newReaction = buildBackReaction({ trigger: conn.trigger });
+      } else if (conn.action.type === "url") {
+        newReaction = buildUrlReaction({ trigger: conn.trigger, url: conn.action.url });
+      } else {
+        // swap_overlay
+        const target = figma.getNodeById(conn.action.targetFrameId);
+        if (!target) throw new Error(`Swap overlay target frame not found: ${conn.action.targetFrameId}`);
+        if (target.type !== "FRAME") {
+          throw new Error(`Swap overlay target must be a frame: ${conn.action.targetFrameId} (got ${target.type})`);
+        }
+        newReaction = buildSwapOverlayReaction({
+          trigger: conn.trigger,
+          transition: conn.transition,
+          targetFrameId: conn.action.targetFrameId,
+        });
       }
 
       const existing = ("reactions" in source ? (source as any).reactions : []) as any[];
