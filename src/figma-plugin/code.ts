@@ -274,6 +274,7 @@ async function handleListReactions(params: { nodeId: string }) {
         trigger: { type: r.trigger?.type ?? "UNKNOWN" },
         action: {
           type: action.type ?? "UNKNOWN",
+          navigation: action.navigation,
           destinationId: destId,
           destinationName: destNode?.name,
           transition: action.transition,

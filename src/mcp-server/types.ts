@@ -106,6 +106,7 @@ export interface ReactionSummary {
   trigger: { type: string };
   action: {
     type: string;
+    navigation?: string;
     destinationId?: string;
     destinationName?: string;
     transition?: { type: string; duration?: number };
