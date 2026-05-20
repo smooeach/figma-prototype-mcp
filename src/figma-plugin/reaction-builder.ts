@@ -18,9 +18,10 @@ export interface BuiltReaction {
     type: "NODE";
     destinationId: string;
     navigation: "NAVIGATE";
+    // Figma encodes "instant" as null; non-instant transitions require both duration and easing.
     transition:
-      | { type: "INSTANT" }
-      | { type: "DISSOLVE"; duration: number }
+      | null
+      | { type: "DISSOLVE"; duration: number; easing: { type: string } }
       | { type: "SMART_ANIMATE"; duration: number; easing: { type: string } };
     preserveScrollPosition: false;
   }>;
@@ -29,9 +30,9 @@ export interface BuiltReaction {
 export function buildNavigateReaction(input: BuildInput): BuiltReaction {
   let transition: BuiltReaction["actions"][number]["transition"];
   if (input.transition === "INSTANT") {
-    transition = { type: "INSTANT" };
+    transition = null;
   } else if (input.transition === "DISSOLVE") {
-    transition = { type: "DISSOLVE", duration: 0.3 };
+    transition = { type: "DISSOLVE", duration: 0.3, easing: { type: "EASE_OUT" } };
   } else {
     transition = { type: "SMART_ANIMATE", duration: 0.3, easing: { type: "EASE_OUT" } };
   }

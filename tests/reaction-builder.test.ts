@@ -15,7 +15,7 @@ describe("buildNavigateReaction", () => {
       type: "NODE",
       destinationId: "1:2",
       navigation: "NAVIGATE",
-      transition: { type: "INSTANT" },
+      transition: null,
       preserveScrollPosition: false,
     });
   });
@@ -45,6 +45,7 @@ describe("buildNavigateReaction", () => {
     expect(r.actions[0]!.transition).toMatchObject({
       type: "DISSOLVE",
       duration: 0.3,
+      easing: { type: "EASE_OUT" },
     });
   });
 });
