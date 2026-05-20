@@ -92,7 +92,7 @@ After install + all three components running, verify these scenarios in Figma. E
   (a) Stop the relay (Ctrl-C in the relay terminal). Plugin UI status flips to "Reconnecting to test1 in 1s…" then "Reconnecting to test1…" then "Reconnecting to test1 in 2s…" with the next attempt, doubling each time up to 30s. Input stays disabled and the Disconnect button stays visible during retries.
   (b) Restart the relay (`npm run relay`). On the next retry attempt the WS reconnects and the status flips back to "Connected on channel: test1" automatically.
   (c) Drop the relay again, then click **Disconnect** during the reconnect loop. The retry stops immediately, status flips to "Disconnected", input becomes editable, Connect button reappears.
-- [ ] **13. AFTER_TIMEOUT trigger (auto-advance)**:
+- [x] **13. AFTER_TIMEOUT trigger (auto-advance)**:
   Setup: two frames `splash` and `home`. The splash frame is the trigger source — no buttons needed inside it.
   (a) Ask: "splash가 2초 뒤에 자동으로 home으로 가게 해줘". Expected: reaction created on splash with trigger.type=AFTER_TIMEOUT, timeout=2, action navigate→home. In Figma prototype play, opening splash auto-transitions to home after 2 seconds.
   (b) Ask: "splash 어디로 연결돼 있어?" (splash selected). Expected: list_reactions response trigger object includes both `type: "AFTER_TIMEOUT"` and `timeout: 2`.
