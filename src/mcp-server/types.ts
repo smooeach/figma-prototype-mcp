@@ -88,7 +88,15 @@ export interface ReactionConnectionInput {
   sourceNodeId: string;
   trigger?: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "AFTER_TIMEOUT";
   afterTimeoutSeconds?: number;
-  transition?: "INSTANT" | "DISSOLVE" | "SMART_ANIMATE";
+  transition?:
+    | "INSTANT" | "DISSOLVE" | "SMART_ANIMATE"
+    | {
+        type: "DISSOLVE" | "SMART_ANIMATE" | "SCROLL_ANIMATE";
+        duration?: number;
+        easing?:
+          | "LINEAR" | "EASE_IN" | "EASE_OUT" | "EASE_IN_AND_OUT"
+          | "EASE_IN_BACK" | "EASE_OUT_BACK" | "EASE_IN_AND_OUT_BACK";
+      };
   action: ReactionAction;
 }
 
@@ -117,6 +125,6 @@ export interface ReactionSummary {
     openInNewTab?: boolean;
     destinationId?: string;
     destinationName?: string;
-    transition?: { type: string; duration?: number };
+    transition?: { type: string; duration?: number; easing?: { type: string } };
   };
 }

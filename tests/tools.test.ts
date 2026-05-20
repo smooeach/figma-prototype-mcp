@@ -270,3 +270,70 @@ describe("CreateReactionsInput AFTER_TIMEOUT trigger", () => {
     ).toThrow();
   });
 });
+
+describe("CreateReactionsInput transition Phase 1", () => {
+  it("accepts nested transition with duration + easing", () => {
+    const r = CreateReactionsInput.parse({
+      connections: [{
+        sourceNodeId: "1:1",
+        transition: { type: "DISSOLVE", duration: 0.5, easing: "EASE_OUT_BACK" },
+        action: { type: "navigate", targetFrameId: "1:2" },
+      }],
+    });
+    expect(r.connections[0]!.transition).toEqual({
+      type: "DISSOLVE", duration: 0.5, easing: "EASE_OUT_BACK",
+    });
+  });
+
+  it("accepts nested transition with only type (defaults applied later by builder)", () => {
+    const r = CreateReactionsInput.parse({
+      connections: [{
+        sourceNodeId: "1:1",
+        transition: { type: "SMART_ANIMATE" },
+        action: { type: "navigate", targetFrameId: "1:2" },
+      }],
+    });
+    expect(r.connections[0]!.transition).toEqual({ type: "SMART_ANIMATE" });
+  });
+
+  it("rejects nested transition with unknown easing", () => {
+    expect(() => CreateReactionsInput.parse({
+      connections: [{
+        sourceNodeId: "1:1",
+        transition: { type: "DISSOLVE", easing: "EASE_OUT_BOUNCE" as any },
+        action: { type: "navigate", targetFrameId: "1:2" },
+      }],
+    })).toThrow();
+  });
+
+  it("rejects nested transition with non-positive duration", () => {
+    expect(() => CreateReactionsInput.parse({
+      connections: [{
+        sourceNodeId: "1:1",
+        transition: { type: "DISSOLVE", duration: 0 },
+        action: { type: "navigate", targetFrameId: "1:2" },
+      }],
+    })).toThrow();
+  });
+
+  it("rejects nested transition with duration > 10", () => {
+    expect(() => CreateReactionsInput.parse({
+      connections: [{
+        sourceNodeId: "1:1",
+        transition: { type: "DISSOLVE", duration: 15 },
+        action: { type: "navigate", targetFrameId: "1:2" },
+      }],
+    })).toThrow();
+  });
+
+  it("still accepts the INSTANT/DISSOLVE/SMART_ANIMATE shortcut strings", () => {
+    const r = CreateReactionsInput.parse({
+      connections: [{
+        sourceNodeId: "1:1",
+        transition: "SMART_ANIMATE",
+        action: { type: "navigate", targetFrameId: "1:2" },
+      }],
+    });
+    expect(r.connections[0]!.transition).toBe("SMART_ANIMATE");
+  });
+});

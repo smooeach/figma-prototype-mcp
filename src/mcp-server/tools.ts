@@ -14,6 +14,19 @@ export const FindNodesInput = z.object({
 const TriggerEnum = z.enum(["ON_CLICK", "ON_HOVER", "ON_PRESS", "AFTER_TIMEOUT"]);
 const TransitionEnum = z.enum(["INSTANT", "DISSOLVE", "SMART_ANIMATE"]);
 
+const EasingInputEnum = z.enum([
+  "LINEAR", "EASE_IN", "EASE_OUT", "EASE_IN_AND_OUT",
+  "EASE_IN_BACK", "EASE_OUT_BACK", "EASE_IN_AND_OUT_BACK",
+]);
+
+const SimpleTransitionObject = z.object({
+  type: z.enum(["DISSOLVE", "SMART_ANIMATE", "SCROLL_ANIMATE"]),
+  duration: z.number().positive().max(10).optional(),
+  easing: EasingInputEnum.optional(),
+});
+
+const TransitionInput = z.union([TransitionEnum, SimpleTransitionObject]);
+
 const NavigateActionInput = z.object({
   type: z.literal("navigate"),
   targetFrameId: z.string().min(1),
@@ -62,7 +75,7 @@ const ConnectionInput = z.object({
   sourceNodeId: z.string().min(1),
   trigger: TriggerEnum.default("ON_CLICK"),
   afterTimeoutSeconds: z.number().positive().optional(),
-  transition: TransitionEnum.default("INSTANT"),
+  transition: TransitionInput.default("INSTANT"),
   action: ActionInput,
 }).refine(
   (v) => v.trigger !== "AFTER_TIMEOUT" || typeof v.afterTimeoutSeconds === "number",
