@@ -86,7 +86,16 @@ export type ReactionAction =
 
 export interface ReactionConnectionInput {
   sourceNodeId: string;
-  trigger?: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "AFTER_TIMEOUT";
+  trigger?:
+    | "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "AFTER_TIMEOUT"
+    | { type: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "ON_DRAG" | "ON_MEDIA_END" }
+    | { type: "AFTER_TIMEOUT"; timeout: number }
+    | { type: "MOUSE_UP" | "MOUSE_DOWN"; delay?: number }
+    | { type: "MOUSE_ENTER" | "MOUSE_LEAVE"; delay?: number; deprecatedVersion?: boolean }
+    | { type: "ON_KEY_DOWN";
+        device: "KEYBOARD" | "XBOX_ONE" | "PS4" | "SWITCH_PRO" | "UNKNOWN_CONTROLLER";
+        keyCodes: number[]; }
+    | { type: "ON_MEDIA_HIT"; mediaHitTime: number };
   afterTimeoutSeconds?: number;
   transition?:
     | "INSTANT" | "DISSOLVE" | "SMART_ANIMATE"
@@ -99,6 +108,18 @@ export interface ReactionConnectionInput {
           | "EASE_IN_BACK" | "EASE_OUT_BACK" | "EASE_IN_AND_OUT_BACK"
           | "GENTLE" | "QUICK" | "BOUNCY" | "SLOW"
           // 2 custom flat
+          | { type: "CUSTOM_CUBIC_BEZIER"; x1: number; y1: number; x2: number; y2: number }
+          | { type: "CUSTOM_SPRING"; mass: number; stiffness: number; damping: number };
+      }
+    | {
+        type: "MOVE_IN" | "MOVE_OUT" | "PUSH" | "SLIDE_IN" | "SLIDE_OUT";
+        direction: "LEFT" | "RIGHT" | "TOP" | "BOTTOM";
+        matchLayers?: boolean;
+        duration?: number;
+        easing?:
+          | "LINEAR" | "EASE_IN" | "EASE_OUT" | "EASE_IN_AND_OUT"
+          | "EASE_IN_BACK" | "EASE_OUT_BACK" | "EASE_IN_AND_OUT_BACK"
+          | "GENTLE" | "QUICK" | "BOUNCY" | "SLOW"
           | { type: "CUSTOM_CUBIC_BEZIER"; x1: number; y1: number; x2: number; y2: number }
           | { type: "CUSTOM_SPRING"; mass: number; stiffness: number; damping: number };
       };
@@ -122,7 +143,15 @@ export interface CreateReactionsResult {
 
 export interface ReactionSummary {
   index: number;
-  trigger: { type: string; timeout?: number };
+  trigger: {
+    type: string;
+    timeout?: number;
+    delay?: number;
+    deprecatedVersion?: boolean;
+    device?: string;
+    keyCodes?: number[];
+    mediaHitTime?: number;
+  };
   action: {
     type: string;
     navigation?: string;
@@ -132,6 +161,8 @@ export interface ReactionSummary {
     destinationName?: string;
     transition?: {
       type: string;
+      direction?: string;
+      matchLayers?: boolean;
       duration?: number;
       easing?: {
         type: string;
