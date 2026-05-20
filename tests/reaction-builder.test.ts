@@ -25,7 +25,9 @@ describe("buildNavigateReaction", () => {
       trigger: "ON_CLICK",
       transition: "SMART_ANIMATE",
     });
-    expect(r.actions[0]!.transition).toMatchObject({
+    const action = r.actions[0]!;
+    if (action.type !== "NODE") throw new Error("expected NODE action");
+    expect(action.transition).toMatchObject({
       type: "SMART_ANIMATE",
       duration: 0.3,
       easing: { type: "EASE_OUT" },
@@ -39,7 +41,9 @@ describe("buildNavigateReaction", () => {
       transition: "DISSOLVE",
     });
     expect(r.trigger).toEqual({ type: "ON_HOVER" });
-    expect(r.actions[0]!.transition).toMatchObject({
+    const action = r.actions[0]!;
+    if (action.type !== "NODE") throw new Error("expected NODE action");
+    expect(action.transition).toMatchObject({
       type: "DISSOLVE",
       duration: 0.3,
       easing: { type: "EASE_OUT" },
@@ -93,7 +97,9 @@ describe("buildScrollReaction", () => {
       trigger: "ON_CLICK",
       transition: "DISSOLVE",
     });
-    expect(r.actions[0]!.transition).toEqual({
+    const action = r.actions[0]!;
+    if (action.type !== "NODE") throw new Error("expected NODE action");
+    expect(action.transition).toEqual({
       type: "DISSOLVE",
       duration: 0.3,
       easing: { type: "EASE_OUT" },
@@ -137,7 +143,9 @@ describe("buildOverlayReaction", () => {
       trigger: "ON_CLICK",
       transition: "DISSOLVE",
     });
-    expect(r.actions[0]!.transition).toEqual({
+    const action = r.actions[0]!;
+    if (action.type !== "NODE") throw new Error("expected NODE action");
+    expect(action.transition).toEqual({
       type: "DISSOLVE",
       duration: 0.3,
       easing: { type: "EASE_OUT" },
