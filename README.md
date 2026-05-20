@@ -73,7 +73,7 @@ After install + all three components running, verify these scenarios in Figma. E
   Setup: Create two frames in the test zone — `mainFrame` and `modal`. Place a button `openBtn` inside `mainFrame`, and a button `closeBtn` inside `modal`.
   (a) Ask: "openBtn을 modal로 오버레이로 열어줘". Expected: reaction created, no warning. In Figma prototype play, click openBtn → modal appears as an overlay over mainFrame.
   (b) Ask: "closeBtn을 누르면 오버레이 닫게 해줘". Expected: reaction created. In prototype play, click closeBtn → overlay dismisses and mainFrame is visible again.
-- [ ] **9. Back / Open URL / Swap Overlay**:
+- [x] **9. Back / Open URL / Swap Overlay**:
   Setup: Two regular frames `screenA` and `screenB` with three buttons inside `screenA` (`goB`, `openExternal`, `dismissThis`). Two overlay frames `overlayP` and `overlayQ`. A button `swapBtn` inside `overlayP`. Pre-wire `goB` → screenB and `screenA → overlayP` (via overlay) using prior tools as needed.
   (a) Ask: "openExternal에서 https://figma.com 열게 해줘". Expected: reaction created with action.type=URL and the exact url echoed. In play mode, click opens figma.com in the browser.
   (b) Ask: "dismissThis는 뒤로 가기로". Expected: reaction created with action.type=BACK (no destination). In play, after navigating screenA→screenB, dismissThis returns to screenA.
