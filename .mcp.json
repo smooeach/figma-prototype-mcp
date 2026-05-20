@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "figma-prototype": {
+      "command": "npx",
+      "args": ["tsx", "src/mcp-server/index.ts"],
+      "env": {
+        "FIGMA_CHANNEL": "test1"
+      }
+    }
+  }
+}
