@@ -34,21 +34,71 @@ describe("FindNodesInput", () => {
 });
 
 describe("CreateReactionsInput", () => {
-  it("accepts a single connection with defaults", () => {
+  it("accepts a navigate connection with defaults", () => {
     const r = CreateReactionsInput.parse({
-      connections: [{ sourceNodeId: "1:1", targetFrameId: "1:2" }],
+      connections: [
+        { sourceNodeId: "1:1", action: { type: "navigate", targetFrameId: "1:2" } },
+      ],
     });
+    expect(r.connections[0]!.action).toEqual({ type: "navigate", targetFrameId: "1:2" });
     expect(r.connections[0]!.trigger).toBe("ON_CLICK");
     expect(r.connections[0]!.transition).toBe("INSTANT");
     expect(r.replaceExisting).toBe(false);
   });
+
+  it("accepts a scroll connection", () => {
+    const r = CreateReactionsInput.parse({
+      connections: [
+        { sourceNodeId: "1:1", action: { type: "scroll", targetNodeId: "1:9" } },
+      ],
+    });
+    expect(r.connections[0]!.action).toEqual({ type: "scroll", targetNodeId: "1:9" });
+  });
+
+  it("accepts a mixed batch of navigate and scroll", () => {
+    const r = CreateReactionsInput.parse({
+      connections: [
+        { sourceNodeId: "1:1", action: { type: "navigate", targetFrameId: "1:2" } },
+        { sourceNodeId: "1:3", action: { type: "scroll", targetNodeId: "1:9" } },
+      ],
+    });
+    expect(r.connections).toHaveLength(2);
+  });
+
   it("rejects empty connections", () => {
     expect(() => CreateReactionsInput.parse({ connections: [] })).toThrow();
   });
+
+  it("rejects connection without action", () => {
+    expect(() =>
+      CreateReactionsInput.parse({ connections: [{ sourceNodeId: "1:1" }] })
+    ).toThrow();
+  });
+
+  it("rejects scroll action missing targetNodeId", () => {
+    expect(() =>
+      CreateReactionsInput.parse({
+        connections: [{ sourceNodeId: "1:1", action: { type: "scroll" } }],
+      })
+    ).toThrow();
+  });
+
+  it("rejects navigate action with the wrong key (targetNodeId)", () => {
+    expect(() =>
+      CreateReactionsInput.parse({
+        connections: [
+          { sourceNodeId: "1:1", action: { type: "navigate", targetNodeId: "1:5" } },
+        ],
+      })
+    ).toThrow();
+  });
+
   it("rejects invalid trigger", () => {
     expect(() =>
       CreateReactionsInput.parse({
-        connections: [{ sourceNodeId: "a", targetFrameId: "b", trigger: "ON_LONG_PRESS" }],
+        connections: [
+          { sourceNodeId: "a", trigger: "ON_LONG_PRESS", action: { type: "navigate", targetFrameId: "b" } },
+        ],
       })
     ).toThrow();
   });

@@ -75,18 +75,30 @@ export interface FoundNode {
   path: string;
 }
 
-export interface NavigateConnectionInput {
+export type ReactionAction =
+  | { type: "navigate"; targetFrameId: string }
+  | { type: "scroll"; targetNodeId: string };
+
+export interface ReactionConnectionInput {
   sourceNodeId: string;
-  targetFrameId: string;
   trigger?: "ON_CLICK" | "ON_HOVER" | "ON_PRESS";
   transition?: "INSTANT" | "DISSOLVE" | "SMART_ANIMATE";
+  action: ReactionAction;
 }
 
-export interface NavigateConnectionResult {
+export interface ReactionConnectionResult {
   sourceNodeId: string;
   status: "success" | "error";
   error?: string;
   reactionIndex?: number;
+  warning?: string;
+}
+
+export interface CreateReactionsResult {
+  results: ReactionConnectionResult[];
+  successCount: number;
+  errorCount: number;
+  warningCount: number;
 }
 
 export interface ReactionSummary {

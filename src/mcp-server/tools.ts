@@ -14,11 +14,23 @@ export const FindNodesInput = z.object({
 const TriggerEnum = z.enum(["ON_CLICK", "ON_HOVER", "ON_PRESS"]);
 const TransitionEnum = z.enum(["INSTANT", "DISSOLVE", "SMART_ANIMATE"]);
 
+const NavigateActionInput = z.object({
+  type: z.literal("navigate"),
+  targetFrameId: z.string().min(1),
+});
+
+const ScrollActionInput = z.object({
+  type: z.literal("scroll"),
+  targetNodeId: z.string().min(1),
+});
+
+const ActionInput = z.discriminatedUnion("type", [NavigateActionInput, ScrollActionInput]);
+
 const ConnectionInput = z.object({
   sourceNodeId: z.string().min(1),
-  targetFrameId: z.string().min(1),
   trigger: TriggerEnum.default("ON_CLICK"),
   transition: TransitionEnum.default("INSTANT"),
+  action: ActionInput,
 });
 
 export const CreateReactionsInput = z.object({
