@@ -60,7 +60,10 @@ function startMiniRelay(port?: number): MiniRelay {
     port: p,
     server,
     channels,
-    stop: () => new Promise<void>((resolve) => server.close(() => resolve())),
+    stop: () => new Promise<void>((resolve) => {
+      for (const ws of server.clients) ws.terminate();
+      server.close(() => resolve());
+    }),
   };
 }
 
