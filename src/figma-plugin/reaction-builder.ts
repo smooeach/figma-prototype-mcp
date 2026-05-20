@@ -2,7 +2,7 @@
 // when calling node.setReactionsAsync([reaction]).
 
 export type TransitionName = "INSTANT" | "DISSOLVE" | "SMART_ANIMATE";
-export type TriggerName = "ON_CLICK" | "ON_HOVER" | "ON_PRESS";
+export type TriggerName = "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "AFTER_TIMEOUT";
 
 export type TransitionShape =
   | null
@@ -23,8 +23,10 @@ export type BuiltAction =
   | { type: "BACK" }
   | { type: "URL"; url: string; openInNewTab: boolean };
 
+export type TriggerShape = { type: string; timeout?: number };
+
 export interface BuiltReaction {
-  trigger: { type: string };
+  trigger: TriggerShape;
   actions: BuiltAction[];
 }
 
@@ -32,38 +34,45 @@ export interface NavigateBuildInput {
   targetFrameId: string;
   trigger: TriggerName;
   transition: TransitionName;
+  afterTimeoutSeconds?: number;
 }
 
 export interface ScrollBuildInput {
   targetNodeId: string;
   trigger: TriggerName;
   transition: TransitionName;
+  afterTimeoutSeconds?: number;
 }
 
 export interface OverlayBuildInput {
   targetFrameId: string;
   trigger: TriggerName;
   transition: TransitionName;
+  afterTimeoutSeconds?: number;
 }
 
 export interface CloseBuildInput {
   trigger: TriggerName;
+  afterTimeoutSeconds?: number;
 }
 
 export interface BackBuildInput {
   trigger: TriggerName;
+  afterTimeoutSeconds?: number;
 }
 
 export interface UrlBuildInput {
   trigger: TriggerName;
   url: string;
   openInNewTab?: boolean;
+  afterTimeoutSeconds?: number;
 }
 
 export interface SwapOverlayBuildInput {
   trigger: TriggerName;
   transition: TransitionName;
   targetFrameId: string;
+  afterTimeoutSeconds?: number;
 }
 
 export function buildTransition(name: TransitionName): TransitionShape {
@@ -71,9 +80,19 @@ export function buildTransition(name: TransitionName): TransitionShape {
   return { type: name, duration: 0.3, easing: { type: "EASE_OUT" } };
 }
 
+export function buildTrigger(name: TriggerName, afterTimeoutSeconds?: number): TriggerShape {
+  if (name === "AFTER_TIMEOUT") {
+    if (afterTimeoutSeconds === undefined) {
+      throw new Error("buildTrigger: afterTimeoutSeconds is required when name is AFTER_TIMEOUT");
+    }
+    return { type: "AFTER_TIMEOUT", timeout: afterTimeoutSeconds };
+  }
+  return { type: name };
+}
+
 export function buildNavigateReaction(input: NavigateBuildInput): BuiltReaction {
   return {
-    trigger: { type: input.trigger },
+    trigger: buildTrigger(input.trigger, input.afterTimeoutSeconds),
     actions: [
       {
         type: "NODE",
@@ -88,7 +107,7 @@ export function buildNavigateReaction(input: NavigateBuildInput): BuiltReaction 
 
 export function buildScrollReaction(input: ScrollBuildInput): BuiltReaction {
   return {
-    trigger: { type: input.trigger },
+    trigger: buildTrigger(input.trigger, input.afterTimeoutSeconds),
     actions: [
       {
         type: "NODE",
@@ -103,7 +122,7 @@ export function buildScrollReaction(input: ScrollBuildInput): BuiltReaction {
 
 export function buildOverlayReaction(input: OverlayBuildInput): BuiltReaction {
   return {
-    trigger: { type: input.trigger },
+    trigger: buildTrigger(input.trigger, input.afterTimeoutSeconds),
     actions: [
       {
         type: "NODE",
@@ -118,28 +137,28 @@ export function buildOverlayReaction(input: OverlayBuildInput): BuiltReaction {
 
 export function buildCloseReaction(input: CloseBuildInput): BuiltReaction {
   return {
-    trigger: { type: input.trigger },
+    trigger: buildTrigger(input.trigger, input.afterTimeoutSeconds),
     actions: [{ type: "CLOSE" }],
   };
 }
 
 export function buildBackReaction(input: BackBuildInput): BuiltReaction {
   return {
-    trigger: { type: input.trigger },
+    trigger: buildTrigger(input.trigger, input.afterTimeoutSeconds),
     actions: [{ type: "BACK" }],
   };
 }
 
 export function buildUrlReaction(input: UrlBuildInput): BuiltReaction {
   return {
-    trigger: { type: input.trigger },
+    trigger: buildTrigger(input.trigger, input.afterTimeoutSeconds),
     actions: [{ type: "URL", url: input.url, openInNewTab: input.openInNewTab ?? false }],
   };
 }
 
 export function buildSwapOverlayReaction(input: SwapOverlayBuildInput): BuiltReaction {
   return {
-    trigger: { type: input.trigger },
+    trigger: buildTrigger(input.trigger, input.afterTimeoutSeconds),
     actions: [
       {
         type: "NODE",

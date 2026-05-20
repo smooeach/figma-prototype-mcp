@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildNavigateReaction,
   buildTransition,
+  buildTrigger,
   buildScrollReaction,
   buildOverlayReaction,
   buildCloseReaction,
@@ -254,5 +255,40 @@ describe("buildSwapOverlayReaction", () => {
       duration: 0.3,
       easing: { type: "EASE_OUT" },
     });
+  });
+});
+
+describe("buildTrigger", () => {
+  it("emits { type: \"ON_CLICK\" } for click trigger", () => {
+    expect(buildTrigger("ON_CLICK")).toEqual({ type: "ON_CLICK" });
+  });
+
+  it("emits { type: \"ON_HOVER\" } and { type: \"ON_PRESS\" } passthrough", () => {
+    expect(buildTrigger("ON_HOVER")).toEqual({ type: "ON_HOVER" });
+    expect(buildTrigger("ON_PRESS")).toEqual({ type: "ON_PRESS" });
+  });
+
+  it("emits { type: \"AFTER_TIMEOUT\", timeout } when given seconds", () => {
+    expect(buildTrigger("AFTER_TIMEOUT", 2)).toEqual({ type: "AFTER_TIMEOUT", timeout: 2 });
+  });
+
+  it("throws when AFTER_TIMEOUT is requested without seconds", () => {
+    expect(() => buildTrigger("AFTER_TIMEOUT")).toThrow(/afterTimeoutSeconds/);
+  });
+});
+
+describe("buildNavigateReaction with AFTER_TIMEOUT trigger", () => {
+  it("emits the AFTER_TIMEOUT trigger object through the builder", () => {
+    const r = buildNavigateReaction({
+      targetFrameId: "1:2",
+      trigger: "AFTER_TIMEOUT",
+      transition: "INSTANT",
+      afterTimeoutSeconds: 2,
+    });
+    expect(r.trigger).toEqual({ type: "AFTER_TIMEOUT", timeout: 2 });
+    const action = r.actions[0]!;
+    if (action.type !== "NODE") throw new Error("expected NODE action");
+    expect(action.destinationId).toBe("1:2");
+    expect(action.navigation).toBe("NAVIGATE");
   });
 });
