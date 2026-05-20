@@ -1,6 +1,6 @@
 # figma-prototype-mcp
 
-Local MCP server that lets Claude (or any MCP client) create real Figma prototype interactions — On click → Navigate to <frame> — from natural language prompts.
+Local MCP server that lets Claude (or any MCP client) create real Figma prototype interactions — On click → Navigate to a frame, or Scroll To a node — from natural language prompts.
 
 Why this exists: the official Figma MCP doesn't expose a write API for prototype reactions. This project fills that gap with a Figma plugin + WebSocket bridge.
 
