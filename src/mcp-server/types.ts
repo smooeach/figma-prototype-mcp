@@ -86,7 +86,8 @@ export type ReactionAction =
 
 export interface ReactionConnectionInput {
   sourceNodeId: string;
-  trigger?: "ON_CLICK" | "ON_HOVER" | "ON_PRESS";
+  trigger?: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "AFTER_TIMEOUT";
+  afterTimeoutSeconds?: number;
   transition?: "INSTANT" | "DISSOLVE" | "SMART_ANIMATE";
   action: ReactionAction;
 }
@@ -108,7 +109,7 @@ export interface CreateReactionsResult {
 
 export interface ReactionSummary {
   index: number;
-  trigger: { type: string };
+  trigger: { type: string; timeout?: number };
   action: {
     type: string;
     navigation?: string;

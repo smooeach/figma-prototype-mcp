@@ -224,3 +224,49 @@ describe("CreateReactionsInput url openInNewTab", () => {
     });
   });
 });
+
+describe("CreateReactionsInput AFTER_TIMEOUT trigger", () => {
+  it("accepts a connection with AFTER_TIMEOUT trigger and afterTimeoutSeconds", () => {
+    const r = CreateReactionsInput.parse({
+      connections: [
+        {
+          sourceNodeId: "1:1",
+          trigger: "AFTER_TIMEOUT",
+          afterTimeoutSeconds: 2,
+          action: { type: "navigate", targetFrameId: "1:2" },
+        },
+      ],
+    });
+    expect(r.connections[0]!.trigger).toBe("AFTER_TIMEOUT");
+    expect(r.connections[0]!.afterTimeoutSeconds).toBe(2);
+  });
+
+  it("rejects AFTER_TIMEOUT trigger without afterTimeoutSeconds", () => {
+    expect(() =>
+      CreateReactionsInput.parse({
+        connections: [
+          {
+            sourceNodeId: "1:1",
+            trigger: "AFTER_TIMEOUT",
+            action: { type: "navigate", targetFrameId: "1:2" },
+          },
+        ],
+      })
+    ).toThrow();
+  });
+
+  it("rejects non-positive afterTimeoutSeconds", () => {
+    expect(() =>
+      CreateReactionsInput.parse({
+        connections: [
+          {
+            sourceNodeId: "1:1",
+            trigger: "AFTER_TIMEOUT",
+            afterTimeoutSeconds: 0,
+            action: { type: "navigate", targetFrameId: "1:2" },
+          },
+        ],
+      })
+    ).toThrow();
+  });
+});

@@ -11,7 +11,7 @@ export const FindNodesInput = z.object({
   limit: z.number().int().positive().max(500).default(50),
 });
 
-const TriggerEnum = z.enum(["ON_CLICK", "ON_HOVER", "ON_PRESS"]);
+const TriggerEnum = z.enum(["ON_CLICK", "ON_HOVER", "ON_PRESS", "AFTER_TIMEOUT"]);
 const TransitionEnum = z.enum(["INSTANT", "DISSOLVE", "SMART_ANIMATE"]);
 
 const NavigateActionInput = z.object({
@@ -61,9 +61,13 @@ const ActionInput = z.discriminatedUnion("type", [
 const ConnectionInput = z.object({
   sourceNodeId: z.string().min(1),
   trigger: TriggerEnum.default("ON_CLICK"),
+  afterTimeoutSeconds: z.number().positive().optional(),
   transition: TransitionEnum.default("INSTANT"),
   action: ActionInput,
-});
+}).refine(
+  (v) => v.trigger !== "AFTER_TIMEOUT" || typeof v.afterTimeoutSeconds === "number",
+  { message: "afterTimeoutSeconds is required when trigger is AFTER_TIMEOUT" }
+);
 
 export const CreateReactionsInput = z.object({
   connections: z.array(ConnectionInput).min(1),
