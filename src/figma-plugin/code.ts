@@ -43,17 +43,35 @@ type Command =
   | { type: "CLEAR_REACTIONS"; params: { nodeIds: string[]; indices?: number[] } };
 
 figma.ui.onmessage = (msg: any) => {
-  if (msg?.type !== "command" || !msg.envelope) return;
-  const envelope = msg.envelope as { id: string; command: Command["type"]; params: any };
-  // Serialise commands: Figma's async APIs (loadAllPagesAsync, setReactionsAsync)
-  // can deadlock when invoked concurrently from overlapping message handlers.
-  void commandQueue.enqueue(async () => {
-    const response = await dispatch(envelope.command, envelope.params);
-    figma.ui.postMessage({
-      type: "response",
-      envelope: { id: envelope.id, type: "response", ...response },
+  if (msg?.type === "load-channel") {
+    figma.clientStorage.getAsync("channel").then((value) => {
+      figma.ui.postMessage({
+        type: "channel-loaded",
+        channel: typeof value === "string" && value.length > 0 ? value : null,
+      });
     });
-  });
+    return;
+  }
+
+  if (msg?.type === "save-channel" && typeof msg.channel === "string" && msg.channel.length > 0) {
+    figma.clientStorage.setAsync("channel", msg.channel).catch(() => {
+      // Storage failures are non-critical; user can re-type next session.
+    });
+    return;
+  }
+
+  if (msg?.type === "command" && msg.envelope) {
+    const envelope = msg.envelope as { id: string; command: Command["type"]; params: any };
+    // Serialise commands: Figma's async APIs (loadAllPagesAsync, setReactionsAsync)
+    // can deadlock when invoked concurrently from overlapping message handlers.
+    void commandQueue.enqueue(async () => {
+      const response = await dispatch(envelope.command, envelope.params);
+      figma.ui.postMessage({
+        type: "response",
+        envelope: { id: envelope.id, type: "response", ...response },
+      });
+    });
+  }
 };
 
 async function dispatch(command: Command["type"], params: any): Promise<
