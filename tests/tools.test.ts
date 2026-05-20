@@ -338,6 +338,113 @@ describe("CreateReactionsInput transition Phase 1", () => {
   });
 });
 
+describe("CreateReactionsInput — new trigger object variants", () => {
+  const base = { sourceNodeId: "1:1", action: { type: "navigate", targetFrameId: "2:2" } };
+  it("ON_DRAG object trigger", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{ ...base, trigger: { type: "ON_DRAG" } }],
+    });
+    expect(r.success).toBe(true);
+  });
+  it("MOUSE_UP with delay", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{ ...base, trigger: { type: "MOUSE_UP", delay: 0.2 } }],
+    });
+    expect(r.success).toBe(true);
+  });
+  it("MOUSE_ENTER without optional fields", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{ ...base, trigger: { type: "MOUSE_ENTER" } }],
+    });
+    expect(r.success).toBe(true);
+  });
+  it("ON_KEY_DOWN requires device + keyCodes", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{ ...base, trigger: { type: "ON_KEY_DOWN", device: "KEYBOARD", keyCodes: [32] } }],
+    });
+    expect(r.success).toBe(true);
+  });
+  it("ON_KEY_DOWN fails without keyCodes", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{ ...base, trigger: { type: "ON_KEY_DOWN", device: "KEYBOARD" } }],
+    });
+    expect(r.success).toBe(false);
+  });
+  it("ON_KEY_DOWN fails with empty keyCodes", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{ ...base, trigger: { type: "ON_KEY_DOWN", device: "KEYBOARD", keyCodes: [] } }],
+    });
+    expect(r.success).toBe(false);
+  });
+  it("ON_MEDIA_HIT requires mediaHitTime", () => {
+    const ok = CreateReactionsInput.safeParse({
+      connections: [{ ...base, trigger: { type: "ON_MEDIA_HIT", mediaHitTime: 5 } }],
+    });
+    expect(ok.success).toBe(true);
+    const bad = CreateReactionsInput.safeParse({
+      connections: [{ ...base, trigger: { type: "ON_MEDIA_HIT" } }],
+    });
+    expect(bad.success).toBe(false);
+  });
+  it("ON_MEDIA_END no params", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{ ...base, trigger: { type: "ON_MEDIA_END" } }],
+    });
+    expect(r.success).toBe(true);
+  });
+  it("AFTER_TIMEOUT object self-contained (no top-level afterTimeoutSeconds needed)", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{ ...base, trigger: { type: "AFTER_TIMEOUT", timeout: 2 } }],
+    });
+    expect(r.success).toBe(true);
+  });
+  it("AFTER_TIMEOUT object missing timeout fails", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{ ...base, trigger: { type: "AFTER_TIMEOUT" } }],
+    });
+    expect(r.success).toBe(false);
+  });
+  it("string AFTER_TIMEOUT still requires top-level afterTimeoutSeconds (backward compat)", () => {
+    const ok = CreateReactionsInput.safeParse({
+      connections: [{ ...base, trigger: "AFTER_TIMEOUT", afterTimeoutSeconds: 2 }],
+    });
+    expect(ok.success).toBe(true);
+    const bad = CreateReactionsInput.safeParse({
+      connections: [{ ...base, trigger: "AFTER_TIMEOUT" }],
+    });
+    expect(bad.success).toBe(false);
+  });
+});
+
+describe("CreateReactionsInput — directional transitions", () => {
+  const base = { sourceNodeId: "1:1", action: { type: "navigate", targetFrameId: "2:2" } };
+  it("MOVE_IN with direction accepted", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{ ...base, transition: { type: "MOVE_IN", direction: "RIGHT" } }],
+    });
+    expect(r.success).toBe(true);
+  });
+  it("PUSH with matchLayers + easing", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{ ...base,
+        transition: { type: "PUSH", direction: "LEFT", matchLayers: true, easing: "BOUNCY" } }],
+    });
+    expect(r.success).toBe(true);
+  });
+  it("SLIDE_IN missing direction fails", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{ ...base, transition: { type: "SLIDE_IN" } }],
+    });
+    expect(r.success).toBe(false);
+  });
+  it("invalid direction value fails", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{ ...base, transition: { type: "MOVE_OUT", direction: "DIAGONAL" } }],
+    });
+    expect(r.success).toBe(false);
+  });
+});
+
 describe("CreateReactionsInput easing spring + custom", () => {
   it("accepts each of the 4 spring presets", () => {
     for (const easing of ["GENTLE", "QUICK", "BOUNCY", "SLOW"] as const) {

@@ -12,6 +12,47 @@ export const FindNodesInput = z.object({
 });
 
 const TriggerEnum = z.enum(["ON_CLICK", "ON_HOVER", "ON_PRESS", "AFTER_TIMEOUT"]);
+
+const KeyboardDeviceEnum = z.enum([
+  "KEYBOARD", "XBOX_ONE", "PS4", "SWITCH_PRO", "UNKNOWN_CONTROLLER",
+]);
+
+const TriggerObjectNoParam = z.object({
+  type: z.enum(["ON_CLICK", "ON_HOVER", "ON_PRESS", "ON_DRAG", "ON_MEDIA_END"]),
+});
+const TriggerObjectAfterTimeout = z.object({
+  type: z.literal("AFTER_TIMEOUT"),
+  timeout: z.number().positive().max(60),
+});
+const TriggerObjectMouseClick = z.object({
+  type: z.enum(["MOUSE_UP", "MOUSE_DOWN"]),
+  delay: z.number().nonnegative().max(60).optional(),
+});
+const TriggerObjectMouseHover = z.object({
+  type: z.enum(["MOUSE_ENTER", "MOUSE_LEAVE"]),
+  delay: z.number().nonnegative().max(60).optional(),
+  deprecatedVersion: z.boolean().optional(),
+});
+const TriggerObjectKeyDown = z.object({
+  type: z.literal("ON_KEY_DOWN"),
+  device: KeyboardDeviceEnum,
+  keyCodes: z.array(z.number().int().nonnegative()).min(1),
+});
+const TriggerObjectMediaHit = z.object({
+  type: z.literal("ON_MEDIA_HIT"),
+  mediaHitTime: z.number().nonnegative(),
+});
+
+const TriggerInput = z.union([
+  TriggerEnum,
+  TriggerObjectNoParam,
+  TriggerObjectAfterTimeout,
+  TriggerObjectMouseClick,
+  TriggerObjectMouseHover,
+  TriggerObjectKeyDown,
+  TriggerObjectMediaHit,
+]);
+
 const TransitionEnum = z.enum(["INSTANT", "DISSOLVE", "SMART_ANIMATE"]);
 
 const NamedEasingEnum = z.enum([
@@ -45,7 +86,16 @@ const SimpleTransitionObject = z.object({
   easing: EasingInputUnion.optional(),
 });
 
-const TransitionInput = z.union([TransitionEnum, SimpleTransitionObject]);
+const DirectionEnum = z.enum(["LEFT", "RIGHT", "TOP", "BOTTOM"]);
+const DirectionalTransitionObject = z.object({
+  type: z.enum(["MOVE_IN", "MOVE_OUT", "PUSH", "SLIDE_IN", "SLIDE_OUT"]),
+  direction: DirectionEnum,
+  matchLayers: z.boolean().optional(),
+  duration: z.number().positive().max(10).optional(),
+  easing: EasingInputUnion.optional(),
+});
+
+const TransitionInput = z.union([TransitionEnum, SimpleTransitionObject, DirectionalTransitionObject]);
 
 const NavigateActionInput = z.object({
   type: z.literal("navigate"),
@@ -93,13 +143,13 @@ const ActionInput = z.discriminatedUnion("type", [
 
 const ConnectionInput = z.object({
   sourceNodeId: z.string().min(1),
-  trigger: TriggerEnum.default("ON_CLICK"),
+  trigger: TriggerInput.default("ON_CLICK"),
   afterTimeoutSeconds: z.number().positive().optional(),
   transition: TransitionInput.default("INSTANT"),
   action: ActionInput,
 }).refine(
   (v) => v.trigger !== "AFTER_TIMEOUT" || typeof v.afterTimeoutSeconds === "number",
-  { message: "afterTimeoutSeconds is required when trigger is AFTER_TIMEOUT" }
+  { message: "afterTimeoutSeconds is required when trigger is the string \"AFTER_TIMEOUT\" (object form uses { type: \"AFTER_TIMEOUT\", timeout })" }
 );
 
 export const CreateReactionsInput = z.object({
