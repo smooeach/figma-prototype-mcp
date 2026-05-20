@@ -163,3 +163,46 @@ describe("ClearReactionsInput", () => {
     expect(r.indices).toEqual([0, 1]);
   });
 });
+
+describe("CreateReactionsInput back/url/swap", () => {
+  it("accepts a back connection (no destination)", () => {
+    const r = CreateReactionsInput.parse({
+      connections: [{ sourceNodeId: "1:1", action: { type: "back" } }],
+    });
+    expect(r.connections[0]!.action).toEqual({ type: "back" });
+  });
+
+  it("accepts a url connection", () => {
+    const r = CreateReactionsInput.parse({
+      connections: [
+        { sourceNodeId: "1:1", action: { type: "url", url: "https://figma.com" } },
+      ],
+    });
+    expect(r.connections[0]!.action).toEqual({ type: "url", url: "https://figma.com" });
+  });
+
+  it("accepts a swap_overlay connection", () => {
+    const r = CreateReactionsInput.parse({
+      connections: [
+        { sourceNodeId: "1:1", action: { type: "swap_overlay", targetFrameId: "1:9" } },
+      ],
+    });
+    expect(r.connections[0]!.action).toEqual({ type: "swap_overlay", targetFrameId: "1:9" });
+  });
+
+  it("rejects url missing url field", () => {
+    expect(() =>
+      CreateReactionsInput.parse({
+        connections: [{ sourceNodeId: "1:1", action: { type: "url" } }],
+      })
+    ).toThrow();
+  });
+
+  it("rejects swap_overlay missing targetFrameId", () => {
+    expect(() =>
+      CreateReactionsInput.parse({
+        connections: [{ sourceNodeId: "1:1", action: { type: "swap_overlay" } }],
+      })
+    ).toThrow();
+  });
+});

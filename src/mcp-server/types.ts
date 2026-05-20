@@ -79,7 +79,10 @@ export type ReactionAction =
   | { type: "navigate"; targetFrameId: string }
   | { type: "scroll"; targetNodeId: string }
   | { type: "overlay"; targetFrameId: string }
-  | { type: "close" };
+  | { type: "close" }
+  | { type: "back" }
+  | { type: "url"; url: string }
+  | { type: "swap_overlay"; targetFrameId: string };
 
 export interface ReactionConnectionInput {
   sourceNodeId: string;

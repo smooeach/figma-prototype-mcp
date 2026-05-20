@@ -33,11 +33,28 @@ const CloseActionInput = z.object({
   type: z.literal("close"),
 });
 
+const BackActionInput = z.object({
+  type: z.literal("back"),
+});
+
+const UrlActionInput = z.object({
+  type: z.literal("url"),
+  url: z.string().min(1),
+});
+
+const SwapOverlayActionInput = z.object({
+  type: z.literal("swap_overlay"),
+  targetFrameId: z.string().min(1),
+});
+
 const ActionInput = z.discriminatedUnion("type", [
   NavigateActionInput,
   ScrollActionInput,
   OverlayActionInput,
   CloseActionInput,
+  BackActionInput,
+  UrlActionInput,
+  SwapOverlayActionInput,
 ]);
 
 const ConnectionInput = z.object({
