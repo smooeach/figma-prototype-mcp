@@ -17,12 +17,13 @@
     <label for="channel">Channel</label>
     <input id="channel" placeholder="e.g. my-session" />
     <button id="connect">Connect</button>
-    <div id="status" class="pending">Not connected</div>
+    <button id="disconnect" style="display:none">Disconnect</button>
+    <div id="status" class="pending">Loading…</div>
 
     <script>
-      // ui.ts is compiled inline by tsup. We use vanilla JS here for the build to be trivial.
       const channelInput = document.getElementById('channel');
       const connectBtn = document.getElementById('connect');
+      const disconnectBtn = document.getElementById('disconnect');
       const statusEl = document.getElementById('status');
       let ws = null;
 
@@ -31,40 +32,76 @@
         statusEl.className = cls;
       }
 
-      connectBtn.onclick = () => {
+      function setConnectedUI(channel) {
+        setStatus('Connected on channel: ' + channel, 'ok');
+        channelInput.disabled = true;
+        connectBtn.style.display = 'none';
+        disconnectBtn.style.display = 'inline-block';
+      }
+
+      function setDisconnectedUI() {
+        channelInput.disabled = false;
+        connectBtn.style.display = 'inline-block';
+        disconnectBtn.style.display = 'none';
+      }
+
+      function connect() {
         const channel = channelInput.value.trim();
         if (!channel) { setStatus('Channel name required', 'err'); return; }
         if (ws) ws.close();
-        setStatus('Connecting...', 'pending');
+        setStatus('Connecting…', 'pending');
         ws = new WebSocket('ws://localhost:3055');
 
         ws.onopen = () => {
           ws.send(JSON.stringify({ type: 'join', channel, id: 'plugin-join' }));
         };
         ws.onerror = () => setStatus('Connection failed', 'err');
-        ws.onclose = () => setStatus('Disconnected', 'err');
+        ws.onclose = () => {
+          if (statusEl.className !== 'err') setStatus('Disconnected', 'err');
+          setDisconnectedUI();
+        };
 
         ws.onmessage = (e) => {
           let data;
           try { data = JSON.parse(e.data); } catch { return; }
 
           if (data.type === 'system' && data.message && data.message.id === 'plugin-join') {
-            setStatus('Connected on channel: ' + channel, 'ok');
-            parent.postMessage({ pluginMessage: { type: 'set-channel', channel } }, '*');
+            setConnectedUI(channel);
+            parent.postMessage({ pluginMessage: { type: 'save-channel', channel } }, '*');
             return;
           }
 
           if (data.type === 'broadcast' && data.message && data.message.type === 'command') {
-            // Forward command into the plugin sandbox.
             parent.postMessage({ pluginMessage: { type: 'command', envelope: data.message } }, '*');
           }
         };
+      }
+
+      connectBtn.onclick = connect;
+
+      disconnectBtn.onclick = () => {
+        if (ws) ws.close();
+        setStatus('Disconnected', 'err');
+        setDisconnectedUI();
       };
 
-      // Forward responses from the plugin sandbox out to WebSocket.
+      // Forward responses from the plugin sandbox out to WebSocket,
+      // and react to channel-loaded events from the sandbox.
       window.onmessage = (event) => {
         const msg = event.data.pluginMessage;
         if (!msg) return;
+
+        if (msg.type === 'channel-loaded') {
+          if (typeof msg.channel === 'string' && msg.channel.length > 0) {
+            channelInput.value = msg.channel;
+            setStatus('Auto-connecting to ' + msg.channel + '…', 'pending');
+            connect();
+          } else {
+            setStatus('Not connected', 'pending');
+          }
+          return;
+        }
+
         if (msg.type === 'response' && ws && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({
             type: 'message',
@@ -73,6 +110,9 @@
           }));
         }
       };
+
+      // Request the last-used channel from sandbox on launch.
+      parent.postMessage({ pluginMessage: { type: 'load-channel' } }, '*');
     </script>
   </body>
 </html>
