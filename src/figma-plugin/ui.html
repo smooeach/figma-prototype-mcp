@@ -31,6 +31,10 @@
       const disconnectBtn = document.getElementById('disconnect');
       const statusEl = document.getElementById('status');
       let ws = null;
+      let userDisconnected = false;
+      let retryTimer = null;
+      let retryDelay = 1000;
+      const MAX_RETRY_DELAY = 30000;
 
       function setStatus(text, cls) {
         statusEl.textContent = text;
@@ -42,6 +46,7 @@
         channelInput.disabled = true;
         connectBtn.style.display = 'none';
         disconnectBtn.style.display = 'inline-block';
+        retryDelay = 1000;
       }
 
       function setDisconnectedUI() {
@@ -51,6 +56,8 @@
       }
 
       function connect() {
+        if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+        userDisconnected = false;
         const channel = channelInput.value.trim();
         if (!channel) { setStatus('Channel name required', 'err'); return; }
         if (ws) ws.close();
@@ -62,8 +69,19 @@
         };
         ws.onerror = () => setStatus('Connection failed', 'err');
         ws.onclose = () => {
-          if (statusEl.className !== 'err') setStatus('Disconnected', 'err');
-          setDisconnectedUI();
+          if (userDisconnected) {
+            setStatus('Disconnected', 'err');
+            setDisconnectedUI();
+            return;
+          }
+          const channel = channelInput.value.trim();
+          setStatus('Reconnecting to ' + channel + ' in ' + (retryDelay / 1000) + 's…', 'pending');
+          retryTimer = setTimeout(() => {
+            retryTimer = null;
+            setStatus('Reconnecting to ' + channel + '…', 'pending');
+            retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY);
+            connect();
+          }, retryDelay);
         };
 
         ws.onmessage = (e) => {
@@ -85,6 +103,8 @@
       connectBtn.onclick = connect;
 
       disconnectBtn.onclick = () => {
+        userDisconnected = true;
+        if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
         if (ws) ws.close();
         setStatus('Disconnected', 'err');
         setDisconnectedUI();
