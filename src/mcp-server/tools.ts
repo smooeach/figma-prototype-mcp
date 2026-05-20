@@ -24,7 +24,21 @@ const ScrollActionInput = z.object({
   targetNodeId: z.string().min(1),
 });
 
-const ActionInput = z.discriminatedUnion("type", [NavigateActionInput, ScrollActionInput]);
+const OverlayActionInput = z.object({
+  type: z.literal("overlay"),
+  targetFrameId: z.string().min(1),
+});
+
+const CloseActionInput = z.object({
+  type: z.literal("close"),
+});
+
+const ActionInput = z.discriminatedUnion("type", [
+  NavigateActionInput,
+  ScrollActionInput,
+  OverlayActionInput,
+  CloseActionInput,
+]);
 
 const ConnectionInput = z.object({
   sourceNodeId: z.string().min(1),

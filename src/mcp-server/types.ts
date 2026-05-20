@@ -77,7 +77,9 @@ export interface FoundNode {
 
 export type ReactionAction =
   | { type: "navigate"; targetFrameId: string }
-  | { type: "scroll"; targetNodeId: string };
+  | { type: "scroll"; targetNodeId: string }
+  | { type: "overlay"; targetFrameId: string }
+  | { type: "close" };
 
 export interface ReactionConnectionInput {
   sourceNodeId: string;

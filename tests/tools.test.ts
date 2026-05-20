@@ -104,6 +104,44 @@ describe("CreateReactionsInput", () => {
   });
 });
 
+describe("CreateReactionsInput overlay + close", () => {
+  it("accepts an overlay connection", () => {
+    const r = CreateReactionsInput.parse({
+      connections: [
+        { sourceNodeId: "1:1", action: { type: "overlay", targetFrameId: "1:7" } },
+      ],
+    });
+    expect(r.connections[0]!.action).toEqual({ type: "overlay", targetFrameId: "1:7" });
+  });
+
+  it("accepts a close connection (no destination)", () => {
+    const r = CreateReactionsInput.parse({
+      connections: [{ sourceNodeId: "1:1", action: { type: "close" } }],
+    });
+    expect(r.connections[0]!.action).toEqual({ type: "close" });
+  });
+
+  it("accepts a mixed 4-action batch", () => {
+    const r = CreateReactionsInput.parse({
+      connections: [
+        { sourceNodeId: "1:1", action: { type: "navigate", targetFrameId: "1:2" } },
+        { sourceNodeId: "1:3", action: { type: "scroll", targetNodeId: "1:9" } },
+        { sourceNodeId: "1:4", action: { type: "overlay", targetFrameId: "1:7" } },
+        { sourceNodeId: "1:5", action: { type: "close" } },
+      ],
+    });
+    expect(r.connections).toHaveLength(4);
+  });
+
+  it("rejects overlay missing targetFrameId", () => {
+    expect(() =>
+      CreateReactionsInput.parse({
+        connections: [{ sourceNodeId: "1:1", action: { type: "overlay" } }],
+      })
+    ).toThrow();
+  });
+});
+
 describe("ListReactionsInput", () => {
   it("requires nodeId", () => {
     expect(() => ListReactionsInput.parse({})).toThrow();
