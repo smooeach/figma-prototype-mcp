@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildNavigateReaction, buildTransition } from "../src/figma-plugin/reaction-builder.js";
+import { buildNavigateReaction, buildTransition, buildScrollReaction } from "../src/figma-plugin/reaction-builder.js";
 
 describe("buildNavigateReaction", () => {
   it("builds ON_CLICK + INSTANT by default", () => {
@@ -69,5 +69,47 @@ describe("buildTransition", () => {
       duration: 0.3,
       easing: { type: "EASE_OUT" },
     });
+  });
+});
+
+describe("buildScrollReaction", () => {
+  it("builds ON_CLICK + INSTANT SCROLL_TO by default", () => {
+    const r = buildScrollReaction({
+      sourceNodeId: "1:1",
+      targetNodeId: "1:5",
+      trigger: "ON_CLICK",
+      transition: "INSTANT",
+    });
+    expect(r.trigger).toEqual({ type: "ON_CLICK" });
+    expect(r.actions).toHaveLength(1);
+    expect(r.actions[0]).toEqual({
+      type: "SCROLL_TO",
+      destinationId: "1:5",
+      transition: null,
+    });
+  });
+
+  it("uses DISSOLVE transition shape when requested", () => {
+    const r = buildScrollReaction({
+      sourceNodeId: "1:1",
+      targetNodeId: "1:5",
+      trigger: "ON_CLICK",
+      transition: "DISSOLVE",
+    });
+    expect(r.actions[0]!.transition).toEqual({
+      type: "DISSOLVE",
+      duration: 0.3,
+      easing: { type: "EASE_OUT" },
+    });
+  });
+
+  it("honors non-default trigger", () => {
+    const r = buildScrollReaction({
+      sourceNodeId: "1:1",
+      targetNodeId: "1:5",
+      trigger: "ON_HOVER",
+      transition: "INSTANT",
+    });
+    expect(r.trigger).toEqual({ type: "ON_HOVER" });
   });
 });

@@ -1,8 +1,5 @@
-// Pure function: converts our tool input to the shape that Figma Plugin API expects
+// Pure functions: convert our tool input to the shape that Figma Plugin API expects
 // when calling node.setReactionsAsync([reaction]).
-//
-// We do NOT import @figma/plugin-typings here because this file runs inside the
-// plugin sandbox at runtime; we just return a plain object that matches the shape.
 
 export type TransitionName = "INSTANT" | "DISSOLVE" | "SMART_ANIMATE";
 export type TriggerName = "ON_CLICK" | "ON_HOVER" | "ON_PRESS";
@@ -12,30 +9,48 @@ export type TransitionShape =
   | { type: "DISSOLVE"; duration: number; easing: { type: string } }
   | { type: "SMART_ANIMATE"; duration: number; easing: { type: string } };
 
-export interface BuildInput {
+export type BuiltAction =
+  | {
+      type: "NODE";
+      destinationId: string;
+      navigation: "NAVIGATE";
+      transition: TransitionShape;
+      preserveScrollPosition: false;
+    }
+  | {
+      type: "SCROLL_TO";
+      destinationId: string;
+      transition: TransitionShape;
+    };
+
+export interface BuiltReaction {
+  trigger: { type: string };
+  actions: BuiltAction[];
+}
+
+export interface NavigateBuildInput {
   sourceNodeId: string;
   targetFrameId: string;
   trigger: TriggerName;
   transition: TransitionName;
 }
 
-export interface BuiltReaction {
-  trigger: { type: string };
-  actions: Array<{
-    type: "NODE";
-    destinationId: string;
-    navigation: "NAVIGATE";
-    transition: TransitionShape;
-    preserveScrollPosition: false;
-  }>;
+export interface ScrollBuildInput {
+  sourceNodeId: string;
+  targetNodeId: string;
+  trigger: TriggerName;
+  transition: TransitionName;
 }
+
+// Backward-compat alias used by older imports/tests.
+export type BuildInput = NavigateBuildInput;
 
 export function buildTransition(name: TransitionName): TransitionShape {
   if (name === "INSTANT") return null;
   return { type: name, duration: 0.3, easing: { type: "EASE_OUT" } };
 }
 
-export function buildNavigateReaction(input: BuildInput): BuiltReaction {
+export function buildNavigateReaction(input: NavigateBuildInput): BuiltReaction {
   return {
     trigger: { type: input.trigger },
     actions: [
@@ -45,6 +60,19 @@ export function buildNavigateReaction(input: BuildInput): BuiltReaction {
         navigation: "NAVIGATE",
         transition: buildTransition(input.transition),
         preserveScrollPosition: false,
+      },
+    ],
+  };
+}
+
+export function buildScrollReaction(input: ScrollBuildInput): BuiltReaction {
+  return {
+    trigger: { type: input.trigger },
+    actions: [
+      {
+        type: "SCROLL_TO",
+        destinationId: input.targetNodeId,
+        transition: buildTransition(input.transition),
       },
     ],
   };
