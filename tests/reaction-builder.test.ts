@@ -364,14 +364,14 @@ describe("buildTrigger", () => {
       type: "MOUSE_UP", delay: 0,
     });
   });
-  it("object MOUSE_ENTER defaults delay 0 + deprecatedVersion false", () => {
+  it("object MOUSE_ENTER defaults delay 0 (deprecatedVersion dropped — Figma runtime rejects)", () => {
     expect(buildTrigger({ type: "MOUSE_ENTER" })).toEqual({
-      type: "MOUSE_ENTER", delay: 0, deprecatedVersion: false,
+      type: "MOUSE_ENTER", delay: 0,
     });
   });
-  it("object MOUSE_LEAVE with explicit fields", () => {
-    expect(buildTrigger({ type: "MOUSE_LEAVE", delay: 0.5, deprecatedVersion: true })).toEqual({
-      type: "MOUSE_LEAVE", delay: 0.5, deprecatedVersion: true,
+  it("object MOUSE_LEAVE with explicit delay", () => {
+    expect(buildTrigger({ type: "MOUSE_LEAVE", delay: 0.5 })).toEqual({
+      type: "MOUSE_LEAVE", delay: 0.5,
     });
   });
   it("object ON_KEY_DOWN with device + keyCodes", () => {

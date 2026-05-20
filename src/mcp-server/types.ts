@@ -91,7 +91,7 @@ export interface ReactionConnectionInput {
     | { type: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "ON_DRAG" | "ON_MEDIA_END" }
     | { type: "AFTER_TIMEOUT"; timeout: number }
     | { type: "MOUSE_UP" | "MOUSE_DOWN"; delay?: number }
-    | { type: "MOUSE_ENTER" | "MOUSE_LEAVE"; delay?: number; deprecatedVersion?: boolean }
+    | { type: "MOUSE_ENTER" | "MOUSE_LEAVE"; delay?: number }
     | { type: "ON_KEY_DOWN";
         device: "KEYBOARD" | "XBOX_ONE" | "PS4" | "SWITCH_PRO" | "UNKNOWN_CONTROLLER";
         keyCodes: number[]; }
@@ -147,7 +147,6 @@ export interface ReactionSummary {
     type: string;
     timeout?: number;
     delay?: number;
-    deprecatedVersion?: boolean;
     device?: string;
     keyCodes?: number[];
     mediaHitTime?: number;

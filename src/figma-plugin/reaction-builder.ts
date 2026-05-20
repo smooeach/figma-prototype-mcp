@@ -76,7 +76,7 @@ export type TriggerInput =
   | { type: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "ON_DRAG" | "ON_MEDIA_END" }
   | { type: "AFTER_TIMEOUT"; timeout: number }
   | { type: "MOUSE_UP" | "MOUSE_DOWN"; delay?: number }
-  | { type: "MOUSE_ENTER" | "MOUSE_LEAVE"; delay?: number; deprecatedVersion?: boolean }
+  | { type: "MOUSE_ENTER" | "MOUSE_LEAVE"; delay?: number }
   | { type: "ON_KEY_DOWN"; device: KeyboardDevice; keyCodes: number[] }
   | { type: "ON_MEDIA_HIT"; mediaHitTime: number };
 
@@ -109,7 +109,7 @@ export type TriggerShape =
   | { type: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "ON_DRAG" | "ON_MEDIA_END" }
   | { type: "AFTER_TIMEOUT"; timeout: number }
   | { type: "MOUSE_UP" | "MOUSE_DOWN"; delay: number }
-  | { type: "MOUSE_ENTER" | "MOUSE_LEAVE"; delay: number; deprecatedVersion: boolean }
+  | { type: "MOUSE_ENTER" | "MOUSE_LEAVE"; delay: number }
   | { type: "ON_KEY_DOWN"; device: KeyboardDevice; keyCodes: number[] }
   | { type: "ON_MEDIA_HIT"; mediaHitTime: number };
 
@@ -244,10 +244,13 @@ export function buildTrigger(
       return { type: input.type, delay: input.delay ?? 0 };
     case "MOUSE_ENTER":
     case "MOUSE_LEAVE":
+      // Figma's runtime rejects `deprecatedVersion` despite it appearing in
+      // the plugin typings — same typings vs runtime mismatch pattern as
+      // CustomSpringEasing.initialVelocity. setReactionsAsync returns
+      // "Unrecognized key(s) in object: 'deprecatedVersion'".
       return {
         type: input.type,
         delay: input.delay ?? 0,
-        deprecatedVersion: input.deprecatedVersion ?? false,
       };
     case "ON_KEY_DOWN":
       return { type: "ON_KEY_DOWN", device: input.device, keyCodes: input.keyCodes };

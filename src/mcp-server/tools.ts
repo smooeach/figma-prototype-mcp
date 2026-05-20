@@ -28,10 +28,12 @@ const TriggerObjectMouseClick = z.object({
   type: z.enum(["MOUSE_UP", "MOUSE_DOWN"]),
   delay: z.number().nonnegative().max(60).optional(),
 });
+// Figma's runtime rejects `deprecatedVersion` despite the typings declaring it
+// required — same typings vs runtime pattern as CustomSpringEasing.initialVelocity.
+// Omit from input.
 const TriggerObjectMouseHover = z.object({
   type: z.enum(["MOUSE_ENTER", "MOUSE_LEAVE"]),
   delay: z.number().nonnegative().max(60).optional(),
-  deprecatedVersion: z.boolean().optional(),
 });
 const TriggerObjectKeyDown = z.object({
   type: z.literal("ON_KEY_DOWN"),

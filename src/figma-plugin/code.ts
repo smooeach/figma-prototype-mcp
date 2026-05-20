@@ -30,7 +30,7 @@ type Command =
             | { type: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "ON_DRAG" | "ON_MEDIA_END" }
             | { type: "AFTER_TIMEOUT"; timeout: number }
             | { type: "MOUSE_UP" | "MOUSE_DOWN"; delay?: number }
-            | { type: "MOUSE_ENTER" | "MOUSE_LEAVE"; delay?: number; deprecatedVersion?: boolean }
+            | { type: "MOUSE_ENTER" | "MOUSE_LEAVE"; delay?: number }
             | { type: "ON_KEY_DOWN";
                 device: "KEYBOARD" | "XBOX_ONE" | "PS4" | "SWITCH_PRO" | "UNKNOWN_CONTROLLER";
                 keyCodes: number[];
@@ -238,7 +238,7 @@ async function handleCreateReactions(params: {
       | { type: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "ON_DRAG" | "ON_MEDIA_END" }
       | { type: "AFTER_TIMEOUT"; timeout: number }
       | { type: "MOUSE_UP" | "MOUSE_DOWN"; delay?: number }
-      | { type: "MOUSE_ENTER" | "MOUSE_LEAVE"; delay?: number; deprecatedVersion?: boolean }
+      | { type: "MOUSE_ENTER" | "MOUSE_LEAVE"; delay?: number }
       | { type: "ON_KEY_DOWN";
           device: "KEYBOARD" | "XBOX_ONE" | "PS4" | "SWITCH_PRO" | "UNKNOWN_CONTROLLER";
           keyCodes: number[];
@@ -414,7 +414,7 @@ async function handleListReactions(params: { nodeId: string }) {
       const destNode = destId ? figma.getNodeById(destId) : null;
       return {
         index: i,
-        trigger: { type: r.trigger?.type ?? "UNKNOWN", timeout: r.trigger?.timeout },
+        trigger: r.trigger ?? { type: "UNKNOWN" },
         action: {
           type: action.type ?? "UNKNOWN",
           navigation: action.navigation,
