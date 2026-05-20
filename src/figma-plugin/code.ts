@@ -27,7 +27,15 @@ type Command =
           sourceNodeId: string;
           trigger: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "AFTER_TIMEOUT";
           afterTimeoutSeconds?: number;
-          transition: "INSTANT" | "DISSOLVE" | "SMART_ANIMATE";
+          transition:
+            | "INSTANT" | "DISSOLVE" | "SMART_ANIMATE"
+            | {
+                type: "DISSOLVE" | "SMART_ANIMATE" | "SCROLL_ANIMATE";
+                duration?: number;
+                easing?:
+                  | "LINEAR" | "EASE_IN" | "EASE_OUT" | "EASE_IN_AND_OUT"
+                  | "EASE_IN_BACK" | "EASE_OUT_BACK" | "EASE_IN_AND_OUT_BACK";
+              };
           action:
             | { type: "navigate"; targetFrameId: string }
             | { type: "scroll"; targetNodeId: string }
@@ -202,7 +210,15 @@ async function handleCreateReactions(params: {
     sourceNodeId: string;
     trigger: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "AFTER_TIMEOUT";
     afterTimeoutSeconds?: number;
-    transition: "INSTANT" | "DISSOLVE" | "SMART_ANIMATE";
+    transition:
+      | "INSTANT" | "DISSOLVE" | "SMART_ANIMATE"
+      | {
+          type: "DISSOLVE" | "SMART_ANIMATE" | "SCROLL_ANIMATE";
+          duration?: number;
+          easing?:
+            | "LINEAR" | "EASE_IN" | "EASE_OUT" | "EASE_IN_AND_OUT"
+            | "EASE_IN_BACK" | "EASE_OUT_BACK" | "EASE_IN_AND_OUT_BACK";
+        };
     action:
       | { type: "navigate"; targetFrameId: string }
       | { type: "scroll"; targetNodeId: string }
