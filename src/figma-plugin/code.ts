@@ -1,7 +1,7 @@
 // Runs in the Figma plugin sandbox (main thread). Receives commands from ui.html
 // over postMessage, dispatches to handlers, and returns responses via postMessage.
 
-import { buildNavigateReaction, buildScrollReaction } from "./reaction-builder.js";
+import { buildNavigateReaction, buildScrollReaction, type BuiltReaction } from "./reaction-builder.js";
 import { CommandQueue } from "./command-queue.js";
 
 figma.showUI(__html__, { width: 320, height: 220 });
@@ -88,7 +88,6 @@ function findScrollableAncestor(node: BaseNode): BaseNode | null {
   while (cur) {
     if (
       "overflowDirection" in cur &&
-      (cur as any).overflowDirection &&
       (cur as any).overflowDirection !== "NONE"
     ) {
       return cur;
@@ -196,7 +195,7 @@ async function handleCreateReactions(params: {
         throw new Error(`Node cannot have reactions: ${source.name} (type: ${source.type})`);
       }
 
-      let newReaction;
+      let newReaction: BuiltReaction;
       let warning: string | undefined;
 
       if (conn.action.type === "navigate") {
@@ -206,7 +205,6 @@ async function handleCreateReactions(params: {
           throw new Error(`Target must be a frame: ${conn.action.targetFrameId} (got ${target.type})`);
         }
         newReaction = buildNavigateReaction({
-          sourceNodeId: conn.sourceNodeId,
           targetFrameId: conn.action.targetFrameId,
           trigger: conn.trigger,
           transition: conn.transition,
@@ -219,7 +217,6 @@ async function handleCreateReactions(params: {
           warning = `Scroll target ${conn.action.targetNodeId} (${target.name}) has no scrollable ancestor frame; the prototype scroll will not animate at runtime`;
         }
         newReaction = buildScrollReaction({
-          sourceNodeId: conn.sourceNodeId,
           targetNodeId: conn.action.targetNodeId,
           trigger: conn.trigger,
           transition: conn.transition,

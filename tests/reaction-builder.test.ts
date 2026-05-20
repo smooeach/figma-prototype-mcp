@@ -4,7 +4,6 @@ import { buildNavigateReaction, buildTransition, buildScrollReaction } from "../
 describe("buildNavigateReaction", () => {
   it("builds ON_CLICK + INSTANT by default", () => {
     const r = buildNavigateReaction({
-      sourceNodeId: "1:1",
       targetFrameId: "1:2",
       trigger: "ON_CLICK",
       transition: "INSTANT",
@@ -22,7 +21,6 @@ describe("buildNavigateReaction", () => {
 
   it("uses SMART_ANIMATE with default duration & easing", () => {
     const r = buildNavigateReaction({
-      sourceNodeId: "a",
       targetFrameId: "b",
       trigger: "ON_CLICK",
       transition: "SMART_ANIMATE",
@@ -36,7 +34,6 @@ describe("buildNavigateReaction", () => {
 
   it("uses DISSOLVE with default duration", () => {
     const r = buildNavigateReaction({
-      sourceNodeId: "a",
       targetFrameId: "b",
       trigger: "ON_HOVER",
       transition: "DISSOLVE",
@@ -75,7 +72,6 @@ describe("buildTransition", () => {
 describe("buildScrollReaction", () => {
   it("builds ON_CLICK + INSTANT SCROLL_TO by default", () => {
     const r = buildScrollReaction({
-      sourceNodeId: "1:1",
       targetNodeId: "1:5",
       trigger: "ON_CLICK",
       transition: "INSTANT",
@@ -93,7 +89,6 @@ describe("buildScrollReaction", () => {
 
   it("uses DISSOLVE transition shape when requested", () => {
     const r = buildScrollReaction({
-      sourceNodeId: "1:1",
       targetNodeId: "1:5",
       trigger: "ON_CLICK",
       transition: "DISSOLVE",
@@ -107,7 +102,6 @@ describe("buildScrollReaction", () => {
 
   it("honors non-default trigger", () => {
     const r = buildScrollReaction({
-      sourceNodeId: "1:1",
       targetNodeId: "1:5",
       trigger: "ON_HOVER",
       transition: "INSTANT",

@@ -25,21 +25,16 @@ export interface BuiltReaction {
 }
 
 export interface NavigateBuildInput {
-  sourceNodeId: string;
   targetFrameId: string;
   trigger: TriggerName;
   transition: TransitionName;
 }
 
 export interface ScrollBuildInput {
-  sourceNodeId: string;
   targetNodeId: string;
   trigger: TriggerName;
   transition: TransitionName;
 }
-
-// Backward-compat alias used by older imports/tests.
-export type BuildInput = NavigateBuildInput;
 
 export function buildTransition(name: TransitionName): TransitionShape {
   if (name === "INSTANT") return null;
