@@ -52,7 +52,20 @@ export interface SimpleTransitionInput {
   easing?: EasingInput;    // default "EASE_OUT"
 }
 
-export type TransitionInput = TransitionName | SimpleTransitionInput;
+export type DirectionalTransitionType =
+  "MOVE_IN" | "MOVE_OUT" | "PUSH" | "SLIDE_IN" | "SLIDE_OUT";
+
+export type Direction = "LEFT" | "RIGHT" | "TOP" | "BOTTOM";
+
+export interface DirectionalTransitionInput {
+  type: DirectionalTransitionType;
+  direction: Direction;
+  matchLayers?: boolean;  // default false
+  duration?: number;      // default 0.3
+  easing?: EasingInput;   // default EASE_OUT (via resolveEasing)
+}
+
+export type TransitionInput = TransitionName | SimpleTransitionInput | DirectionalTransitionInput;
 export type TriggerName = "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "AFTER_TIMEOUT";
 
 export type KeyboardDevice =
@@ -69,8 +82,11 @@ export type TriggerInput =
 
 export type TransitionShape =
   | null
+  | { type: SimpleTransitionType; duration: number; easing: EasingShape }
   | {
-      type: SimpleTransitionType;
+      type: DirectionalTransitionType;
+      direction: Direction;
+      matchLayers: boolean;
       duration: number;
       easing: EasingShape;
     };
@@ -178,11 +194,25 @@ export function buildTransition(input: TransitionInput): TransitionShape {
     };
   }
 
-  // Nested object — resolve defaults.
-  const duration = input.duration ?? 0.3;
+  // Object form — discriminate directional vs simple by type.
+  if (
+    input.type === "MOVE_IN" || input.type === "MOVE_OUT" ||
+    input.type === "PUSH"    || input.type === "SLIDE_IN" ||
+    input.type === "SLIDE_OUT"
+  ) {
+    return {
+      type: input.type,
+      direction: input.direction,
+      matchLayers: input.matchLayers ?? false,
+      duration: input.duration ?? 0.3,
+      easing: resolveEasing(input.easing),
+    };
+  }
+
+  // SimpleTransitionInput — resolve defaults.
   return {
     type: input.type,
-    duration,
+    duration: input.duration ?? 0.3,
     easing: resolveEasing(input.easing),
   };
 }

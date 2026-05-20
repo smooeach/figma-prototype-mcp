@@ -481,3 +481,47 @@ describe("buildTransition with spring + custom easings", () => {
     });
   });
 });
+
+describe("buildTransition directional", () => {
+  it("MOVE_IN RIGHT with explicit fields", () => {
+    expect(buildTransition({
+      type: "MOVE_IN", direction: "RIGHT", matchLayers: true, duration: 0.4, easing: "EASE_OUT",
+    })).toEqual({
+      type: "MOVE_IN", direction: "RIGHT", matchLayers: true, duration: 0.4, easing: { type: "EASE_OUT" },
+    });
+  });
+
+  it("PUSH LEFT defaults (matchLayers=false, duration=0.3, easing=EASE_OUT)", () => {
+    expect(buildTransition({ type: "PUSH", direction: "LEFT" })).toEqual({
+      type: "PUSH", direction: "LEFT", matchLayers: false, duration: 0.3, easing: { type: "EASE_OUT" },
+    });
+  });
+
+  it("SLIDE_IN BOTTOM with BOUNCY easing", () => {
+    expect(buildTransition({ type: "SLIDE_IN", direction: "BOTTOM", easing: "BOUNCY" })).toEqual({
+      type: "SLIDE_IN", direction: "BOTTOM", matchLayers: false, duration: 0.3, easing: { type: "BOUNCY" },
+    });
+  });
+
+  it("MOVE_OUT TOP with duration", () => {
+    expect(buildTransition({ type: "MOVE_OUT", direction: "TOP", duration: 0.5 })).toEqual({
+      type: "MOVE_OUT", direction: "TOP", matchLayers: false, duration: 0.5, easing: { type: "EASE_OUT" },
+    });
+  });
+
+  it("SLIDE_OUT RIGHT defaults", () => {
+    expect(buildTransition({ type: "SLIDE_OUT", direction: "RIGHT" })).toEqual({
+      type: "SLIDE_OUT", direction: "RIGHT", matchLayers: false, duration: 0.3, easing: { type: "EASE_OUT" },
+    });
+  });
+
+  it("directional accepts CUSTOM_CUBIC_BEZIER easing (passes through resolveEasing)", () => {
+    expect(buildTransition({
+      type: "MOVE_IN", direction: "LEFT",
+      easing: { type: "CUSTOM_CUBIC_BEZIER", x1: 0.2, y1: 0, x2: 0, y2: 1 },
+    })).toEqual({
+      type: "MOVE_IN", direction: "LEFT", matchLayers: false, duration: 0.3,
+      easing: { type: "CUSTOM_CUBIC_BEZIER", easingFunctionCubicBezier: { x1: 0.2, y1: 0, x2: 0, y2: 1 } },
+    });
+  });
+});
