@@ -78,7 +78,7 @@ After install + all three components running, verify these scenarios in Figma. E
   (a) Ask: "openExternal에서 https://figma.com 열게 해줘". Expected: reaction created with action.type=URL and the exact url echoed. In play mode, click opens figma.com in the browser.
   (b) Ask: "dismissThis는 뒤로 가기로". Expected: reaction created with action.type=BACK (no destination). In play, after navigating screenA→screenB, dismissThis returns to screenA.
   (c) Ask: "swapBtn을 overlayQ로 swap하게". Expected: reaction created with action.type=NODE and navigation=SWAP, destinationId echoed. In play, open overlayP from screenA, then click swapBtn → overlayP is replaced (not stacked) by overlayQ.
-- [ ] **10. URL options + inspection**:
+- [x] **10. URL options + inspection**:
   Setup: Reuse scenario 9's buttonExternal (`962:22117` in MCP_Test_05) — the URL action wired to https://figma.com.
   (a) Ask: "buttonExternal에서 https://anthropic.com을 새 탭에서 열게 해줘". Expected: reaction replaced. list_reactions on buttonExternal shows action.type=URL, url=https://anthropic.com, openInNewTab=true.
   (b) Ask: "이 버튼 어디로 연결돼 있어?" (buttonExternal selected). Expected: response includes the URL string and the openInNewTab flag.
