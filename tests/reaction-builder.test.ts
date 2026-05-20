@@ -192,7 +192,7 @@ describe("buildUrlReaction", () => {
     const r = buildUrlReaction({ trigger: "ON_CLICK", url: "https://figma.com" });
     expect(r.trigger).toEqual({ type: "ON_CLICK" });
     expect(r.actions).toHaveLength(1);
-    expect(r.actions[0]).toEqual({ type: "URL", url: "https://figma.com" });
+    expect(r.actions[0]).toEqual({ type: "URL", url: "https://figma.com", openInNewTab: false });
   });
 
   it("preserves the exact url string", () => {
@@ -200,6 +200,26 @@ describe("buildUrlReaction", () => {
     const action = r.actions[0]!;
     if (action.type !== "URL") throw new Error("expected URL action");
     expect(action.url).toBe("https://example.com/path?q=1");
+  });
+});
+
+describe("buildUrlReaction openInNewTab", () => {
+  it("defaults openInNewTab to false when not provided", () => {
+    const r = buildUrlReaction({ trigger: "ON_CLICK", url: "https://figma.com" });
+    expect(r.actions[0]).toEqual({
+      type: "URL",
+      url: "https://figma.com",
+      openInNewTab: false,
+    });
+  });
+
+  it("emits openInNewTab true when requested", () => {
+    const r = buildUrlReaction({ trigger: "ON_CLICK", url: "https://figma.com", openInNewTab: true });
+    expect(r.actions[0]).toEqual({
+      type: "URL",
+      url: "https://figma.com",
+      openInNewTab: true,
+    });
   });
 });
 

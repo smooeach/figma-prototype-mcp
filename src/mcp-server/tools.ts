@@ -40,6 +40,7 @@ const BackActionInput = z.object({
 const UrlActionInput = z.object({
   type: z.literal("url"),
   url: z.string().min(1),
+  openInNewTab: z.boolean().optional(),
 });
 
 const SwapOverlayActionInput = z.object({

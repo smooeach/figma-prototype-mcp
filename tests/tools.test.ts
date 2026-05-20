@@ -206,3 +206,21 @@ describe("CreateReactionsInput back/url/swap", () => {
     ).toThrow();
   });
 });
+
+describe("CreateReactionsInput url openInNewTab", () => {
+  it("accepts a url connection with openInNewTab true", () => {
+    const r = CreateReactionsInput.parse({
+      connections: [
+        {
+          sourceNodeId: "1:1",
+          action: { type: "url", url: "https://figma.com", openInNewTab: true },
+        },
+      ],
+    });
+    expect(r.connections[0]!.action).toEqual({
+      type: "url",
+      url: "https://figma.com",
+      openInNewTab: true,
+    });
+  });
+});

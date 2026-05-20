@@ -81,7 +81,7 @@ export type ReactionAction =
   | { type: "overlay"; targetFrameId: string }
   | { type: "close" }
   | { type: "back" }
-  | { type: "url"; url: string }
+  | { type: "url"; url: string; openInNewTab?: boolean }
   | { type: "swap_overlay"; targetFrameId: string };
 
 export interface ReactionConnectionInput {
@@ -112,6 +112,8 @@ export interface ReactionSummary {
   action: {
     type: string;
     navigation?: string;
+    url?: string;
+    openInNewTab?: boolean;
     destinationId?: string;
     destinationName?: string;
     transition?: { type: string; duration?: number };

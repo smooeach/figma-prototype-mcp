@@ -21,7 +21,7 @@ export type BuiltAction =
     }
   | { type: "CLOSE" }
   | { type: "BACK" }
-  | { type: "URL"; url: string };
+  | { type: "URL"; url: string; openInNewTab: boolean };
 
 export interface BuiltReaction {
   trigger: { type: string };
@@ -57,6 +57,7 @@ export interface BackBuildInput {
 export interface UrlBuildInput {
   trigger: TriggerName;
   url: string;
+  openInNewTab?: boolean;
 }
 
 export interface SwapOverlayBuildInput {
@@ -132,7 +133,7 @@ export function buildBackReaction(input: BackBuildInput): BuiltReaction {
 export function buildUrlReaction(input: UrlBuildInput): BuiltReaction {
   return {
     trigger: { type: input.trigger },
-    actions: [{ type: "URL", url: input.url }],
+    actions: [{ type: "URL", url: input.url, openInNewTab: input.openInNewTab ?? false }],
   };
 }
 
