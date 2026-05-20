@@ -2,8 +2,11 @@
 // over postMessage, dispatches to handlers, and returns responses via postMessage.
 
 import { buildNavigateReaction } from "./reaction-builder.js";
+import { CommandQueue } from "./command-queue.js";
 
 figma.showUI(__html__, { width: 320, height: 220 });
+
+const commandQueue = new CommandQueue();
 
 type Command =
   | { type: "GET_CANVAS_OVERVIEW"; params: { pageId?: string } }
@@ -20,13 +23,17 @@ type Command =
   | { type: "LIST_REACTIONS"; params: { nodeId: string } }
   | { type: "CLEAR_REACTIONS"; params: { nodeIds: string[]; indices?: number[] } };
 
-figma.ui.onmessage = async (msg: any) => {
+figma.ui.onmessage = (msg: any) => {
   if (msg?.type !== "command" || !msg.envelope) return;
   const envelope = msg.envelope as { id: string; command: Command["type"]; params: any };
-  const response = await dispatch(envelope.command, envelope.params);
-  figma.ui.postMessage({
-    type: "response",
-    envelope: { id: envelope.id, type: "response", ...response },
+  // Serialise commands: Figma's async APIs (loadAllPagesAsync, setReactionsAsync)
+  // can deadlock when invoked concurrently from overlapping message handlers.
+  void commandQueue.enqueue(async () => {
+    const response = await dispatch(envelope.command, envelope.params);
+    figma.ui.postMessage({
+      type: "response",
+      envelope: { id: envelope.id, type: "response", ...response },
+    });
   });
 };
 
