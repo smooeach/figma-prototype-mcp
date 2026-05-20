@@ -11,7 +11,7 @@ const commandQueue = new CommandQueue();
 type Command =
   | { type: "GET_CANVAS_OVERVIEW"; params: { pageId?: string } }
   | { type: "FIND_NODES"; params: { query: string; nodeTypes?: string[]; scope?: "page" | "document"; limit?: number } }
-  | { type: "CREATE_NAVIGATE_REACTIONS"; params: {
+  | { type: "CREATE_REACTIONS"; params: {
       connections: Array<{
         sourceNodeId: string;
         targetFrameId: string;
@@ -44,7 +44,7 @@ async function dispatch(command: Command["type"], params: any): Promise<
     switch (command) {
       case "GET_CANVAS_OVERVIEW": return { status: "ok", result: await handleGetCanvasOverview(params) };
       case "FIND_NODES":          return { status: "ok", result: await handleFindNodes(params) };
-      case "CREATE_NAVIGATE_REACTIONS": return { status: "ok", result: await handleCreateNavigateReactions(params) };
+      case "CREATE_REACTIONS": return { status: "ok", result: await handleCreateNavigateReactions(params) };
       case "LIST_REACTIONS":      return { status: "ok", result: await handleListReactions(params) };
       case "CLEAR_REACTIONS":     return { status: "ok", result: await handleClearReactions(params) };
       default: return { status: "error", error: { code: "UNKNOWN_COMMAND", message: `Unknown command: ${command}` } };

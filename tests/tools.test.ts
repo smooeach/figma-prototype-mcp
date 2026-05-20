@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   GetCanvasOverviewInput,
   FindNodesInput,
-  CreateNavigateReactionsInput,
+  CreateReactionsInput,
   ListReactionsInput,
   ClearReactionsInput,
 } from "../src/mcp-server/tools.js";
@@ -33,9 +33,9 @@ describe("FindNodesInput", () => {
   });
 });
 
-describe("CreateNavigateReactionsInput", () => {
+describe("CreateReactionsInput", () => {
   it("accepts a single connection with defaults", () => {
-    const r = CreateNavigateReactionsInput.parse({
+    const r = CreateReactionsInput.parse({
       connections: [{ sourceNodeId: "1:1", targetFrameId: "1:2" }],
     });
     expect(r.connections[0]!.trigger).toBe("ON_CLICK");
@@ -43,11 +43,11 @@ describe("CreateNavigateReactionsInput", () => {
     expect(r.replaceExisting).toBe(false);
   });
   it("rejects empty connections", () => {
-    expect(() => CreateNavigateReactionsInput.parse({ connections: [] })).toThrow();
+    expect(() => CreateReactionsInput.parse({ connections: [] })).toThrow();
   });
   it("rejects invalid trigger", () => {
     expect(() =>
-      CreateNavigateReactionsInput.parse({
+      CreateReactionsInput.parse({
         connections: [{ sourceNodeId: "a", targetFrameId: "b", trigger: "ON_LONG_PRESS" }],
       })
     ).toThrow();

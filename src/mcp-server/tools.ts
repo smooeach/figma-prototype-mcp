@@ -21,7 +21,7 @@ const ConnectionInput = z.object({
   transition: TransitionEnum.default("INSTANT"),
 });
 
-export const CreateNavigateReactionsInput = z.object({
+export const CreateReactionsInput = z.object({
   connections: z.array(ConnectionInput).min(1),
   replaceExisting: z.boolean().default(false),
 });
@@ -42,6 +42,6 @@ export const ClearReactionsInput = z
 
 export type GetCanvasOverviewInput = z.infer<typeof GetCanvasOverviewInput>;
 export type FindNodesInput = z.infer<typeof FindNodesInput>;
-export type CreateNavigateReactionsInput = z.infer<typeof CreateNavigateReactionsInput>;
+export type CreateReactionsInput = z.infer<typeof CreateReactionsInput>;
 export type ListReactionsInput = z.infer<typeof ListReactionsInput>;
 export type ClearReactionsInput = z.infer<typeof ClearReactionsInput>;

@@ -9,7 +9,7 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import {
   GetCanvasOverviewInput,
   FindNodesInput,
-  CreateNavigateReactionsInput,
+  CreateReactionsInput,
   ListReactionsInput,
   ClearReactionsInput,
 } from "./tools.js";
@@ -42,12 +42,14 @@ const TOOLS = [
     command: "FIND_NODES" as CommandName,
   },
   {
-    name: "create_navigate_reactions",
+    name: "create_reactions",
     description:
-      "Create On-click → Navigate to <frame> prototype reactions in batch. " +
-      "Each connection succeeds or fails independently.",
-    schema: CreateNavigateReactionsInput,
-    command: "CREATE_NAVIGATE_REACTIONS" as CommandName,
+      "Create prototype reactions in batch. Each connection's action picks " +
+      "between Navigate To (action.type=navigate, targetFrameId) and Scroll To " +
+      "(action.type=scroll, targetNodeId). Each connection succeeds or fails " +
+      "independently.",
+    schema: CreateReactionsInput,
+    command: "CREATE_REACTIONS" as CommandName,
   },
   {
     name: "list_reactions",
