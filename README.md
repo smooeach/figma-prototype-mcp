@@ -102,6 +102,14 @@ After install + all three components running, verify these scenarios in Figma. E
   (b) Ask: "0.8초 SMART_ANIMATE EASE_IN_AND_OUT". Expected: `{ type: "SMART_ANIMATE", duration: 0.8, easing: { type: "EASE_IN_AND_OUT" } }`.
   (c) Ask: "기대감 후 등장 EASE_OUT_BACK 0.5초 DISSOLVE". Expected: `{ type: "DISSOLVE", duration: 0.5, easing: { type: "EASE_OUT_BACK" } }`.
   (d) `list_reactions` on the source button echoes `transition.type`, `transition.duration`, AND `transition.easing.type` for each of (a)/(b)/(c).
+- [ ] **15. Spring preset easings**:
+  Setup: any existing source button + target frame fixture.
+  (a) Ask: "BOUNCY로 0.4초 SMART_ANIMATE". Expected: `easing.type = "BOUNCY"` echoed by list_reactions.
+  (b) Ask: "QUICK 0.3초 DISSOLVE". Expected: `easing.type = "QUICK"`.
+- [ ] **16. Custom cubic-bezier and custom spring easings**:
+  Setup: any existing source button + target frame fixture.
+  (a) Ask: "Material 3 emphasized 곡선 SMART_ANIMATE 0.5초" → `transition.easing = { type: "CUSTOM_CUBIC_BEZIER", x1: 0.2, y1: 0, x2: 0, y2: 1 }`. Expected: list_reactions echoes `easing.type = "CUSTOM_CUBIC_BEZIER"` plus `easing.easingFunctionCubicBezier` with those values.
+  (b) Ask: "엄청 튀는 스프링 (mass 1, stiffness 600, damping 10) SMART_ANIMATE 0.6초". Expected: `easing.type = "CUSTOM_SPRING"` plus `easing.easingFunctionSpring` with those values.
 
 ## Known limitations (v1)
 
