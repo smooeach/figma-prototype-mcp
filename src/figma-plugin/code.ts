@@ -1,7 +1,7 @@
 // Runs in the Figma plugin sandbox (main thread). Receives commands from ui.html
 // over postMessage, dispatches to handlers, and returns responses via postMessage.
 
-import { buildNavigateReaction } from "./reaction-builder.js";
+import { buildNavigateReaction, buildScrollReaction } from "./reaction-builder.js";
 import { CommandQueue } from "./command-queue.js";
 
 figma.showUI(__html__, { width: 320, height: 220 });
@@ -11,15 +11,20 @@ const commandQueue = new CommandQueue();
 type Command =
   | { type: "GET_CANVAS_OVERVIEW"; params: { pageId?: string } }
   | { type: "FIND_NODES"; params: { query: string; nodeTypes?: string[]; scope?: "page" | "document"; limit?: number } }
-  | { type: "CREATE_REACTIONS"; params: {
-      connections: Array<{
-        sourceNodeId: string;
-        targetFrameId: string;
-        trigger: "ON_CLICK" | "ON_HOVER" | "ON_PRESS";
-        transition: "INSTANT" | "DISSOLVE" | "SMART_ANIMATE";
-      }>;
-      replaceExisting: boolean;
-    } }
+  | {
+      type: "CREATE_REACTIONS";
+      params: {
+        connections: Array<{
+          sourceNodeId: string;
+          trigger: "ON_CLICK" | "ON_HOVER" | "ON_PRESS";
+          transition: "INSTANT" | "DISSOLVE" | "SMART_ANIMATE";
+          action:
+            | { type: "navigate"; targetFrameId: string }
+            | { type: "scroll"; targetNodeId: string };
+        }>;
+        replaceExisting: boolean;
+      };
+    }
   | { type: "LIST_REACTIONS"; params: { nodeId: string } }
   | { type: "CLEAR_REACTIONS"; params: { nodeIds: string[]; indices?: number[] } };
 
@@ -44,7 +49,7 @@ async function dispatch(command: Command["type"], params: any): Promise<
     switch (command) {
       case "GET_CANVAS_OVERVIEW": return { status: "ok", result: await handleGetCanvasOverview(params) };
       case "FIND_NODES":          return { status: "ok", result: await handleFindNodes(params) };
-      case "CREATE_REACTIONS": return { status: "ok", result: await handleCreateNavigateReactions(params) };
+      case "CREATE_REACTIONS": return { status: "ok", result: await handleCreateReactions(params) };
       case "LIST_REACTIONS":      return { status: "ok", result: await handleListReactions(params) };
       case "CLEAR_REACTIONS":     return { status: "ok", result: await handleClearReactions(params) };
       default: return { status: "error", error: { code: "UNKNOWN_COMMAND", message: `Unknown command: ${command}` } };
@@ -76,6 +81,21 @@ function findEnclosingFrameId(node: SceneNode | BaseNode): string | null {
 
 function hasReactions(node: BaseNode): boolean {
   return "reactions" in node && Array.isArray((node as any).reactions) && (node as any).reactions.length > 0;
+}
+
+function findScrollableAncestor(node: BaseNode): BaseNode | null {
+  let cur: BaseNode | null = node.parent ?? null;
+  while (cur) {
+    if (
+      "overflowDirection" in cur &&
+      (cur as any).overflowDirection &&
+      (cur as any).overflowDirection !== "NONE"
+    ) {
+      return cur;
+    }
+    cur = (cur as any).parent ?? null;
+  }
+  return null;
 }
 
 async function handleGetCanvasOverview(params: { pageId?: string }) {
@@ -145,47 +165,86 @@ function pathOf(node: BaseNode): string {
   return parts.join(" > ");
 }
 
-async function handleCreateNavigateReactions(params: {
+async function handleCreateReactions(params: {
   connections: Array<{
     sourceNodeId: string;
-    targetFrameId: string;
     trigger: "ON_CLICK" | "ON_HOVER" | "ON_PRESS";
     transition: "INSTANT" | "DISSOLVE" | "SMART_ANIMATE";
+    action:
+      | { type: "navigate"; targetFrameId: string }
+      | { type: "scroll"; targetNodeId: string };
   }>;
   replaceExisting: boolean;
 }) {
   await figma.loadAllPagesAsync();
-  const results = [];
+  const results: Array<{
+    sourceNodeId: string;
+    status: "success" | "error";
+    error?: string;
+    reactionIndex?: number;
+    warning?: string;
+  }> = [];
   let successCount = 0;
   let errorCount = 0;
+  let warningCount = 0;
 
   for (const conn of params.connections) {
     try {
       const source = figma.getNodeById(conn.sourceNodeId);
       if (!source) throw new Error(`Source node not found: ${conn.sourceNodeId}`);
-      const target = figma.getNodeById(conn.targetFrameId);
-      if (!target) throw new Error(`Target frame not found: ${conn.targetFrameId}`);
-      if (target.type !== "FRAME") throw new Error(`Target must be a frame: ${conn.targetFrameId} (got ${target.type})`);
       if (!("setReactionsAsync" in source) || typeof (source as any).setReactionsAsync !== "function") {
         throw new Error(`Node cannot have reactions: ${source.name} (type: ${source.type})`);
       }
 
-      const newReaction = buildNavigateReaction({
-        sourceNodeId: conn.sourceNodeId,
-        targetFrameId: conn.targetFrameId,
-        trigger: conn.trigger,
-        transition: conn.transition,
-      });
+      let newReaction;
+      let warning: string | undefined;
+
+      if (conn.action.type === "navigate") {
+        const target = figma.getNodeById(conn.action.targetFrameId);
+        if (!target) throw new Error(`Target frame not found: ${conn.action.targetFrameId}`);
+        if (target.type !== "FRAME") {
+          throw new Error(`Target must be a frame: ${conn.action.targetFrameId} (got ${target.type})`);
+        }
+        newReaction = buildNavigateReaction({
+          sourceNodeId: conn.sourceNodeId,
+          targetFrameId: conn.action.targetFrameId,
+          trigger: conn.trigger,
+          transition: conn.transition,
+        });
+      } else {
+        const target = figma.getNodeById(conn.action.targetNodeId);
+        if (!target) throw new Error(`Scroll target node not found: ${conn.action.targetNodeId}`);
+        const scrollable = findScrollableAncestor(target);
+        if (!scrollable) {
+          warning = `Scroll target ${conn.action.targetNodeId} (${target.name}) has no scrollable ancestor frame; the prototype scroll will not animate at runtime`;
+        }
+        newReaction = buildScrollReaction({
+          sourceNodeId: conn.sourceNodeId,
+          targetNodeId: conn.action.targetNodeId,
+          trigger: conn.trigger,
+          transition: conn.transition,
+        });
+      }
 
       const existing = ("reactions" in source ? (source as any).reactions : []) as any[];
       const next = params.replaceExisting ? [newReaction] : [...existing, newReaction];
       await (source as any).setReactionsAsync(next);
 
-      results.push({
+      const result: {
+        sourceNodeId: string;
+        status: "success";
+        reactionIndex: number;
+        warning?: string;
+      } = {
         sourceNodeId: conn.sourceNodeId,
         status: "success",
         reactionIndex: next.length - 1,
-      });
+      };
+      if (warning) {
+        result.warning = warning;
+        warningCount++;
+      }
+      results.push(result);
       successCount++;
     } catch (err: any) {
       results.push({
@@ -197,7 +256,7 @@ async function handleCreateNavigateReactions(params: {
     }
   }
 
-  return { results, successCount, errorCount };
+  return { results, successCount, errorCount, warningCount };
 }
 
 async function handleListReactions(params: { nodeId: string }) {
