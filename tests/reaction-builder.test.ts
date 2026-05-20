@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildNavigateReaction } from "../src/figma-plugin/reaction-builder.js";
+import { buildNavigateReaction, buildTransition } from "../src/figma-plugin/reaction-builder.js";
 
 describe("buildNavigateReaction", () => {
   it("builds ON_CLICK + INSTANT by default", () => {
@@ -44,6 +44,28 @@ describe("buildNavigateReaction", () => {
     expect(r.trigger).toEqual({ type: "ON_HOVER" });
     expect(r.actions[0]!.transition).toMatchObject({
       type: "DISSOLVE",
+      duration: 0.3,
+      easing: { type: "EASE_OUT" },
+    });
+  });
+});
+
+describe("buildTransition", () => {
+  it("returns null for INSTANT", () => {
+    expect(buildTransition("INSTANT")).toBeNull();
+  });
+
+  it("returns DISSOLVE with duration and EASE_OUT easing", () => {
+    expect(buildTransition("DISSOLVE")).toEqual({
+      type: "DISSOLVE",
+      duration: 0.3,
+      easing: { type: "EASE_OUT" },
+    });
+  });
+
+  it("returns SMART_ANIMATE with duration and EASE_OUT easing", () => {
+    expect(buildTransition("SMART_ANIMATE")).toEqual({
+      type: "SMART_ANIMATE",
       duration: 0.3,
       easing: { type: "EASE_OUT" },
     });

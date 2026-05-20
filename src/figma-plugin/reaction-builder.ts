@@ -3,13 +3,20 @@
 //
 // We do NOT import @figma/plugin-typings here because this file runs inside the
 // plugin sandbox at runtime; we just return a plain object that matches the shape.
-// Tests use a structural assertion instead of the Figma types.
+
+export type TransitionName = "INSTANT" | "DISSOLVE" | "SMART_ANIMATE";
+export type TriggerName = "ON_CLICK" | "ON_HOVER" | "ON_PRESS";
+
+export type TransitionShape =
+  | null
+  | { type: "DISSOLVE"; duration: number; easing: { type: string } }
+  | { type: "SMART_ANIMATE"; duration: number; easing: { type: string } };
 
 export interface BuildInput {
   sourceNodeId: string;
   targetFrameId: string;
-  trigger: "ON_CLICK" | "ON_HOVER" | "ON_PRESS";
-  transition: "INSTANT" | "DISSOLVE" | "SMART_ANIMATE";
+  trigger: TriggerName;
+  transition: TransitionName;
 }
 
 export interface BuiltReaction {
@@ -18,25 +25,17 @@ export interface BuiltReaction {
     type: "NODE";
     destinationId: string;
     navigation: "NAVIGATE";
-    // Figma encodes "instant" as null; non-instant transitions require both duration and easing.
-    transition:
-      | null
-      | { type: "DISSOLVE"; duration: number; easing: { type: string } }
-      | { type: "SMART_ANIMATE"; duration: number; easing: { type: string } };
+    transition: TransitionShape;
     preserveScrollPosition: false;
   }>;
 }
 
-export function buildNavigateReaction(input: BuildInput): BuiltReaction {
-  let transition: BuiltReaction["actions"][number]["transition"];
-  if (input.transition === "INSTANT") {
-    transition = null;
-  } else if (input.transition === "DISSOLVE") {
-    transition = { type: "DISSOLVE", duration: 0.3, easing: { type: "EASE_OUT" } };
-  } else {
-    transition = { type: "SMART_ANIMATE", duration: 0.3, easing: { type: "EASE_OUT" } };
-  }
+export function buildTransition(name: TransitionName): TransitionShape {
+  if (name === "INSTANT") return null;
+  return { type: name, duration: 0.3, easing: { type: "EASE_OUT" } };
+}
 
+export function buildNavigateReaction(input: BuildInput): BuiltReaction {
   return {
     trigger: { type: input.trigger },
     actions: [
@@ -44,7 +43,7 @@ export function buildNavigateReaction(input: BuildInput): BuiltReaction {
         type: "NODE",
         destinationId: input.targetFrameId,
         navigation: "NAVIGATE",
-        transition,
+        transition: buildTransition(input.transition),
         preserveScrollPosition: false,
       },
     ],
