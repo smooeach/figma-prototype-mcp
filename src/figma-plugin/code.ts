@@ -1,7 +1,13 @@
 // Runs in the Figma plugin sandbox (main thread). Receives commands from ui.html
 // over postMessage, dispatches to handlers, and returns responses via postMessage.
 
-import { buildNavigateReaction, buildScrollReaction, type BuiltReaction } from "./reaction-builder.js";
+import {
+  buildNavigateReaction,
+  buildScrollReaction,
+  buildOverlayReaction,
+  buildCloseReaction,
+  type BuiltReaction,
+} from "./reaction-builder.js";
 import { CommandQueue } from "./command-queue.js";
 
 figma.showUI(__html__, { width: 320, height: 220 });
@@ -20,7 +26,9 @@ type Command =
           transition: "INSTANT" | "DISSOLVE" | "SMART_ANIMATE";
           action:
             | { type: "navigate"; targetFrameId: string }
-            | { type: "scroll"; targetNodeId: string };
+            | { type: "scroll"; targetNodeId: string }
+            | { type: "overlay"; targetFrameId: string }
+            | { type: "close" };
         }>;
         replaceExisting: boolean;
       };
@@ -171,7 +179,9 @@ async function handleCreateReactions(params: {
     transition: "INSTANT" | "DISSOLVE" | "SMART_ANIMATE";
     action:
       | { type: "navigate"; targetFrameId: string }
-      | { type: "scroll"; targetNodeId: string };
+      | { type: "scroll"; targetNodeId: string }
+      | { type: "overlay"; targetFrameId: string }
+      | { type: "close" };
   }>;
   replaceExisting: boolean;
 }) {
@@ -209,7 +219,7 @@ async function handleCreateReactions(params: {
           trigger: conn.trigger,
           transition: conn.transition,
         });
-      } else {
+      } else if (conn.action.type === "scroll") {
         const target = figma.getNodeById(conn.action.targetNodeId);
         if (!target) throw new Error(`Scroll target node not found: ${conn.action.targetNodeId}`);
         const scrollable = findScrollableAncestor(target);
@@ -221,6 +231,20 @@ async function handleCreateReactions(params: {
           trigger: conn.trigger,
           transition: conn.transition,
         });
+      } else if (conn.action.type === "overlay") {
+        const target = figma.getNodeById(conn.action.targetFrameId);
+        if (!target) throw new Error(`Overlay target frame not found: ${conn.action.targetFrameId}`);
+        if (target.type !== "FRAME") {
+          throw new Error(`Overlay target must be a frame: ${conn.action.targetFrameId} (got ${target.type})`);
+        }
+        newReaction = buildOverlayReaction({
+          targetFrameId: conn.action.targetFrameId,
+          trigger: conn.trigger,
+          transition: conn.transition,
+        });
+      } else {
+        // close
+        newReaction = buildCloseReaction({ trigger: conn.trigger });
       }
 
       const existing = ("reactions" in source ? (source as any).reactions : []) as any[];
