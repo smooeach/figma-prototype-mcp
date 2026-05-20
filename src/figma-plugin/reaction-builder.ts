@@ -9,19 +9,15 @@ export type TransitionShape =
   | { type: "DISSOLVE"; duration: number; easing: { type: string } }
   | { type: "SMART_ANIMATE"; duration: number; easing: { type: string } };
 
-export type BuiltAction =
-  | {
-      type: "NODE";
-      destinationId: string;
-      navigation: "NAVIGATE";
-      transition: TransitionShape;
-      preserveScrollPosition: false;
-    }
-  | {
-      type: "SCROLL_TO";
-      destinationId: string;
-      transition: TransitionShape;
-    };
+// Figma encodes Scroll To as a NODE action with `navigation: "SCROLL_TO"`, not a
+// separate top-level action type. setReactionsAsync rejects `type: "SCROLL_TO"`.
+export type BuiltAction = {
+  type: "NODE";
+  destinationId: string;
+  navigation: "NAVIGATE" | "SCROLL_TO";
+  transition: TransitionShape;
+  preserveScrollPosition: false;
+};
 
 export interface BuiltReaction {
   trigger: { type: string };
@@ -70,9 +66,11 @@ export function buildScrollReaction(input: ScrollBuildInput): BuiltReaction {
     trigger: { type: input.trigger },
     actions: [
       {
-        type: "SCROLL_TO",
+        type: "NODE",
         destinationId: input.targetNodeId,
+        navigation: "SCROLL_TO",
         transition: buildTransition(input.transition),
+        preserveScrollPosition: false,
       },
     ],
   };

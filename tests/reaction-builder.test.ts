@@ -83,9 +83,11 @@ describe("buildScrollReaction", () => {
     expect(r.trigger).toEqual({ type: "ON_CLICK" });
     expect(r.actions).toHaveLength(1);
     expect(r.actions[0]).toEqual({
-      type: "SCROLL_TO",
+      type: "NODE",
       destinationId: "1:5",
+      navigation: "SCROLL_TO",
       transition: null,
+      preserveScrollPosition: false,
     });
   });
 
