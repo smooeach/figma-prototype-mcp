@@ -96,6 +96,12 @@ After install + all three components running, verify these scenarios in Figma. E
   Setup: two frames `splash` and `home`. The splash frame is the trigger source — no buttons needed inside it.
   (a) Ask: "splash가 2초 뒤에 자동으로 home으로 가게 해줘". Expected: reaction created on splash with trigger.type=AFTER_TIMEOUT, timeout=2, action navigate→home. In Figma prototype play, opening splash auto-transitions to home after 2 seconds.
   (b) Ask: "splash 어디로 연결돼 있어?" (splash selected). Expected: list_reactions response trigger object includes both `type: "AFTER_TIMEOUT"` and `timeout: 2`.
+- [ ] **14. Transition customization (Phase 1 — duration + cubic/back easings)**:
+  Setup: two frames A, B with a navigate button on A pointing to B (any prior fixture works).
+  (a) Ask: "A→B 빠르게 0.1초 LINEAR로 연결". Expected: transition emits `{ type: "DISSOLVE", duration: 0.1, easing: { type: "LINEAR" } }`.
+  (b) Ask: "0.8초 SMART_ANIMATE EASE_IN_AND_OUT". Expected: `{ type: "SMART_ANIMATE", duration: 0.8, easing: { type: "EASE_IN_AND_OUT" } }`.
+  (c) Ask: "기대감 후 등장 EASE_OUT_BACK 0.5초 DISSOLVE". Expected: `{ type: "DISSOLVE", duration: 0.5, easing: { type: "EASE_OUT_BACK" } }`.
+  (d) `list_reactions` on the source button echoes `transition.type`, `transition.duration`, AND `transition.easing.type` for each of (a)/(b)/(c).
 
 ## Known limitations (v1)
 
