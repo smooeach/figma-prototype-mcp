@@ -100,7 +100,7 @@ export interface ReactionConnectionInput {
           | "GENTLE" | "QUICK" | "BOUNCY" | "SLOW"
           // 2 custom flat
           | { type: "CUSTOM_CUBIC_BEZIER"; x1: number; y1: number; x2: number; y2: number }
-          | { type: "CUSTOM_SPRING"; mass: number; stiffness: number; damping: number; initialVelocity: number };
+          | { type: "CUSTOM_SPRING"; mass: number; stiffness: number; damping: number };
       };
   action: ReactionAction;
 }
@@ -136,7 +136,7 @@ export interface ReactionSummary {
       easing?: {
         type: string;
         easingFunctionCubicBezier?: { x1: number; y1: number; x2: number; y2: number };
-        easingFunctionSpring?: { mass: number; stiffness: number; damping: number; initialVelocity: number };
+        easingFunctionSpring?: { mass: number; stiffness: number; damping: number };
       };
     };
   };

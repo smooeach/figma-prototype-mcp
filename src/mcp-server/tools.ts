@@ -28,12 +28,13 @@ const CustomCubicBezierEasing = z.object({
   y2: z.number(),
 });
 
+// Figma's runtime rejects initialVelocity even though it's in plugin-api.d.ts
+// (typings vs runtime mismatch confirmed via live setReactionsAsync). Omit.
 const CustomSpringEasing = z.object({
   type: z.literal("CUSTOM_SPRING"),
   mass: z.number().positive(),
   stiffness: z.number().positive(),
   damping: z.number().positive(),
-  initialVelocity: z.number(),
 });
 
 const EasingInputUnion = z.union([NamedEasingEnum, CustomCubicBezierEasing, CustomSpringEasing]);

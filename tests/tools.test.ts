@@ -374,13 +374,13 @@ describe("CreateReactionsInput easing spring + custom", () => {
         sourceNodeId: "1:1",
         transition: {
           type: "SMART_ANIMATE",
-          easing: { type: "CUSTOM_SPRING", mass: 1, stiffness: 600, damping: 10, initialVelocity: 0 },
+          easing: { type: "CUSTOM_SPRING", mass: 1, stiffness: 600, damping: 10 },
         },
         action: { type: "navigate", targetFrameId: "1:2" },
       }],
     });
     expect((r.connections[0]!.transition as any).easing).toEqual({
-      type: "CUSTOM_SPRING", mass: 1, stiffness: 600, damping: 10, initialVelocity: 0,
+      type: "CUSTOM_SPRING", mass: 1, stiffness: 600, damping: 10,
     });
   });
 
@@ -403,7 +403,7 @@ describe("CreateReactionsInput easing spring + custom", () => {
         sourceNodeId: "1:1",
         transition: {
           type: "SMART_ANIMATE",
-          easing: { type: "CUSTOM_SPRING", mass: -1, stiffness: 100, damping: 10, initialVelocity: 0 },
+          easing: { type: "CUSTOM_SPRING", mass: -1, stiffness: 100, damping: 10 },
         },
         action: { type: "navigate", targetFrameId: "1:2" },
       }],

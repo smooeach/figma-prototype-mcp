@@ -22,12 +22,15 @@ export interface CustomCubicBezierEasing {
   y2: number;
 }
 
+// Figma's runtime rejects `initialVelocity` despite it appearing in the
+// plugin typings — typings vs runtime mismatch confirmed by setReactionsAsync
+// returning "Unrecognized key(s) in object: 'initialVelocity'". Only the
+// three core spring fields are accepted.
 export interface CustomSpringEasing {
   type: "CUSTOM_SPRING";
   mass: number;
   stiffness: number;
   damping: number;
-  initialVelocity: number;
 }
 
 export type EasingInput = NamedEasingName | CustomCubicBezierEasing | CustomSpringEasing;
@@ -40,7 +43,7 @@ export type EasingShape =
     }
   | {
       type: "CUSTOM_SPRING";
-      easingFunctionSpring: { mass: number; stiffness: number; damping: number; initialVelocity: number };
+      easingFunctionSpring: { mass: number; stiffness: number; damping: number };
     };
 
 export interface SimpleTransitionInput {
@@ -135,14 +138,13 @@ export function resolveEasing(input: EasingInput | undefined): EasingShape {
       easingFunctionCubicBezier: { x1: input.x1, y1: input.y1, x2: input.x2, y2: input.y2 },
     };
   }
-  // CUSTOM_SPRING
+  // CUSTOM_SPRING — initialVelocity intentionally omitted; see CustomSpringEasing note.
   return {
     type: "CUSTOM_SPRING",
     easingFunctionSpring: {
       mass: input.mass,
       stiffness: input.stiffness,
       damping: input.damping,
-      initialVelocity: input.initialVelocity,
     },
   };
 }

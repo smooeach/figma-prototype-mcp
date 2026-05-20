@@ -380,10 +380,10 @@ describe("resolveEasing", () => {
   });
 
   it("wraps CUSTOM_SPRING flat input into easingFunctionSpring", () => {
-    const r = resolveEasing({ type: "CUSTOM_SPRING", mass: 1, stiffness: 600, damping: 10, initialVelocity: 0 });
+    const r = resolveEasing({ type: "CUSTOM_SPRING", mass: 1, stiffness: 600, damping: 10 });
     expect(r).toEqual({
       type: "CUSTOM_SPRING",
-      easingFunctionSpring: { mass: 1, stiffness: 600, damping: 10, initialVelocity: 0 },
+      easingFunctionSpring: { mass: 1, stiffness: 600, damping: 10 },
     });
   });
 });
@@ -416,13 +416,13 @@ describe("buildTransition with spring + custom easings", () => {
     expect(buildTransition({
       type: "SMART_ANIMATE",
       duration: 0.6,
-      easing: { type: "CUSTOM_SPRING", mass: 1, stiffness: 600, damping: 10, initialVelocity: 0 },
+      easing: { type: "CUSTOM_SPRING", mass: 1, stiffness: 600, damping: 10 },
     })).toEqual({
       type: "SMART_ANIMATE",
       duration: 0.6,
       easing: {
         type: "CUSTOM_SPRING",
-        easingFunctionSpring: { mass: 1, stiffness: 600, damping: 10, initialVelocity: 0 },
+        easingFunctionSpring: { mass: 1, stiffness: 600, damping: 10 },
       },
     });
   });
