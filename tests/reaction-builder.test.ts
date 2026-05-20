@@ -1,5 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { buildNavigateReaction, buildTransition, buildScrollReaction, buildOverlayReaction, buildCloseReaction } from "../src/figma-plugin/reaction-builder.js";
+import {
+  buildNavigateReaction,
+  buildTransition,
+  buildScrollReaction,
+  buildOverlayReaction,
+  buildCloseReaction,
+  buildBackReaction,
+  buildUrlReaction,
+  buildSwapOverlayReaction,
+} from "../src/figma-plugin/reaction-builder.js";
 
 describe("buildNavigateReaction", () => {
   it("builds ON_CLICK + INSTANT by default", () => {
@@ -161,5 +170,69 @@ describe("buildCloseReaction", () => {
   it("honors non-default trigger", () => {
     const r = buildCloseReaction({ trigger: "ON_HOVER" });
     expect(r.trigger).toEqual({ type: "ON_HOVER" });
+  });
+});
+
+describe("buildBackReaction", () => {
+  it("builds a BACK action with the given trigger", () => {
+    const r = buildBackReaction({ trigger: "ON_CLICK" });
+    expect(r.trigger).toEqual({ type: "ON_CLICK" });
+    expect(r.actions).toHaveLength(1);
+    expect(r.actions[0]).toEqual({ type: "BACK" });
+  });
+
+  it("honors non-default trigger", () => {
+    const r = buildBackReaction({ trigger: "ON_PRESS" });
+    expect(r.trigger).toEqual({ type: "ON_PRESS" });
+  });
+});
+
+describe("buildUrlReaction", () => {
+  it("builds a URL action with the given url and trigger", () => {
+    const r = buildUrlReaction({ trigger: "ON_CLICK", url: "https://figma.com" });
+    expect(r.trigger).toEqual({ type: "ON_CLICK" });
+    expect(r.actions).toHaveLength(1);
+    expect(r.actions[0]).toEqual({ type: "URL", url: "https://figma.com" });
+  });
+
+  it("preserves the exact url string", () => {
+    const r = buildUrlReaction({ trigger: "ON_CLICK", url: "https://example.com/path?q=1" });
+    const action = r.actions[0]!;
+    if (action.type !== "URL") throw new Error("expected URL action");
+    expect(action.url).toBe("https://example.com/path?q=1");
+  });
+});
+
+describe("buildSwapOverlayReaction", () => {
+  it("builds ON_CLICK + INSTANT SWAP by default", () => {
+    const r = buildSwapOverlayReaction({
+      targetFrameId: "1:9",
+      trigger: "ON_CLICK",
+      transition: "INSTANT",
+    });
+    expect(r.trigger).toEqual({ type: "ON_CLICK" });
+    expect(r.actions).toHaveLength(1);
+    expect(r.actions[0]).toEqual({
+      type: "NODE",
+      destinationId: "1:9",
+      navigation: "SWAP",
+      transition: null,
+      preserveScrollPosition: false,
+    });
+  });
+
+  it("uses DISSOLVE transition shape when requested", () => {
+    const r = buildSwapOverlayReaction({
+      targetFrameId: "1:9",
+      trigger: "ON_CLICK",
+      transition: "DISSOLVE",
+    });
+    const action = r.actions[0]!;
+    if (action.type !== "NODE") throw new Error("expected NODE action");
+    expect(action.transition).toEqual({
+      type: "DISSOLVE",
+      duration: 0.3,
+      easing: { type: "EASE_OUT" },
+    });
   });
 });
