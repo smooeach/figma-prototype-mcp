@@ -2,12 +2,30 @@
 // when calling node.setReactionsAsync([reaction]).
 
 export type TransitionName = "INSTANT" | "DISSOLVE" | "SMART_ANIMATE";
+// shortcut strings — keep for backward compat at the API surface
+
+export type SimpleTransitionType = "DISSOLVE" | "SMART_ANIMATE" | "SCROLL_ANIMATE";
+
+export type EasingName =
+  | "LINEAR" | "EASE_IN" | "EASE_OUT" | "EASE_IN_AND_OUT"
+  | "EASE_IN_BACK" | "EASE_OUT_BACK" | "EASE_IN_AND_OUT_BACK";
+
+export interface SimpleTransitionInput {
+  type: SimpleTransitionType;
+  duration?: number;       // seconds, default 0.3
+  easing?: EasingName;     // default "EASE_OUT"
+}
+
+export type TransitionInput = TransitionName | SimpleTransitionInput;
 export type TriggerName = "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "AFTER_TIMEOUT";
 
 export type TransitionShape =
   | null
-  | { type: "DISSOLVE"; duration: number; easing: { type: string } }
-  | { type: "SMART_ANIMATE"; duration: number; easing: { type: string } };
+  | {
+      type: SimpleTransitionType;
+      duration: number;
+      easing: { type: EasingName };
+    };
 
 // Figma's Action union: NODE actions cover NAVIGATE/SCROLL_TO/OVERLAY/SWAP navigations.
 // CLOSE, BACK, URL are top-level action.types with their own shapes.
@@ -33,21 +51,21 @@ export interface BuiltReaction {
 export interface NavigateBuildInput {
   targetFrameId: string;
   trigger: TriggerName;
-  transition: TransitionName;
+  transition: TransitionInput;
   afterTimeoutSeconds?: number;
 }
 
 export interface ScrollBuildInput {
   targetNodeId: string;
   trigger: TriggerName;
-  transition: TransitionName;
+  transition: TransitionInput;
   afterTimeoutSeconds?: number;
 }
 
 export interface OverlayBuildInput {
   targetFrameId: string;
   trigger: TriggerName;
-  transition: TransitionName;
+  transition: TransitionInput;
   afterTimeoutSeconds?: number;
 }
 
@@ -70,14 +88,30 @@ export interface UrlBuildInput {
 
 export interface SwapOverlayBuildInput {
   trigger: TriggerName;
-  transition: TransitionName;
+  transition: TransitionInput;
   targetFrameId: string;
   afterTimeoutSeconds?: number;
 }
 
-export function buildTransition(name: TransitionName): TransitionShape {
-  if (name === "INSTANT") return null;
-  return { type: name, duration: 0.3, easing: { type: "EASE_OUT" } };
+export function buildTransition(input: TransitionInput): TransitionShape {
+  if (input === "INSTANT") return null;
+
+  if (input === "DISSOLVE" || input === "SMART_ANIMATE") {
+    return {
+      type: input,
+      duration: 0.3,
+      easing: { type: "EASE_OUT" },
+    };
+  }
+
+  // Nested object — resolve defaults.
+  const duration = input.duration ?? 0.3;
+  const easing: EasingName = input.easing ?? "EASE_OUT";
+  return {
+    type: input.type,
+    duration,
+    easing: { type: easing },
+  };
 }
 
 export function buildTrigger(name: TriggerName, afterTimeoutSeconds?: number): TriggerShape {

@@ -81,6 +81,68 @@ describe("buildTransition", () => {
       easing: { type: "EASE_OUT" },
     });
   });
+
+  it("accepts the \"INSTANT\" string shortcut and returns null", () => {
+    expect(buildTransition("INSTANT")).toBeNull();
+  });
+
+  it("expands the \"DISSOLVE\" string shortcut with defaults", () => {
+    expect(buildTransition("DISSOLVE")).toEqual({
+      type: "DISSOLVE",
+      duration: 0.3,
+      easing: { type: "EASE_OUT" },
+    });
+  });
+
+  it("expands the \"SMART_ANIMATE\" string shortcut with defaults", () => {
+    expect(buildTransition("SMART_ANIMATE")).toEqual({
+      type: "SMART_ANIMATE",
+      duration: 0.3,
+      easing: { type: "EASE_OUT" },
+    });
+  });
+
+  it("accepts a nested DISSOLVE with custom duration and easing", () => {
+    expect(buildTransition({ type: "DISSOLVE", duration: 0.5, easing: "EASE_OUT_BACK" })).toEqual({
+      type: "DISSOLVE",
+      duration: 0.5,
+      easing: { type: "EASE_OUT_BACK" },
+    });
+  });
+
+  it("fills missing duration with 0.3 default on nested object", () => {
+    expect(buildTransition({ type: "SMART_ANIMATE", easing: "EASE_IN_AND_OUT" })).toEqual({
+      type: "SMART_ANIMATE",
+      duration: 0.3,
+      easing: { type: "EASE_IN_AND_OUT" },
+    });
+  });
+
+  it("fills missing easing with EASE_OUT default on nested object", () => {
+    expect(buildTransition({ type: "DISSOLVE", duration: 1.2 })).toEqual({
+      type: "DISSOLVE",
+      duration: 1.2,
+      easing: { type: "EASE_OUT" },
+    });
+  });
+
+  it("accepts SCROLL_ANIMATE as a valid nested type", () => {
+    expect(buildTransition({ type: "SCROLL_ANIMATE" })).toEqual({
+      type: "SCROLL_ANIMATE",
+      duration: 0.3,
+      easing: { type: "EASE_OUT" },
+    });
+  });
+
+  it("accepts all 7 easing names", () => {
+    const names = [
+      "LINEAR", "EASE_IN", "EASE_OUT", "EASE_IN_AND_OUT",
+      "EASE_IN_BACK", "EASE_OUT_BACK", "EASE_IN_AND_OUT_BACK",
+    ] as const;
+    for (const n of names) {
+      expect(buildTransition({ type: "DISSOLVE", easing: n })!.easing).toEqual({ type: n });
+    }
+  });
 });
 
 describe("buildScrollReaction", () => {
