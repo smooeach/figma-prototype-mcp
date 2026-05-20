@@ -69,7 +69,7 @@ After install + all three components running, verify these scenarios in Figma. E
   Setup: Create a tall frame with Scroll behavior set to "Vertical scrolling" (Figma Inspector → Frame → Overflow: Vertical). Inside it, place a section node named "Pricing". Outside any scrollable frame, place another node named "Footer".
   (a) Ask: "이 버튼을 Pricing 섹션으로 스크롤되게 해줘". Expected: reaction created, no `warning` field in the response.
   (b) Ask: "이 버튼을 Footer로 스크롤되게 해줘". Expected: reaction created BUT the response result includes a `warning` field naming "Footer" and the missing scrollable ancestor; `warningCount` in the summary is 1.
-- [ ] **7. Overlay open + close pair**:
+- [x] **7. Overlay open + close pair**:
   Setup: Create two frames in the test zone — `mainFrame` and `modal`. Place a button `openBtn` inside `mainFrame`, and a button `closeBtn` inside `modal`.
   (a) Ask: "openBtn을 modal로 오버레이로 열어줘". Expected: reaction created, no warning. In Figma prototype play, click openBtn → modal appears as an overlay over mainFrame.
   (b) Ask: "closeBtn을 누르면 오버레이 닫게 해줘". Expected: reaction created. In prototype play, click closeBtn → overlay dismisses and mainFrame is visible again.
