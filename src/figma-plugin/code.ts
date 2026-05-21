@@ -215,19 +215,19 @@ function findScrollableAncestor(node: BaseNode): BaseNode | null {
 }
 
 /**
- * Build a single BuiltAction from one of the 7 non-conditional action shapes.
+ * Build a single BuiltAction from one of the non-conditional action shapes.
  * Validates target nodes and returns an optional warning (currently only the
  * scroll-action no-scrollable-ancestor case).
  *
  * Throws if a target node is missing or the wrong type — caller handles the
  * try/catch.
  */
-function buildNonConditionalAction(
+async function buildNonConditionalAction(
   action: NonConditionalActionShape,
   trigger: TriggerInput,
   afterTimeoutSeconds: number | undefined,
   transition: TransitionInput,
-): { built: BuiltAction; warning?: string } {
+): Promise<{ built: BuiltAction; warning?: string }> {
   if (action.type === "navigate") {
     const target = figma.getNodeById(action.targetFrameId);
     if (!target) throw new Error(`Target frame not found: ${action.targetFrameId}`);
@@ -284,21 +284,59 @@ function buildNonConditionalAction(
     });
     return { built: reaction.actions[0]! };
   }
-  if (action.type === "swap_overlay") {
-    const target = figma.getNodeById(action.targetFrameId);
-    if (!target) throw new Error(`Swap overlay target frame not found: ${action.targetFrameId}`);
-    if (target.type !== "FRAME") {
-      throw new Error(`Swap overlay target must be a frame: ${action.targetFrameId} (got ${target.type})`);
-    }
-    const reaction = buildSwapOverlayReaction({
-      trigger, afterTimeoutSeconds, transition,
-      targetFrameId: action.targetFrameId,
-      resetScrollPosition: action.resetScrollPosition,
-    });
-    return { built: reaction.actions[0]! };
+  if (action.type === "set_variable") {
+    const { variable, warning } = await resolveVariableByName(action.variable);
+    const variableValue = buildSetVariableData(variable, action.value);
+    const built: BuiltAction = {
+      type: "SET_VARIABLE",
+      variableId: variable.id,
+      variableValue,
+    };
+    return { built, warning };
   }
-  // set_variable: Task 5 will implement the real builder
-  throw new Error("set_variable handler not yet implemented (v1.17 Task 5)");
+  // swap_overlay
+  const target = figma.getNodeById(action.targetFrameId);
+  if (!target) throw new Error(`Swap overlay target frame not found: ${action.targetFrameId}`);
+  if (target.type !== "FRAME") {
+    throw new Error(`Swap overlay target must be a frame: ${action.targetFrameId} (got ${target.type})`);
+  }
+  const reaction = buildSwapOverlayReaction({
+    trigger, afterTimeoutSeconds, transition,
+    targetFrameId: action.targetFrameId,
+    resetScrollPosition: action.resetScrollPosition,
+  });
+  return { built: reaction.actions[0]! };
+}
+
+/**
+ * Validate that a JS literal's type matches a Figma Variable's resolvedType
+ * and return the corresponding VariableData wrapping.
+ * Throws with a precise message on mismatch or unsupported variable type.
+ * Shared by conditional's buildCondition and set_variable's buildSetVariableData.
+ */
+function validateVariableLiteralCompat(
+  variable: Variable,
+  value: boolean | number | string,
+  context: string,                       // "comparison" or "assignment"
+): { type: "BOOLEAN" | "FLOAT" | "STRING"; resolvedType: "BOOLEAN" | "FLOAT" | "STRING"; value: boolean | number | string } {
+  const valueType = typeof value;
+  const expected =
+    variable.resolvedType === "BOOLEAN" ? "boolean"
+    : variable.resolvedType === "FLOAT" ? "number"
+    : variable.resolvedType === "STRING" ? "string"
+    : "unknown";
+  if (expected === "unknown") {
+    throw new Error(`Variable "${variable.name}" has unsupported type ${variable.resolvedType} for ${context} (supported: BOOLEAN, FLOAT, STRING)`);
+  }
+  if (valueType !== expected) {
+    const action = context === "comparison" ? "compare against" : "assign";
+    throw new Error(`Variable "${variable.name}" is ${variable.resolvedType}; cannot ${action} ${valueType} literal (expected ${expected})`);
+  }
+  return {
+    type: variable.resolvedType as "BOOLEAN" | "FLOAT" | "STRING",
+    resolvedType: variable.resolvedType as "BOOLEAN" | "FLOAT" | "STRING",
+    value,
+  };
 }
 
 async function resolveVariableByName(name: string): Promise<{
@@ -327,26 +365,7 @@ async function buildCondition(input: {
   value: boolean | number | string;
 }): Promise<{ condition: unknown; warning?: string }> {
   const { variable, warning } = await resolveVariableByName(input.variable);
-
-  // Type compatibility check
-  const valueType = typeof input.value;
-  const expected =
-    variable.resolvedType === "BOOLEAN" ? "boolean"
-    : variable.resolvedType === "FLOAT" ? "number"
-    : variable.resolvedType === "STRING" ? "string"
-    : "unknown";
-  if (expected === "unknown") {
-    throw new Error(`Variable "${input.variable}" has unsupported type ${variable.resolvedType} for conditional comparison (supported: BOOLEAN, FLOAT, STRING)`);
-  }
-  if (valueType !== expected) {
-    throw new Error(`Variable "${input.variable}" is ${variable.resolvedType}; cannot compare against ${valueType} literal (expected ${expected})`);
-  }
-
-  const literalVD =
-    valueType === "boolean" ? { type: "BOOLEAN", resolvedType: "BOOLEAN", value: input.value as boolean } :
-    valueType === "number"  ? { type: "FLOAT",   resolvedType: "FLOAT",   value: input.value as number  } :
-                              { type: "STRING",  resolvedType: "STRING",  value: input.value as string  };
-
+  const literalVD = validateVariableLiteralCompat(variable, input.value, "comparison");
   const condition = {
     type: "EXPRESSION",
     resolvedType: "BOOLEAN",
@@ -363,6 +382,13 @@ async function buildCondition(input: {
     },
   };
   return { condition, warning };
+}
+
+function buildSetVariableData(
+  variable: Variable,
+  value: boolean | number | string,
+): unknown {
+  return validateVariableLiteralCompat(variable, value, "assignment");
 }
 
 async function handleGetCanvasOverview(params: { pageId?: string }) {
@@ -523,7 +549,7 @@ async function handleCreateReactions(params: {
 
         const thenBuilt: BuiltAction[] = [];
         for (const a of conn.action.then) {
-          const r = buildNonConditionalAction(a, conn.trigger, conn.afterTimeoutSeconds, conn.transition);
+          const r = await buildNonConditionalAction(a, conn.trigger, conn.afterTimeoutSeconds, conn.transition);
           thenBuilt.push(r.built);
           // Inner-branch scroll warnings: surface the first one upward
           if (r.warning && !warning) warning = r.warning;
@@ -532,7 +558,7 @@ async function handleCreateReactions(params: {
         if (conn.action.else) {
           elseBuilt = [];
           for (const a of conn.action.else) {
-            const r = buildNonConditionalAction(a, conn.trigger, conn.afterTimeoutSeconds, conn.transition);
+            const r = await buildNonConditionalAction(a, conn.trigger, conn.afterTimeoutSeconds, conn.transition);
             elseBuilt.push(r.built);
             if (r.warning && !warning) warning = r.warning;
           }
@@ -551,7 +577,7 @@ async function handleCreateReactions(params: {
       } else {
         // set_variable + 7 non-conditional types: handled by buildNonConditionalAction
         // (set_variable branch added in Task 5)
-        const { built, warning: branchWarning } = buildNonConditionalAction(
+        const { built, warning: branchWarning } = await buildNonConditionalAction(
           conn.action,
           conn.trigger,
           conn.afterTimeoutSeconds,
