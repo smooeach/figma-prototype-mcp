@@ -6,7 +6,7 @@
   "ui": "ui.html",
   "editorType": ["figma"],
   "networkAccess": {
-    "allowedDomains": ["ws://localhost:3055"],
-    "reasoning": "Local WebSocket relay for MCP server bridge"
+    "allowedDomains": ["ws://localhost:3000"],
+    "reasoning": "Local WebSocket bridge to the figma-prototype-mcp unified server (Phase A v1.19+)"
   }
 }

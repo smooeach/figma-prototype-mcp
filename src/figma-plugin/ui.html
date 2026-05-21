@@ -4,10 +4,7 @@
     <meta charset="utf-8" />
     <style>
       body { font-family: -apple-system, system-ui, sans-serif; font-size: 13px; padding: 12px; margin: 0; }
-      label { display: block; margin: 8px 0 4px; font-weight: 500; }
-      input { width: 100%; padding: 6px 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; background: #ffffff; color: #111; }
-      input:disabled { background: #f0f0f0; color: #888; border-color: #ddd; cursor: not-allowed; }
-      button { margin-top: 12px; padding: 8px 12px; cursor: pointer; border-radius: 4px; border: 1px solid transparent; font-weight: 500; }
+      button { margin-top: 8px; padding: 8px 12px; cursor: pointer; border-radius: 4px; border: 1px solid transparent; font-weight: 500; }
       #connect { background: #18a058; color: #fff; border-color: #148e4d; }
       #connect:hover { background: #148e4d; }
       #disconnect { background: #d03050; color: #fff; border-color: #b02540; }
@@ -16,17 +13,17 @@
       .ok { color: #18a058; }
       .err { color: #d03050; }
       .pending { color: #888; }
+      .url { color: #555; font-size: 11px; margin-bottom: 8px; }
     </style>
   </head>
   <body>
-    <label for="channel">Channel</label>
-    <input id="channel" placeholder="e.g. my-session" />
+    <div class="url">Server: <code>ws://localhost:3000/ws</code></div>
     <button id="connect">Connect</button>
     <button id="disconnect" style="display:none">Disconnect</button>
-    <div id="status" class="pending">Loading…</div>
+    <div id="status" class="pending">Not connected</div>
 
     <script>
-      const channelInput = document.getElementById('channel');
+      const SERVER_URL = 'ws://localhost:3000/ws';
       const connectBtn = document.getElementById('connect');
       const disconnectBtn = document.getElementById('disconnect');
       const statusEl = document.getElementById('status');
@@ -41,16 +38,14 @@
         statusEl.className = cls;
       }
 
-      function setConnectedUI(channel) {
-        setStatus('Connected on channel: ' + channel, 'ok');
-        channelInput.disabled = true;
+      function setConnectedUI() {
+        setStatus('Connected', 'ok');
         connectBtn.style.display = 'none';
         disconnectBtn.style.display = 'inline-block';
         retryDelay = 1000;
       }
 
       function setDisconnectedUI() {
-        channelInput.disabled = false;
         connectBtn.style.display = 'inline-block';
         disconnectBtn.style.display = 'none';
       }
@@ -58,15 +53,11 @@
       function connect() {
         if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
         userDisconnected = false;
-        const channel = channelInput.value.trim();
-        if (!channel) { setStatus('Channel name required', 'err'); return; }
         if (ws) ws.close();
         setStatus('Connecting…', 'pending');
-        ws = new WebSocket('ws://localhost:3055');
+        ws = new WebSocket(SERVER_URL);
 
-        ws.onopen = () => {
-          ws.send(JSON.stringify({ type: 'join', channel, id: 'plugin-join' }));
-        };
+        ws.onopen = () => { /* server will send {type:"ready"} */ };
         ws.onerror = () => setStatus('Connection failed', 'err');
         ws.onclose = () => {
           if (userDisconnected) {
@@ -74,11 +65,10 @@
             setDisconnectedUI();
             return;
           }
-          const channel = channelInput.value.trim();
-          setStatus('Reconnecting to ' + channel + ' in ' + (retryDelay / 1000) + 's…', 'pending');
+          setStatus('Reconnecting in ' + (retryDelay / 1000) + 's…', 'pending');
           retryTimer = setTimeout(() => {
             retryTimer = null;
-            setStatus('Reconnecting to ' + channel + '…', 'pending');
+            setStatus('Reconnecting…', 'pending');
             retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY);
             connect();
           }, retryDelay);
@@ -88,14 +78,13 @@
           let data;
           try { data = JSON.parse(e.data); } catch { return; }
 
-          if (data.type === 'system' && data.message && data.message.id === 'plugin-join') {
-            setConnectedUI(channel);
-            parent.postMessage({ pluginMessage: { type: 'save-channel', channel } }, '*');
+          if (data.type === 'ready') {
+            setConnectedUI();
             return;
           }
 
-          if (data.type === 'broadcast' && data.message && data.message.type === 'command') {
-            parent.postMessage({ pluginMessage: { type: 'command', envelope: data.message } }, '*');
+          if (data.type === 'command') {
+            parent.postMessage({ pluginMessage: { type: 'command', envelope: data } }, '*');
           }
         };
       }
@@ -110,34 +99,25 @@
         setDisconnectedUI();
       };
 
-      // Forward responses from the plugin sandbox out to WebSocket,
-      // and react to channel-loaded events from the sandbox.
+      // Forward responses from the plugin sandbox out to WebSocket.
       window.onmessage = (event) => {
         const msg = event.data.pluginMessage;
         if (!msg) return;
 
-        if (msg.type === 'channel-loaded') {
-          if (typeof msg.channel === 'string' && msg.channel.length > 0) {
-            channelInput.value = msg.channel;
-            setStatus('Auto-connecting to ' + msg.channel + '…', 'pending');
-            connect();
-          } else {
-            setStatus('Not connected', 'pending');
-          }
-          return;
-        }
-
         if (msg.type === 'response' && ws && ws.readyState === WebSocket.OPEN) {
+          // msg.envelope shape from code.ts: { id, type:"response", status, result?, error? }
           ws.send(JSON.stringify({
-            type: 'message',
-            channel: channelInput.value.trim(),
-            message: msg.envelope,
+            type: 'response',
+            id: msg.envelope.id,
+            status: msg.envelope.status,
+            result: msg.envelope.result,
+            error: msg.envelope.error,
           }));
         }
       };
 
-      // Request the last-used channel from sandbox on launch.
-      parent.postMessage({ pluginMessage: { type: 'load-channel' } }, '*');
+      // Auto-connect on load — single-active model means we just try.
+      connect();
     </script>
   </body>
 </html>
