@@ -325,6 +325,7 @@ async function handleCreateReactions(params: {
           trigger: conn.trigger,
           afterTimeoutSeconds: conn.afterTimeoutSeconds,
           transition: conn.transition,
+          resetScrollPosition: conn.action.resetScrollPosition,
         });
       } else if (conn.action.type === "scroll") {
         const target = figma.getNodeById(conn.action.targetNodeId);
@@ -338,6 +339,7 @@ async function handleCreateReactions(params: {
           trigger: conn.trigger,
           afterTimeoutSeconds: conn.afterTimeoutSeconds,
           transition: conn.transition,
+          resetScrollPosition: conn.action.resetScrollPosition,
         });
       } else if (conn.action.type === "overlay") {
         const target = figma.getNodeById(conn.action.targetFrameId);
@@ -350,6 +352,7 @@ async function handleCreateReactions(params: {
           trigger: conn.trigger,
           afterTimeoutSeconds: conn.afterTimeoutSeconds,
           transition: conn.transition,
+          resetScrollPosition: conn.action.resetScrollPosition,
         });
       } else if (conn.action.type === "close") {
         newReaction = buildCloseReaction({ trigger: conn.trigger, afterTimeoutSeconds: conn.afterTimeoutSeconds });
@@ -374,6 +377,7 @@ async function handleCreateReactions(params: {
           afterTimeoutSeconds: conn.afterTimeoutSeconds,
           transition: conn.transition,
           targetFrameId: conn.action.targetFrameId,
+          resetScrollPosition: conn.action.resetScrollPosition,
         });
       }
 
