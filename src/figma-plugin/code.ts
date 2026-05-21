@@ -514,13 +514,15 @@ async function handleCreateReactions(params: {
           // Inner-branch scroll warnings: surface the first one upward
           if (r.warning && !warning) warning = r.warning;
         }
-        const elseBuilt: BuiltAction[] | undefined = conn.action.else
-          ? conn.action.else.map((a) => {
-              const r = buildNonConditionalAction(a, conn.trigger, conn.afterTimeoutSeconds, conn.transition);
-              if (r.warning && !warning) warning = r.warning;
-              return r.built;
-            })
-          : undefined;
+        let elseBuilt: BuiltAction[] | undefined;
+        if (conn.action.else) {
+          elseBuilt = [];
+          for (const a of conn.action.else) {
+            const r = buildNonConditionalAction(a, conn.trigger, conn.afterTimeoutSeconds, conn.transition);
+            elseBuilt.push(r.built);
+            if (r.warning && !warning) warning = r.warning;
+          }
+        }
 
         newReaction = buildConditionalReaction({
           trigger: conn.trigger,
