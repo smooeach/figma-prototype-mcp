@@ -74,7 +74,16 @@ type Command =
       };
     }
   | { type: "LIST_REACTIONS"; params: { nodeId: string } }
-  | { type: "CLEAR_REACTIONS"; params: { nodeIds: string[]; indices?: number[] } };
+  | { type: "CLEAR_REACTIONS"; params: { nodeIds: string[]; indices?: number[] } }
+  | {
+      type: "SET_FRAME_SCROLL";
+      params: {
+        frames: Array<{
+          frameId: string;
+          direction: "NONE" | "HORIZONTAL" | "VERTICAL" | "BOTH";
+        }>;
+      };
+    };
 
 figma.ui.onmessage = (msg: any) => {
   if (msg?.type === "load-channel") {
@@ -118,6 +127,7 @@ async function dispatch(command: Command["type"], params: any): Promise<
       case "CREATE_REACTIONS": return { status: "ok", result: await handleCreateReactions(params) };
       case "LIST_REACTIONS":      return { status: "ok", result: await handleListReactions(params) };
       case "CLEAR_REACTIONS":     return { status: "ok", result: await handleClearReactions(params) };
+      case "SET_FRAME_SCROLL":    return { status: "ok", result: await handleSetFrameScroll(params) };
       default: return { status: "error", error: { code: "UNKNOWN_COMMAND", message: `Unknown command: ${command}` } };
     }
   } catch (err: any) {
@@ -460,4 +470,29 @@ async function handleClearReactions(params: { nodeIds: string[]; indices?: numbe
   }
 
   return { results };
+}
+
+async function handleSetFrameScroll(params: {
+  frames: Array<{ frameId: string; direction: "NONE" | "HORIZONTAL" | "VERTICAL" | "BOTH" }>;
+}) {
+  await figma.loadAllPagesAsync();
+  const results: Array<{ frameId: string; status: "success" | "error"; error?: string }> = [];
+  let successCount = 0;
+  let errorCount = 0;
+  for (const { frameId, direction } of params.frames) {
+    try {
+      const node = figma.getNodeById(frameId);
+      if (!node) throw new Error(`Frame not found: ${frameId}`);
+      if (node.type !== "FRAME") {
+        throw new Error(`Node is not a FRAME: ${node.name} (type: ${node.type})`);
+      }
+      (node as FrameNode).overflowDirection = direction;
+      results.push({ frameId, status: "success" });
+      successCount++;
+    } catch (e: any) {
+      results.push({ frameId, status: "error", error: e?.message ?? String(e) });
+      errorCount++;
+    }
+  }
+  return { results, successCount, errorCount };
 }
