@@ -84,11 +84,13 @@ export type ReactionAction =
   | { type: "back" }
   | { type: "url"; url: string; openInNewTab?: boolean }
   | { type: "swap_overlay"; targetFrameId: string; resetScrollPosition?: boolean }
+  | { type: "set_variable"; variable: string; value: boolean | number | string }
+  | { type: "toggle_variable"; variable: string }
   | {
       type: "conditional";
       condition: { variable: string; operator: "==" | "!=" | "<" | "<=" | ">" | ">="; value: boolean | number | string };
-      then: Exclude<ReactionAction, { type: "conditional" }>[];
-      else?: Exclude<ReactionAction, { type: "conditional" }>[];
+      then: Exclude<ReactionAction, { type: "conditional" } | { type: "toggle_variable" }>[];
+      else?: Exclude<ReactionAction, { type: "conditional" } | { type: "toggle_variable" }>[];
     };
 
 export interface ReactionConnectionInput {

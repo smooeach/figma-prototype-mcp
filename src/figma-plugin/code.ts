@@ -46,7 +46,8 @@ type NonConditionalActionShape =
   | { type: "close" }
   | { type: "back" }
   | { type: "url"; url: string; openInNewTab?: boolean }
-  | { type: "swap_overlay"; targetFrameId: string; resetScrollPosition?: boolean };
+  | { type: "swap_overlay"; targetFrameId: string; resetScrollPosition?: boolean }
+  | { type: "set_variable"; variable: string; value: boolean | number | string };
 
 type Command =
   | { type: "GET_CANVAS_OVERVIEW"; params: { pageId?: string } }
@@ -105,7 +106,9 @@ type Command =
                 condition: { variable: string; operator: "==" | "!=" | "<" | "<=" | ">" | ">="; value: boolean | number | string };
                 then: NonConditionalActionShape[];
                 else?: NonConditionalActionShape[];
-              };
+              }
+            | { type: "set_variable"; variable: string; value: boolean | number | string }
+            | { type: "toggle_variable"; variable: string };
         }>;
         replaceExisting: boolean;
       };
@@ -281,18 +284,21 @@ function buildNonConditionalAction(
     });
     return { built: reaction.actions[0]! };
   }
-  // swap_overlay
-  const target = figma.getNodeById(action.targetFrameId);
-  if (!target) throw new Error(`Swap overlay target frame not found: ${action.targetFrameId}`);
-  if (target.type !== "FRAME") {
-    throw new Error(`Swap overlay target must be a frame: ${action.targetFrameId} (got ${target.type})`);
+  if (action.type === "swap_overlay") {
+    const target = figma.getNodeById(action.targetFrameId);
+    if (!target) throw new Error(`Swap overlay target frame not found: ${action.targetFrameId}`);
+    if (target.type !== "FRAME") {
+      throw new Error(`Swap overlay target must be a frame: ${action.targetFrameId} (got ${target.type})`);
+    }
+    const reaction = buildSwapOverlayReaction({
+      trigger, afterTimeoutSeconds, transition,
+      targetFrameId: action.targetFrameId,
+      resetScrollPosition: action.resetScrollPosition,
+    });
+    return { built: reaction.actions[0]! };
   }
-  const reaction = buildSwapOverlayReaction({
-    trigger, afterTimeoutSeconds, transition,
-    targetFrameId: action.targetFrameId,
-    resetScrollPosition: action.resetScrollPosition,
-  });
-  return { built: reaction.actions[0]! };
+  // set_variable: Task 5 will implement the real builder
+  throw new Error("set_variable handler not yet implemented (v1.17 Task 5)");
 }
 
 async function resolveVariableByName(name: string): Promise<{
@@ -478,7 +484,9 @@ async function handleCreateReactions(params: {
           condition: { variable: string; operator: "==" | "!=" | "<" | "<=" | ">" | ">="; value: boolean | number | string };
           then: NonConditionalActionShape[];
           else?: NonConditionalActionShape[];
-        };
+        }
+      | { type: "set_variable"; variable: string; value: boolean | number | string }
+      | { type: "toggle_variable"; variable: string };
   }>;
   replaceExisting: boolean;
 }) {
@@ -537,7 +545,12 @@ async function handleCreateReactions(params: {
           thenActions: thenBuilt,
           elseActions: elseBuilt,
         });
+      } else if (conn.action.type === "toggle_variable") {
+        // Task 6 will implement
+        throw new Error("toggle_variable handler not yet implemented (v1.17 Task 6)");
       } else {
+        // set_variable + 7 non-conditional types: handled by buildNonConditionalAction
+        // (set_variable branch added in Task 5)
         const { built, warning: branchWarning } = buildNonConditionalAction(
           conn.action,
           conn.trigger,
