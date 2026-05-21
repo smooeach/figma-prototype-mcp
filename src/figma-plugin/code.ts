@@ -17,6 +17,15 @@ figma.showUI(__html__, { width: 320, height: 220 });
 
 const commandQueue = new CommandQueue();
 
+type NonConditionalActionShape =
+  | { type: "navigate"; targetFrameId: string; resetScrollPosition?: boolean }
+  | { type: "scroll"; targetNodeId: string; resetScrollPosition?: boolean }
+  | { type: "overlay"; targetFrameId: string; resetScrollPosition?: boolean }
+  | { type: "close" }
+  | { type: "back" }
+  | { type: "url"; url: string; openInNewTab?: boolean }
+  | { type: "swap_overlay"; targetFrameId: string; resetScrollPosition?: boolean };
+
 type Command =
   | { type: "GET_CANVAS_OVERVIEW"; params: { pageId?: string } }
   | { type: "FIND_NODES"; params: { query: string; nodeTypes?: string[]; scope?: "page" | "document"; limit?: number } }
@@ -68,7 +77,13 @@ type Command =
             | { type: "close" }
             | { type: "back" }
             | { type: "url"; url: string; openInNewTab?: boolean }
-            | { type: "swap_overlay"; targetFrameId: string; resetScrollPosition?: boolean };
+            | { type: "swap_overlay"; targetFrameId: string; resetScrollPosition?: boolean }
+            | {
+                type: "conditional";
+                condition: { variable: string; operator: "==" | "!=" | "<" | "<=" | ">" | ">="; value: boolean | number | string };
+                then: NonConditionalActionShape[];
+                else?: NonConditionalActionShape[];
+              };
         }>;
         replaceExisting: boolean;
       };
@@ -287,7 +302,13 @@ async function handleCreateReactions(params: {
       | { type: "close" }
       | { type: "back" }
       | { type: "url"; url: string; openInNewTab?: boolean }
-      | { type: "swap_overlay"; targetFrameId: string; resetScrollPosition?: boolean };
+      | { type: "swap_overlay"; targetFrameId: string; resetScrollPosition?: boolean }
+      | {
+          type: "conditional";
+          condition: { variable: string; operator: "==" | "!=" | "<" | "<=" | ">" | ">="; value: boolean | number | string };
+          then: NonConditionalActionShape[];
+          else?: NonConditionalActionShape[];
+        };
   }>;
   replaceExisting: boolean;
 }) {
@@ -365,19 +386,23 @@ async function handleCreateReactions(params: {
           url: conn.action.url,
           openInNewTab: conn.action.openInNewTab,
         });
+      } else if (conn.action.type === "conditional") {
+        // TODO: Task 6 — implement conditional action handler
+        throw new Error("Conditional actions not yet implemented");
       } else {
         // swap_overlay
-        const target = figma.getNodeById(conn.action.targetFrameId);
-        if (!target) throw new Error(`Swap overlay target frame not found: ${conn.action.targetFrameId}`);
+        const action = conn.action as { type: "swap_overlay"; targetFrameId: string; resetScrollPosition?: boolean };
+        const target = figma.getNodeById(action.targetFrameId);
+        if (!target) throw new Error(`Swap overlay target frame not found: ${action.targetFrameId}`);
         if (target.type !== "FRAME") {
-          throw new Error(`Swap overlay target must be a frame: ${conn.action.targetFrameId} (got ${target.type})`);
+          throw new Error(`Swap overlay target must be a frame: ${action.targetFrameId} (got ${target.type})`);
         }
         newReaction = buildSwapOverlayReaction({
           trigger: conn.trigger,
           afterTimeoutSeconds: conn.afterTimeoutSeconds,
           transition: conn.transition,
-          targetFrameId: conn.action.targetFrameId,
-          resetScrollPosition: conn.action.resetScrollPosition,
+          targetFrameId: action.targetFrameId,
+          resetScrollPosition: action.resetScrollPosition,
         });
       }
 
