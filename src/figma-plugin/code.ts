@@ -572,8 +572,46 @@ async function handleCreateReactions(params: {
           elseActions: elseBuilt,
         });
       } else if (conn.action.type === "toggle_variable") {
-        // Task 6 will implement
-        throw new Error("toggle_variable handler not yet implemented (v1.17 Task 6)");
+        // Desugar: { type: "CONDITIONAL", conditionalBlocks: [
+        //   { condition: x == true, actions: [SET_VARIABLE x = false] },
+        //   { actions: [SET_VARIABLE x = true] }   // else
+        // ]}
+        const { variable, warning: resolveWarning } = await resolveVariableByName(conn.action.variable);
+        if (variable.resolvedType !== "BOOLEAN") {
+          throw new Error(`Cannot toggle non-BOOLEAN variable "${conn.action.variable}" (type: ${variable.resolvedType}); toggle_variable requires BOOLEAN`);
+        }
+        if (resolveWarning) warning = resolveWarning;
+
+        const condition = {
+          type: "EXPRESSION",
+          resolvedType: "BOOLEAN",
+          value: {
+            expressionFunction: "EQUALS",
+            expressionArguments: [
+              { type: "VARIABLE_ALIAS", resolvedType: "BOOLEAN",
+                value: { type: "VARIABLE_ALIAS", id: variable.id } },
+              { type: "BOOLEAN", resolvedType: "BOOLEAN", value: true },
+            ],
+          },
+        };
+        const setFalseAction: BuiltAction = {
+          type: "SET_VARIABLE",
+          variableId: variable.id,
+          variableValue: { type: "BOOLEAN", resolvedType: "BOOLEAN", value: false },
+        };
+        const setTrueAction: BuiltAction = {
+          type: "SET_VARIABLE",
+          variableId: variable.id,
+          variableValue: { type: "BOOLEAN", resolvedType: "BOOLEAN", value: true },
+        };
+
+        newReaction = buildConditionalReaction({
+          trigger: conn.trigger,
+          afterTimeoutSeconds: conn.afterTimeoutSeconds,
+          condition,
+          thenActions: [setFalseAction],
+          elseActions: [setTrueAction],
+        });
       } else {
         // set_variable + 7 non-conditional types: handled by buildNonConditionalAction
         // (set_variable branch added in Task 5)
