@@ -29,6 +29,12 @@ const COMPARISON_OPERATOR_MAP = {
 
 type ComparisonOperator = keyof typeof COMPARISON_OPERATOR_MAP;
 
+// Inverse of COMPARISON_OPERATOR_MAP — used by list_reactions echo to decode
+// Figma's ExpressionFunction back to our operator literal.
+const OPERATOR_INVERSE: Record<string, string> = Object.fromEntries(
+  Object.entries(COMPARISON_OPERATOR_MAP).map(([k, v]) => [v, k])
+);
+
 figma.showUI(__html__, { width: 320, height: 220 });
 
 const commandQueue = new CommandQueue();
@@ -634,11 +640,6 @@ async function decodeConditionForEcho(condition: any): Promise<unknown> {
   }
   const expr = condition.value;
   const fn: string = expr.expressionFunction;
-  const OPERATOR_INVERSE: Record<string, string> = {
-    EQUALS: "==", NOT_EQUAL: "!=",
-    LESS_THAN: "<", LESS_THAN_OR_EQUAL: "<=",
-    GREATER_THAN: ">", GREATER_THAN_OR_EQUAL: ">=",
-  };
   const operator = OPERATOR_INVERSE[fn];
   if (!operator) return { raw: condition };
   const args = expr.expressionArguments ?? [];
