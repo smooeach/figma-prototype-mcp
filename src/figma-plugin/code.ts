@@ -438,6 +438,7 @@ async function handleListReactions(params: { nodeId: string }) {
           destinationId: destId,
           destinationName: destNode?.name,
           transition: action.transition,
+          resetScrollPosition: action.resetScrollPosition,
         },
       };
     }),
