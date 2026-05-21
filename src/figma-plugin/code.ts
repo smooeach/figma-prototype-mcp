@@ -474,21 +474,38 @@ async function handleClearReactions(params: { nodeIds: string[]; indices?: numbe
 }
 
 async function handleSetFrameScroll(params: {
-  frames: Array<{ frameId: string; direction: "NONE" | "HORIZONTAL" | "VERTICAL" | "BOTH" }>;
+  frames: Array<{
+    frameId: string;
+    direction?: "NONE" | "HORIZONTAL" | "VERTICAL" | "BOTH";
+    fixedChildren?: number;
+  }>;
 }) {
   await figma.loadAllPagesAsync();
-  const results: Array<{ frameId: string; status: "success" | "error"; error?: string }> = [];
+  const results: Array<{
+    frameId: string;
+    status: "success" | "error";
+    applied?: string[];
+    error?: string;
+  }> = [];
   let successCount = 0;
   let errorCount = 0;
-  for (const { frameId, direction } of params.frames) {
+  for (const { frameId, direction, fixedChildren } of params.frames) {
     try {
       const node = figma.getNodeById(frameId);
       if (!node) throw new Error(`Frame not found: ${frameId}`);
       if (node.type !== "FRAME") {
         throw new Error(`Node is not a FRAME: ${node.name} (type: ${node.type})`);
       }
-      (node as FrameNode).overflowDirection = direction;
-      results.push({ frameId, status: "success" });
+      const applied: string[] = [];
+      if (direction !== undefined) {
+        (node as FrameNode).overflowDirection = direction;
+        applied.push("direction");
+      }
+      if (fixedChildren !== undefined) {
+        (node as FrameNode).numberOfFixedChildren = fixedChildren;
+        applied.push("fixedChildren");
+      }
+      results.push({ frameId, status: "success", applied });
       successCount++;
     } catch (e: any) {
       results.push({ frameId, status: "error", error: e?.message ?? String(e) });
