@@ -5,6 +5,7 @@ import {
   CreateReactionsInput,
   ListReactionsInput,
   ClearReactionsInput,
+  SetFrameScrollInput,
 } from "../src/mcp-server/tools.js";
 
 describe("GetCanvasOverviewInput", () => {
@@ -515,5 +516,47 @@ describe("CreateReactionsInput easing spring + custom", () => {
         action: { type: "navigate", targetFrameId: "1:2" },
       }],
     })).toThrow();
+  });
+});
+
+describe("SetFrameScrollInput", () => {
+  it("accepts single frame with VERTICAL", () => {
+    const r = SetFrameScrollInput.safeParse({
+      frames: [{ frameId: "1:1", direction: "VERTICAL" }],
+    });
+    expect(r.success).toBe(true);
+  });
+  it("accepts batch with all 4 directions", () => {
+    const r = SetFrameScrollInput.safeParse({
+      frames: [
+        { frameId: "1:1", direction: "NONE" },
+        { frameId: "1:2", direction: "HORIZONTAL" },
+        { frameId: "1:3", direction: "VERTICAL" },
+        { frameId: "1:4", direction: "BOTH" },
+      ],
+    });
+    expect(r.success).toBe(true);
+  });
+  it("rejects empty frames array", () => {
+    const r = SetFrameScrollInput.safeParse({ frames: [] });
+    expect(r.success).toBe(false);
+  });
+  it("rejects invalid direction value", () => {
+    const r = SetFrameScrollInput.safeParse({
+      frames: [{ frameId: "1:1", direction: "DIAGONAL" }],
+    });
+    expect(r.success).toBe(false);
+  });
+  it("rejects empty frameId", () => {
+    const r = SetFrameScrollInput.safeParse({
+      frames: [{ frameId: "", direction: "VERTICAL" }],
+    });
+    expect(r.success).toBe(false);
+  });
+  it("rejects missing direction", () => {
+    const r = SetFrameScrollInput.safeParse({
+      frames: [{ frameId: "1:1" }],
+    });
+    expect(r.success).toBe(false);
   });
 });

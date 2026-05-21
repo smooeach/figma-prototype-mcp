@@ -173,8 +173,20 @@ export const ClearReactionsInput = z
     { message: "indices may only be specified when nodeIds has exactly 1 entry" }
   );
 
+const OverflowDirectionEnum = z.enum(["NONE", "HORIZONTAL", "VERTICAL", "BOTH"]);
+
+const SetFrameScrollEntry = z.object({
+  frameId: z.string().min(1),
+  direction: OverflowDirectionEnum,
+});
+
+export const SetFrameScrollInput = z.object({
+  frames: z.array(SetFrameScrollEntry).min(1),
+});
+
 export type GetCanvasOverviewInput = z.infer<typeof GetCanvasOverviewInput>;
 export type FindNodesInput = z.infer<typeof FindNodesInput>;
 export type CreateReactionsInput = z.infer<typeof CreateReactionsInput>;
 export type ListReactionsInput = z.infer<typeof ListReactionsInput>;
 export type ClearReactionsInput = z.infer<typeof ClearReactionsInput>;
+export type SetFrameScrollInput = z.infer<typeof SetFrameScrollInput>;
