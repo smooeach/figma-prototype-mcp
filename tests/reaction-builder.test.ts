@@ -9,7 +9,9 @@ import {
   buildBackReaction,
   buildUrlReaction,
   buildSwapOverlayReaction,
+  buildConditionalReaction,
   resolveEasing,
+  type BuiltAction,
 } from "../src/figma-plugin/reaction-builder.js";
 
 describe("buildNavigateReaction", () => {
@@ -576,5 +578,88 @@ describe("NODE action — resetScrollPosition", () => {
       targetFrameId: "1:1", trigger: t, transition: "INSTANT", resetScrollPosition: true,
     });
     expect(r.actions[0]).toMatchObject({ type: "NODE", resetScrollPosition: true });
+  });
+});
+
+describe("buildConditionalReaction", () => {
+  // Pre-built actions to use as then/else contents. We use BuiltAction shapes
+  // directly because handleCreateReactions builds these in advance and passes
+  // them in (variable lookup is plugin-side, not builder-side).
+  const navHome: BuiltAction = {
+    type: "NODE", destinationId: "1:home", navigation: "NAVIGATE", transition: null,
+  };
+  const navLogin: BuiltAction = {
+    type: "NODE", destinationId: "1:login", navigation: "NAVIGATE", transition: null,
+  };
+  const closeAct: BuiltAction = { type: "CLOSE" };
+
+  // A "condition" VariableData — same as what plugin's buildCondition() returns.
+  // We use a literal placeholder id here; the real plugin resolves names to ids.
+  const condEquals = {
+    type: "EXPRESSION", resolvedType: "BOOLEAN",
+    value: {
+      expressionFunction: "EQUALS",
+      expressionArguments: [
+        { type: "VARIABLE_ALIAS", resolvedType: "BOOLEAN",
+          value: { type: "VARIABLE_ALIAS", id: "VARIABLE_ID:loggedIn" } },
+        { type: "BOOLEAN", resolvedType: "BOOLEAN", value: true },
+      ],
+    },
+  };
+
+  it("emits CONDITIONAL action with then-only block", () => {
+    const r = buildConditionalReaction({
+      trigger: "ON_CLICK",
+      condition: condEquals as any,
+      thenActions: [navHome],
+    });
+    expect(r.trigger).toEqual({ type: "ON_CLICK" });
+    expect(r.actions).toHaveLength(1);
+    const action = r.actions[0]!;
+    if (action.type !== "CONDITIONAL") throw new Error("expected CONDITIONAL");
+    expect(action.conditionalBlocks).toHaveLength(1);
+    expect(action.conditionalBlocks[0]!.condition).toEqual(condEquals);
+    expect(action.conditionalBlocks[0]!.actions).toEqual([navHome]);
+  });
+
+  it("emits CONDITIONAL with both then and else blocks", () => {
+    const r = buildConditionalReaction({
+      trigger: "ON_CLICK",
+      condition: condEquals as any,
+      thenActions: [navHome],
+      elseActions: [navLogin],
+    });
+    const action = r.actions[0]!;
+    if (action.type !== "CONDITIONAL") throw new Error("expected CONDITIONAL");
+    expect(action.conditionalBlocks).toHaveLength(2);
+    expect(action.conditionalBlocks[0]!.condition).toEqual(condEquals);
+    expect(action.conditionalBlocks[0]!.actions).toEqual([navHome]);
+    expect(action.conditionalBlocks[1]!.condition).toBeUndefined();
+    expect(action.conditionalBlocks[1]!.actions).toEqual([navLogin]);
+  });
+
+  it("emits then-block with multiple actions in order", () => {
+    const r = buildConditionalReaction({
+      trigger: "ON_CLICK",
+      condition: condEquals as any,
+      thenActions: [closeAct, navHome],
+    });
+    const action = r.actions[0]!;
+    if (action.type !== "CONDITIONAL") throw new Error("expected CONDITIONAL");
+    expect(action.conditionalBlocks[0]!.actions).toEqual([closeAct, navHome]);
+  });
+
+  it("omits else block when elseActions is undefined or empty array", () => {
+    const a = buildConditionalReaction({
+      trigger: "ON_CLICK", condition: condEquals as any, thenActions: [navHome],
+    });
+    const b = buildConditionalReaction({
+      trigger: "ON_CLICK", condition: condEquals as any, thenActions: [navHome], elseActions: [],
+    });
+    for (const r of [a, b]) {
+      const action = r.actions[0]!;
+      if (action.type !== "CONDITIONAL") throw new Error("expected CONDITIONAL");
+      expect(action.conditionalBlocks).toHaveLength(1);
+    }
   });
 });

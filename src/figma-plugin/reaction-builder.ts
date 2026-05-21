@@ -93,6 +93,12 @@ export type TransitionShape =
 
 // Figma's Action union: NODE actions cover NAVIGATE/SCROLL_TO/OVERLAY/SWAP navigations.
 // CLOSE, BACK, URL are top-level action.types with their own shapes.
+
+export interface ConditionalBlockShape {
+  condition?: unknown;        // VariableData; opaque to the builder (plugin builds it)
+  actions: BuiltAction[];
+}
+
 export type BuiltAction =
   | {
       type: "NODE";
@@ -103,7 +109,8 @@ export type BuiltAction =
     }
   | { type: "CLOSE" }
   | { type: "BACK" }
-  | { type: "URL"; url: string; openInNewTab: boolean };
+  | { type: "URL"; url: string; openInNewTab: boolean }
+  | { type: "CONDITIONAL"; conditionalBlocks: ConditionalBlockShape[] };
 
 export type TriggerShape =
   | { type: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "ON_DRAG" | "ON_MEDIA_END" }
@@ -337,5 +344,26 @@ export function buildSwapOverlayReaction(input: SwapOverlayBuildInput): BuiltRea
   return {
     trigger: buildTrigger(input.trigger, input.afterTimeoutSeconds),
     actions: [action],
+  };
+}
+
+export interface ConditionalBuildInput {
+  trigger: TriggerInput;
+  afterTimeoutSeconds?: number;
+  condition: unknown;             // VariableData; constructed by the plugin
+  thenActions: BuiltAction[];
+  elseActions?: BuiltAction[];
+}
+
+export function buildConditionalReaction(input: ConditionalBuildInput): BuiltReaction {
+  const blocks: ConditionalBlockShape[] = [
+    { condition: input.condition, actions: input.thenActions },
+  ];
+  if (input.elseActions && input.elseActions.length > 0) {
+    blocks.push({ actions: input.elseActions });
+  }
+  return {
+    trigger: buildTrigger(input.trigger, input.afterTimeoutSeconds),
+    actions: [{ type: "CONDITIONAL", conditionalBlocks: blocks }],
   };
 }
