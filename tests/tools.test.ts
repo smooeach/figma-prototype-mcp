@@ -881,4 +881,14 @@ describe("CreateReactionsInput — set_variable + toggle_variable", () => {
     });
     expect(r.success).toBe(false);
   });
+
+  it("accepts set_variable with hex string value (will be interpreted as COLOR at plugin runtime)", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "set_variable", variable: "bgColor", value: "#FF4040" },
+      }],
+    });
+    expect(r.success).toBe(true);
+  });
 });
