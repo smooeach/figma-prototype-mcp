@@ -55,6 +55,7 @@ Configure your MCP client (e.g. Claude Code) to launch the server with the match
 | `create_reactions` | **Write**: batch create prototype reactions. Each connection's `action` picks between Navigate To (action.type=navigate, targetFrameId), Scroll To (scroll, targetNodeId), Open Overlay (overlay, targetFrameId), Close Overlay (close, no destination), Back (back, no destination), Open URL (url, url, openInNewTab?), and Swap Overlay (swap_overlay, targetFrameId). Triggers: string shortcuts `ON_CLICK` (default) / `ON_HOVER` / `ON_PRESS` / `AFTER_TIMEOUT` (with top-level `afterTimeoutSeconds`); object form additionally supports `{type:"ON_DRAG"}`, `{type:"MOUSE_UP"\|"MOUSE_DOWN", delay?}`, `{type:"MOUSE_ENTER"\|"MOUSE_LEAVE", delay?, deprecatedVersion?}`, `{type:"ON_KEY_DOWN", device, keyCodes}`, `{type:"ON_MEDIA_HIT", mediaHitTime}`, `{type:"ON_MEDIA_END"}`, and a self-contained `{type:"AFTER_TIMEOUT", timeout}`. Transitions: string shortcuts `INSTANT` / `DISSOLVE` / `SMART_ANIMATE`, simple object form (DISSOLVE/SMART_ANIMATE/SCROLL_ANIMATE + duration + easing), and directional form (`MOVE_IN`/`MOVE_OUT`/`PUSH`/`SLIDE_IN`/`SLIDE_OUT` × `direction` LEFT/RIGHT/TOP/BOTTOM × optional `matchLayers`). Each succeeds or fails independently; scroll targets without a scrollable ancestor return a `warning`. |
 | `list_reactions` | Inspect existing reactions on a node |
 | `clear_reactions` | Remove reactions from one or more nodes |
+| `set_frame_scroll` | **Write**: configure `overflowDirection` on one or more FRAME nodes (`NONE` / `HORIZONTAL` / `VERTICAL` / `BOTH`). Each frame succeeds or fails independently. Use before `create_reactions` for Scroll To to ensure the source frame is scrollable. |
 
 ## Manual E2E checklist (v1 acceptance)
 
@@ -66,7 +67,7 @@ After install + all three components running, verify these scenarios in Figma. E
 - [x] **4. Undo**: After scenario 1, ask: "방금 만든 연결 다 지워줘". Expected: reactions removed from all 3 buttons.
 - [x] **5. Error path**: Ask: "Login 버튼을 NonexistentFrame으로 연결해줘". Expected: Claude reports a friendly error (target not found) without crashing.
 - [x] **6. Scroll wiring + warning path**:
-  Setup: Create a tall frame with Scroll behavior set to "Vertical scrolling" (Figma Inspector → Frame → Overflow: Vertical). Inside it, place a section node named "Pricing". Outside any scrollable frame, place another node named "Footer".
+  Setup: Create a tall frame containing a section node named "Pricing", and another node "Footer" outside any scrollable frame. Set the tall frame's Overflow Behavior to "Vertical scrolling" — either via Figma Inspector → Frame → Overflow: Vertical, **or via the `set_frame_scroll` tool** (`{ frames: [{ frameId, direction: "VERTICAL" }] }`).
   (a) Ask: "이 버튼을 Pricing 섹션으로 스크롤되게 해줘". Expected: reaction created, no `warning` field in the response.
   (b) Ask: "이 버튼을 Footer로 스크롤되게 해줘". Expected: reaction created BUT the response result includes a `warning` field naming "Footer" and the missing scrollable ancestor; `warningCount` in the summary is 1.
 - [x] **7. Overlay open + close pair**:
@@ -124,6 +125,12 @@ After install + all three components running, verify these scenarios in Figma. E
   (c) Ask: "MOUSE_ENTER 시 overlay 열게". Expected: `trigger.type=MOUSE_ENTER`, `delay=0`.
 
   **Note:** `ON_KEY_DOWN` / `ON_MEDIA_HIT` / `ON_MEDIA_END` are schema-supported (Zod + builder + tests) but live-verify is deferred — controller/key behavior is desktop-app-specific, and media triggers need a video-node fixture. `deprecatedVersion` field for MOUSE_ENTER/LEAVE is documented in Figma typings but rejected by the runtime — omitted (same pattern as `initialVelocity` in v1.12).
+- [x] **19. Configure frame scroll behavior (`set_frame_scroll`)**:
+  Setup: a new test section with three frames: `vTall` (tall — child content exceeds frame height), `hWide` (wide — child content exceeds frame width), `noScroll` (small).
+  (a) Ask: "vTall frame 세로로 스크롤되게 해줘". Expected: `successCount=1`. Figma → Prototype panel shows Overflow Behavior = "Vertical scrolling". Play mode: vertical drag scrolls content.
+  (b) Ask: "vTall 스크롤 꺼줘". Expected: Overflow Behavior = "No scrolling". Play: overflowing content is clipped, no scroll.
+  (c) Ask: "hWide 가로로 스크롤". Expected: Overflow Behavior = "Horizontal scrolling". Play: horizontal scroll works.
+  (d) Error case: pass a non-existent frameId. Expected: `status=error`, `errorCount=1`, error message contains "Frame not found".
 
 ## Known limitations (v1)
 
