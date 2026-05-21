@@ -6,8 +6,7 @@
   "type": "module",
   "main": "src/mcp-server/index.ts",
   "scripts": {
-    "relay": "tsx src/socket.ts",
-    "mcp": "tsx src/mcp-server/index.ts",
+    "start": "tsx src/server/index.ts",
     "build:plugin": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
