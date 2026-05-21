@@ -764,3 +764,121 @@ describe("CreateReactionsInput — resetScrollPosition option", () => {
     expect(r.success).toBe(true);
   });
 });
+
+describe("CreateReactionsInput — set_variable + toggle_variable", () => {
+  const trigger = "ON_CLICK" as const;
+
+  it("accepts set_variable with boolean value", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "set_variable", variable: "showMenu", value: true },
+      }],
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("accepts set_variable with number value", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "set_variable", variable: "count", value: 42 },
+      }],
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("accepts set_variable with string value", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "set_variable", variable: "tier", value: "gold" },
+      }],
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("rejects set_variable with empty variable name", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "set_variable", variable: "", value: true },
+      }],
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects set_variable with unsupported value type (object)", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "set_variable", variable: "x", value: { nested: true } as any },
+      }],
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("accepts toggle_variable top-level", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "toggle_variable", variable: "showMenu" },
+      }],
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("rejects toggle_variable with empty variable name", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "toggle_variable", variable: "" },
+      }],
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("accepts set_variable inside conditional then/else", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: {
+          type: "conditional",
+          condition: { variable: "x", operator: "==", value: true },
+          then: [{ type: "set_variable", variable: "y", value: false }],
+          else: [{ type: "set_variable", variable: "y", value: true }],
+        },
+      }],
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("rejects toggle_variable inside conditional then", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: {
+          type: "conditional",
+          condition: { variable: "x", operator: "==", value: true },
+          then: [{ type: "toggle_variable", variable: "y" } as any],
+        },
+      }],
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects toggle_variable inside conditional else", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: {
+          type: "conditional",
+          condition: { variable: "x", operator: "==", value: true },
+          then: [{ type: "set_variable", variable: "y", value: true }],
+          else: [{ type: "toggle_variable", variable: "y" } as any],
+        },
+      }],
+    });
+    expect(r.success).toBe(false);
+  });
+});

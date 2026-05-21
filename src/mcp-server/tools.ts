@@ -145,8 +145,20 @@ const ConditionInput = z.object({
   value: z.union([z.boolean(), z.number(), z.string()]),
 });
 
+const SetVariableActionInput = z.object({
+  type: z.literal("set_variable"),
+  variable: z.string().min(1),
+  value: z.union([z.boolean(), z.number(), z.string()]),
+});
+
+const ToggleVariableActionInput = z.object({
+  type: z.literal("toggle_variable"),
+  variable: z.string().min(1),
+});
+
 // The set of action types that may appear inside a conditional then/else branch.
 // Deliberately excludes ConditionalActionInput to block nesting.
+// Deliberately excludes ToggleVariableActionInput — toggle_variable may not appear inside conditionals.
 const NonConditionalActionInput = z.discriminatedUnion("type", [
   NavigateActionInput,
   ScrollActionInput,
@@ -155,6 +167,7 @@ const NonConditionalActionInput = z.discriminatedUnion("type", [
   BackActionInput,
   UrlActionInput,
   SwapOverlayActionInput,
+  SetVariableActionInput,
 ]);
 
 const ConditionalActionInput = z.object({
@@ -173,6 +186,8 @@ const ActionInput = z.discriminatedUnion("type", [
   UrlActionInput,
   SwapOverlayActionInput,
   ConditionalActionInput,
+  SetVariableActionInput,
+  ToggleVariableActionInput,
 ]);
 
 const ConnectionInput = z.object({
