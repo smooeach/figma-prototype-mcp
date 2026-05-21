@@ -77,13 +77,13 @@ export interface FoundNode {
 }
 
 export type ReactionAction =
-  | { type: "navigate"; targetFrameId: string }
-  | { type: "scroll"; targetNodeId: string }
-  | { type: "overlay"; targetFrameId: string }
+  | { type: "navigate"; targetFrameId: string; resetScrollPosition?: boolean }
+  | { type: "scroll"; targetNodeId: string; resetScrollPosition?: boolean }
+  | { type: "overlay"; targetFrameId: string; resetScrollPosition?: boolean }
   | { type: "close" }
   | { type: "back" }
   | { type: "url"; url: string; openInNewTab?: boolean }
-  | { type: "swap_overlay"; targetFrameId: string };
+  | { type: "swap_overlay"; targetFrameId: string; resetScrollPosition?: boolean };
 
 export interface ReactionConnectionInput {
   sourceNodeId: string;

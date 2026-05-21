@@ -62,13 +62,13 @@ type Command =
                   | { type: "CUSTOM_SPRING"; mass: number; stiffness: number; damping: number };
               };
           action:
-            | { type: "navigate"; targetFrameId: string }
-            | { type: "scroll"; targetNodeId: string }
-            | { type: "overlay"; targetFrameId: string }
+            | { type: "navigate"; targetFrameId: string; resetScrollPosition?: boolean }
+            | { type: "scroll"; targetNodeId: string; resetScrollPosition?: boolean }
+            | { type: "overlay"; targetFrameId: string; resetScrollPosition?: boolean }
             | { type: "close" }
             | { type: "back" }
             | { type: "url"; url: string; openInNewTab?: boolean }
-            | { type: "swap_overlay"; targetFrameId: string };
+            | { type: "swap_overlay"; targetFrameId: string; resetScrollPosition?: boolean };
         }>;
         replaceExisting: boolean;
       };
@@ -80,7 +80,8 @@ type Command =
       params: {
         frames: Array<{
           frameId: string;
-          direction: "NONE" | "HORIZONTAL" | "VERTICAL" | "BOTH";
+          direction?: "NONE" | "HORIZONTAL" | "VERTICAL" | "BOTH";
+          fixedChildren?: number;
         }>;
       };
     };
@@ -280,13 +281,13 @@ async function handleCreateReactions(params: {
             | { type: "CUSTOM_SPRING"; mass: number; stiffness: number; damping: number };
         };
     action:
-      | { type: "navigate"; targetFrameId: string }
-      | { type: "scroll"; targetNodeId: string }
-      | { type: "overlay"; targetFrameId: string }
+      | { type: "navigate"; targetFrameId: string; resetScrollPosition?: boolean }
+      | { type: "scroll"; targetNodeId: string; resetScrollPosition?: boolean }
+      | { type: "overlay"; targetFrameId: string; resetScrollPosition?: boolean }
       | { type: "close" }
       | { type: "back" }
       | { type: "url"; url: string; openInNewTab?: boolean }
-      | { type: "swap_overlay"; targetFrameId: string };
+      | { type: "swap_overlay"; targetFrameId: string; resetScrollPosition?: boolean };
   }>;
   replaceExisting: boolean;
 }) {
