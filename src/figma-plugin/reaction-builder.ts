@@ -110,7 +110,8 @@ export type BuiltAction =
   | { type: "CLOSE" }
   | { type: "BACK" }
   | { type: "URL"; url: string; openInNewTab: boolean }
-  | { type: "CONDITIONAL"; conditionalBlocks: ConditionalBlockShape[] };
+  | { type: "CONDITIONAL"; conditionalBlocks: ConditionalBlockShape[] }
+  | { type: "SET_VARIABLE"; variableId: string; variableValue: unknown };
 
 export type TriggerShape =
   | { type: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "ON_DRAG" | "ON_MEDIA_END" }
@@ -365,5 +366,23 @@ export function buildConditionalReaction(input: ConditionalBuildInput): BuiltRea
   return {
     trigger: buildTrigger(input.trigger, input.afterTimeoutSeconds),
     actions: [{ type: "CONDITIONAL", conditionalBlocks: blocks }],
+  };
+}
+
+export interface SetVariableBuildInput {
+  trigger: TriggerInput;
+  afterTimeoutSeconds?: number;
+  variableId: string;
+  variableValue: unknown;       // VariableData; constructed by the plugin
+}
+
+export function buildSetVariableReaction(input: SetVariableBuildInput): BuiltReaction {
+  return {
+    trigger: buildTrigger(input.trigger, input.afterTimeoutSeconds),
+    actions: [{
+      type: "SET_VARIABLE",
+      variableId: input.variableId,
+      variableValue: input.variableValue,
+    }],
   };
 }

@@ -10,6 +10,7 @@ import {
   buildUrlReaction,
   buildSwapOverlayReaction,
   buildConditionalReaction,
+  buildSetVariableReaction,
   resolveEasing,
   type BuiltAction,
 } from "../src/figma-plugin/reaction-builder.js";
@@ -661,5 +662,43 @@ describe("buildConditionalReaction", () => {
       if (action.type !== "CONDITIONAL") throw new Error("expected CONDITIONAL");
       expect(action.conditionalBlocks).toHaveLength(1);
     }
+  });
+});
+
+describe("buildSetVariableReaction", () => {
+  it("emits SET_VARIABLE action with BOOLEAN value", () => {
+    const r = buildSetVariableReaction({
+      trigger: "ON_CLICK",
+      variableId: "VariableID:1:1",
+      variableValue: { type: "BOOLEAN", resolvedType: "BOOLEAN", value: true },
+    });
+    expect(r.trigger).toEqual({ type: "ON_CLICK" });
+    expect(r.actions).toHaveLength(1);
+    const action = r.actions[0]!;
+    if (action.type !== "SET_VARIABLE") throw new Error("expected SET_VARIABLE");
+    expect(action.variableId).toBe("VariableID:1:1");
+    expect(action.variableValue).toEqual({ type: "BOOLEAN", resolvedType: "BOOLEAN", value: true });
+  });
+
+  it("emits SET_VARIABLE action with FLOAT value", () => {
+    const r = buildSetVariableReaction({
+      trigger: "ON_CLICK",
+      variableId: "VariableID:2:2",
+      variableValue: { type: "FLOAT", resolvedType: "FLOAT", value: 42 },
+    });
+    const action = r.actions[0]!;
+    if (action.type !== "SET_VARIABLE") throw new Error("expected SET_VARIABLE");
+    expect(action.variableValue).toEqual({ type: "FLOAT", resolvedType: "FLOAT", value: 42 });
+  });
+
+  it("emits SET_VARIABLE action with STRING value", () => {
+    const r = buildSetVariableReaction({
+      trigger: "ON_CLICK",
+      variableId: "VariableID:3:3",
+      variableValue: { type: "STRING", resolvedType: "STRING", value: "gold" },
+    });
+    const action = r.actions[0]!;
+    if (action.type !== "SET_VARIABLE") throw new Error("expected SET_VARIABLE");
+    expect(action.variableValue).toEqual({ type: "STRING", resolvedType: "STRING", value: "gold" });
   });
 });
