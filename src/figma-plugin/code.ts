@@ -814,10 +814,24 @@ async function encodeActionForListEcho(action: any): Promise<unknown> {
         varName = v?.name;
       } catch { /* deleted variable */ }
     }
+    const vd = action.variableValue;
+    let value: unknown;
+    if (
+      vd?.type === "COLOR" &&
+      vd?.value &&
+      typeof vd.value === "object" &&
+      "r" in vd.value &&
+      "g" in vd.value &&
+      "b" in vd.value
+    ) {
+      value = rgbToHex(vd.value as { r: number; g: number; b: number; a?: number });
+    } else {
+      value = vd?.value;
+    }
     return {
       type: "set_variable",
       variable: varName ?? `<id:${action.variableId}>`,
-      value: action.variableValue?.value,
+      value,
     };
   }
 
