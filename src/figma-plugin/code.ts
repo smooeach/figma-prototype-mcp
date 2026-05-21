@@ -661,11 +661,63 @@ async function handleCreateReactions(params: {
   return { results, successCount, errorCount, warningCount };
 }
 
+/**
+ * Match the exact toggle_variable desugar shape:
+ *   blocks[0]: condition (varX == true) + actions [SET_VARIABLE varX = false]
+ *   blocks[1]: no condition (else)      + actions [SET_VARIABLE varX = true]
+ * Returns the variable id if matched, otherwise null.
+ */
+function detectTogglePattern(blocks: any[]): string | null {
+  if (!Array.isArray(blocks) || blocks.length !== 2) return null;
+  const [b0, b1] = blocks;
+  if (b1?.condition !== undefined) return null;
+  // b0 condition shape
+  const cond = b0?.condition;
+  if (!cond || cond.type !== "EXPRESSION" || !cond.value) return null;
+  if (cond.value.expressionFunction !== "EQUALS") return null;
+  const args = cond.value.expressionArguments;
+  if (!Array.isArray(args) || args.length !== 2) return null;
+  const aliasArg = args[0], boolArg = args[1];
+  if (aliasArg?.type !== "VARIABLE_ALIAS") return null;
+  if (boolArg?.type !== "BOOLEAN" || boolArg.value !== true) return null;
+  const varId = aliasArg?.value?.id;
+  if (!varId) return null;
+  // b0 actions
+  const a0 = b0?.actions;
+  if (!Array.isArray(a0) || a0.length !== 1) return null;
+  if (a0[0]?.type !== "SET_VARIABLE") return null;
+  if (a0[0]?.variableId !== varId) return null;
+  if (a0[0]?.variableValue?.type !== "BOOLEAN" || a0[0]?.variableValue?.value !== false) return null;
+  // b1 actions
+  const a1 = b1?.actions;
+  if (!Array.isArray(a1) || a1.length !== 1) return null;
+  if (a1[0]?.type !== "SET_VARIABLE") return null;
+  if (a1[0]?.variableId !== varId) return null;
+  if (a1[0]?.variableValue?.type !== "BOOLEAN" || a1[0]?.variableValue?.value !== true) return null;
+  return varId;
+}
+
 async function encodeActionForListEcho(action: any): Promise<unknown> {
   if (!action || typeof action !== "object") return { type: "UNKNOWN" };
 
   if (action.type === "CONDITIONAL") {
     const blocks = Array.isArray(action.conditionalBlocks) ? action.conditionalBlocks : [];
+
+    // 1) Try toggle_variable pattern first
+    const toggleVarId = detectTogglePattern(blocks);
+    if (toggleVarId) {
+      let varName: string | undefined;
+      try {
+        const v = await figma.variables.getVariableByIdAsync(toggleVarId);
+        varName = v?.name;
+      } catch { /* deleted variable */ }
+      return {
+        type: "toggle_variable",
+        variable: varName ?? `<id:${toggleVarId}>`,
+      };
+    }
+
+    // 2) Fall back to existing conditional decoder
     const standardPattern = blocks.length >= 1 && blocks.length <= 2 &&
       blocks[0].condition !== undefined &&
       (blocks.length === 1 || blocks[1].condition === undefined);
@@ -688,6 +740,21 @@ async function encodeActionForListEcho(action: any): Promise<unknown> {
       condition: decodedCondition,
       then: thenActions,
       else: elseActions,
+    };
+  }
+
+  if (action.type === "SET_VARIABLE") {
+    let varName: string | undefined;
+    if (action.variableId) {
+      try {
+        const v = await figma.variables.getVariableByIdAsync(action.variableId);
+        varName = v?.name;
+      } catch { /* deleted variable */ }
+    }
+    return {
+      type: "set_variable",
+      variable: varName ?? `<id:${action.variableId}>`,
+      value: action.variableValue?.value,
     };
   }
 
