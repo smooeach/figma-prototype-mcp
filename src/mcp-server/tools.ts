@@ -102,16 +102,19 @@ const TransitionInput = z.union([TransitionEnum, SimpleTransitionObject, Directi
 const NavigateActionInput = z.object({
   type: z.literal("navigate"),
   targetFrameId: z.string().min(1),
+  resetScrollPosition: z.boolean().optional(),
 });
 
 const ScrollActionInput = z.object({
   type: z.literal("scroll"),
   targetNodeId: z.string().min(1),
+  resetScrollPosition: z.boolean().optional(),
 });
 
 const OverlayActionInput = z.object({
   type: z.literal("overlay"),
   targetFrameId: z.string().min(1),
+  resetScrollPosition: z.boolean().optional(),
 });
 
 const CloseActionInput = z.object({
@@ -131,6 +134,7 @@ const UrlActionInput = z.object({
 const SwapOverlayActionInput = z.object({
   type: z.literal("swap_overlay"),
   targetFrameId: z.string().min(1),
+  resetScrollPosition: z.boolean().optional(),
 });
 
 const ActionInput = z.discriminatedUnion("type", [
@@ -175,10 +179,16 @@ export const ClearReactionsInput = z
 
 const OverflowDirectionEnum = z.enum(["NONE", "HORIZONTAL", "VERTICAL", "BOTH"]);
 
-const SetFrameScrollEntry = z.object({
-  frameId: z.string().min(1),
-  direction: OverflowDirectionEnum,
-});
+const SetFrameScrollEntry = z
+  .object({
+    frameId: z.string().min(1),
+    direction: OverflowDirectionEnum.optional(),
+    fixedChildren: z.number().int().min(0).optional(),
+  })
+  .refine(
+    (v) => v.direction !== undefined || v.fixedChildren !== undefined,
+    { message: "Each entry must include at least one of `direction` or `fixedChildren`" }
+  );
 
 export const SetFrameScrollInput = z.object({
   frames: z.array(SetFrameScrollEntry).min(1),

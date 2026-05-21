@@ -553,10 +553,80 @@ describe("SetFrameScrollInput", () => {
     });
     expect(r.success).toBe(false);
   });
-  it("rejects missing direction", () => {
+  it("accepts fixedChildren-only entry (no direction)", () => {
+    const r = SetFrameScrollInput.safeParse({
+      frames: [{ frameId: "1:1", fixedChildren: 1 }],
+    });
+    expect(r.success).toBe(true);
+  });
+  it("accepts both direction and fixedChildren", () => {
+    const r = SetFrameScrollInput.safeParse({
+      frames: [{ frameId: "1:1", direction: "VERTICAL", fixedChildren: 2 }],
+    });
+    expect(r.success).toBe(true);
+  });
+  it("rejects entry with neither direction nor fixedChildren", () => {
     const r = SetFrameScrollInput.safeParse({
       frames: [{ frameId: "1:1" }],
     });
     expect(r.success).toBe(false);
+  });
+  it("rejects negative fixedChildren", () => {
+    const r = SetFrameScrollInput.safeParse({
+      frames: [{ frameId: "1:1", fixedChildren: -1 }],
+    });
+    expect(r.success).toBe(false);
+  });
+  it("rejects non-integer fixedChildren", () => {
+    const r = SetFrameScrollInput.safeParse({
+      frames: [{ frameId: "1:1", fixedChildren: 1.5 }],
+    });
+    expect(r.success).toBe(false);
+  });
+  it("accepts fixedChildren: 0 (explicit unfix)", () => {
+    const r = SetFrameScrollInput.safeParse({
+      frames: [{ frameId: "1:1", fixedChildren: 0 }],
+    });
+    expect(r.success).toBe(true);
+  });
+});
+
+describe("CreateReactionsInput — resetScrollPosition option", () => {
+  const trigger = "ON_CLICK" as const;
+  it("accepts navigate with resetScrollPosition: false", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "navigate", targetFrameId: "2:2", resetScrollPosition: false },
+      }],
+    });
+    expect(r.success).toBe(true);
+  });
+  it("accepts scroll with resetScrollPosition: true", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "scroll", targetNodeId: "2:2", resetScrollPosition: true },
+      }],
+    });
+    expect(r.success).toBe(true);
+  });
+  it("accepts overlay with resetScrollPosition: false", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "overlay", targetFrameId: "2:2", resetScrollPosition: false },
+      }],
+    });
+    expect(r.success).toBe(true);
+  });
+  it("accepts swap_overlay with resetScrollPosition: true", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "swap_overlay", targetFrameId: "2:2", resetScrollPosition: true },
+      }],
+    });
+    expect(r.success).toBe(true);
   });
 });
