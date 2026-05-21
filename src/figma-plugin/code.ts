@@ -578,6 +578,102 @@ async function handleCreateReactions(params: {
   return { results, successCount, errorCount, warningCount };
 }
 
+async function encodeActionForListEcho(action: any): Promise<unknown> {
+  if (!action || typeof action !== "object") return { type: "UNKNOWN" };
+
+  if (action.type === "CONDITIONAL") {
+    const blocks = Array.isArray(action.conditionalBlocks) ? action.conditionalBlocks : [];
+    const standardPattern = blocks.length >= 1 && blocks.length <= 2 &&
+      blocks[0].condition !== undefined &&
+      (blocks.length === 1 || blocks[1].condition === undefined);
+
+    if (!standardPattern) {
+      // Non-standard shape — return raw so caller can still inspect
+      return { type: "CONDITIONAL", raw: blocks };
+    }
+
+    const decodedCondition = await decodeConditionForEcho(blocks[0].condition);
+    const thenActions = await Promise.all(
+      (blocks[0].actions ?? []).map((a: any) => encodeActionForListEcho(a))
+    );
+    const elseActions = blocks.length === 2
+      ? await Promise.all((blocks[1].actions ?? []).map((a: any) => encodeActionForListEcho(a)))
+      : undefined;
+
+    return {
+      type: "CONDITIONAL",
+      condition: decodedCondition,
+      then: thenActions,
+      else: elseActions,
+    };
+  }
+
+  // Existing NODE / CLOSE / BACK / URL passthrough — keep identical shape as before
+  const destId = action.destinationId;
+  const destNode = destId ? figma.getNodeById(destId) : null;
+  return {
+    type: action.type ?? "UNKNOWN",
+    navigation: action.navigation,
+    url: action.url,
+    openInNewTab: action.openInNewTab,
+    destinationId: destId,
+    destinationName: destNode?.name,
+    transition: action.transition,
+    resetScrollPosition: action.resetScrollPosition,
+  };
+}
+
+/**
+ * Decode an Expression VariableData (our standard condition shape) back to
+ * { variable, operator, value }. Returns the raw VariableData if the shape
+ * doesn't match our expected EQUALS/comparison pattern.
+ */
+async function decodeConditionForEcho(condition: any): Promise<unknown> {
+  if (!condition || condition.type !== "EXPRESSION" || !condition.value) {
+    return { raw: condition };
+  }
+  const expr = condition.value;
+  const fn: string = expr.expressionFunction;
+  const OPERATOR_INVERSE: Record<string, string> = {
+    EQUALS: "==", NOT_EQUAL: "!=",
+    LESS_THAN: "<", LESS_THAN_OR_EQUAL: "<=",
+    GREATER_THAN: ">", GREATER_THAN_OR_EQUAL: ">=",
+  };
+  const operator = OPERATOR_INVERSE[fn];
+  if (!operator) return { raw: condition };
+  const args = expr.expressionArguments ?? [];
+  if (args.length !== 2) return { raw: condition };
+
+  // Args[0] is VARIABLE_ALIAS (the variable), args[1] is a literal
+  const aliasArg = args[0];
+  const literalArg = args[1];
+  if (aliasArg?.type !== "VARIABLE_ALIAS") return { raw: condition };
+
+  const varId = aliasArg.value?.id;
+  let variableName: string | undefined;
+  if (varId) {
+    try {
+      const v = await figma.variables.getVariableByIdAsync(varId);
+      variableName = v?.name;
+    } catch {
+      // Variable may have been deleted; leave name undefined
+    }
+  }
+
+  // Extract literal value
+  let value: boolean | number | string | undefined;
+  if (literalArg?.type === "BOOLEAN" || literalArg?.type === "FLOAT" || literalArg?.type === "STRING") {
+    value = literalArg.value;
+  }
+
+  return {
+    variable: variableName ?? `<id:${varId}>`,
+    operator,
+    value,
+    raw: variableName === undefined ? condition : undefined, // keep raw if we lost the name
+  };
+}
+
 async function handleListReactions(params: { nodeId: string }) {
   await figma.loadAllPagesAsync();
   const node = figma.getNodeById(params.nodeId);
@@ -587,25 +683,14 @@ async function handleListReactions(params: { nodeId: string }) {
   return {
     nodeId: node.id,
     nodeName: node.name,
-    reactions: reactions.map((r, i) => {
-      const action = r.actions?.[0] ?? r.action ?? {};
-      const destId = action.destinationId;
-      const destNode = destId ? figma.getNodeById(destId) : null;
+    reactions: await Promise.all(reactions.map(async (r, i) => {
+      const firstAction = r.actions?.[0] ?? r.action ?? {};
       return {
         index: i,
         trigger: r.trigger ?? { type: "UNKNOWN" },
-        action: {
-          type: action.type ?? "UNKNOWN",
-          navigation: action.navigation,
-          url: action.url,
-          openInNewTab: action.openInNewTab,
-          destinationId: destId,
-          destinationName: destNode?.name,
-          transition: action.transition,
-          resetScrollPosition: action.resetScrollPosition,
-        },
+        action: await encodeActionForListEcho(firstAction),
       };
-    }),
+    })),
   };
 }
 
