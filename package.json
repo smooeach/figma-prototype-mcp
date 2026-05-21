@@ -15,12 +15,14 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
+    "express": "^5.2.1",
     "ws": "^8.18.0",
     "zod": "^3.23.0",
     "zod-to-json-schema": "^3.25.2"
   },
   "devDependencies": {
     "@figma/plugin-typings": "^1.108.0",
+    "@types/express": "^5.0.6",
     "@types/node": "^20.0.0",
     "@types/ws": "^8.5.10",
     "tsup": "^8.0.0",
