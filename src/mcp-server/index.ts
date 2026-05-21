@@ -12,6 +12,7 @@ import {
   CreateReactionsInput,
   ListReactionsInput,
   ClearReactionsInput,
+  SetFrameScrollInput,
 } from "./tools.js";
 import { PluginBridge } from "./plugin-bridge.js";
 import type { CommandName } from "./types.js";
@@ -63,6 +64,15 @@ const TOOLS = [
       "Remove reactions from one or more nodes. If `indices` is given, exactly one nodeId is allowed.",
     schema: ClearReactionsInput,
     command: "CLEAR_REACTIONS" as CommandName,
+  },
+  {
+    name: "set_frame_scroll",
+    description:
+      "Configure a frame's scroll behavior (overflowDirection) for prototype mode. " +
+      "Accepts a batch of { frameId, direction }; each succeeds or fails independently. " +
+      "Direction values: NONE (no scrolling), HORIZONTAL, VERTICAL, BOTH.",
+    schema: SetFrameScrollInput,
+    command: "SET_FRAME_SCROLL" as CommandName,
   },
 ];
 

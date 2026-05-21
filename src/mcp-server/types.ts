@@ -5,7 +5,8 @@ export type CommandName =
   | "FIND_NODES"
   | "CREATE_REACTIONS"
   | "LIST_REACTIONS"
-  | "CLEAR_REACTIONS";
+  | "CLEAR_REACTIONS"
+  | "SET_FRAME_SCROLL";
 
 export interface CommandRequest {
   id: string;            // uuid for request/response matching
