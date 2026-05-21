@@ -26,8 +26,11 @@ describe("buildNavigateReaction", () => {
       destinationId: "1:2",
       navigation: "NAVIGATE",
       transition: null,
-      preserveScrollPosition: false,
     });
+    // When input has no resetScrollPosition, output omits the key (conditional spread)
+    if (r.actions[0]!.type === "NODE") {
+      expect("resetScrollPosition" in r.actions[0]!).toBe(false);
+    }
   });
 
   it("uses SMART_ANIMATE with default duration & easing", () => {
@@ -160,8 +163,11 @@ describe("buildScrollReaction", () => {
       destinationId: "1:5",
       navigation: "SCROLL_TO",
       transition: null,
-      preserveScrollPosition: false,
     });
+    // When input has no resetScrollPosition, output omits the key (conditional spread)
+    if (r.actions[0]!.type === "NODE") {
+      expect("resetScrollPosition" in r.actions[0]!).toBe(false);
+    }
   });
 
   it("uses DISSOLVE transition shape when requested", () => {
@@ -203,8 +209,11 @@ describe("buildOverlayReaction", () => {
       destinationId: "1:7",
       navigation: "OVERLAY",
       transition: null,
-      preserveScrollPosition: false,
     });
+    // When input has no resetScrollPosition, output omits the key (conditional spread)
+    if (r.actions[0]!.type === "NODE") {
+      expect("resetScrollPosition" in r.actions[0]!).toBe(false);
+    }
   });
 
   it("uses DISSOLVE transition shape when requested", () => {
@@ -301,8 +310,11 @@ describe("buildSwapOverlayReaction", () => {
       destinationId: "1:9",
       navigation: "SWAP",
       transition: null,
-      preserveScrollPosition: false,
     });
+    // When input has no resetScrollPosition, output omits the key (conditional spread)
+    if (r.actions[0]!.type === "NODE") {
+      expect("resetScrollPosition" in r.actions[0]!).toBe(false);
+    }
   });
 
   it("uses DISSOLVE transition shape when requested", () => {
@@ -523,5 +535,46 @@ describe("buildTransition directional", () => {
       type: "MOVE_IN", direction: "LEFT", matchLayers: false, duration: 0.3,
       easing: { type: "CUSTOM_CUBIC_BEZIER", easingFunctionCubicBezier: { x1: 0.2, y1: 0, x2: 0, y2: 1 } },
     });
+  });
+});
+
+describe("NODE action — resetScrollPosition", () => {
+  const t = "ON_CLICK" as const;
+  it("buildNavigateReaction emits resetScrollPosition when true", () => {
+    const r = buildNavigateReaction({
+      targetFrameId: "1:1", trigger: t, transition: "INSTANT", resetScrollPosition: true,
+    });
+    expect(r.actions[0]).toMatchObject({ type: "NODE", resetScrollPosition: true });
+  });
+  it("buildNavigateReaction emits resetScrollPosition when false", () => {
+    const r = buildNavigateReaction({
+      targetFrameId: "1:1", trigger: t, transition: "INSTANT", resetScrollPosition: false,
+    });
+    expect(r.actions[0]).toMatchObject({ type: "NODE", resetScrollPosition: false });
+  });
+  it("buildNavigateReaction omits resetScrollPosition when undefined", () => {
+    const r = buildNavigateReaction({
+      targetFrameId: "1:1", trigger: t, transition: "INSTANT",
+    });
+    expect(r.actions[0]!.type).toBe("NODE");
+    expect("resetScrollPosition" in r.actions[0]!).toBe(false);
+  });
+  it("buildScrollReaction emits resetScrollPosition when true", () => {
+    const r = buildScrollReaction({
+      targetNodeId: "1:1", trigger: t, transition: "INSTANT", resetScrollPosition: true,
+    });
+    expect(r.actions[0]).toMatchObject({ type: "NODE", resetScrollPosition: true });
+  });
+  it("buildOverlayReaction emits resetScrollPosition when false", () => {
+    const r = buildOverlayReaction({
+      targetFrameId: "1:1", trigger: t, transition: "INSTANT", resetScrollPosition: false,
+    });
+    expect(r.actions[0]).toMatchObject({ type: "NODE", resetScrollPosition: false });
+  });
+  it("buildSwapOverlayReaction emits resetScrollPosition when true", () => {
+    const r = buildSwapOverlayReaction({
+      targetFrameId: "1:1", trigger: t, transition: "INSTANT", resetScrollPosition: true,
+    });
+    expect(r.actions[0]).toMatchObject({ type: "NODE", resetScrollPosition: true });
   });
 });

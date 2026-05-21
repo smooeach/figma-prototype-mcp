@@ -99,7 +99,7 @@ export type BuiltAction =
       destinationId: string;
       navigation: "NAVIGATE" | "SCROLL_TO" | "OVERLAY" | "SWAP";
       transition: TransitionShape;
-      preserveScrollPosition: false;
+      resetScrollPosition?: boolean;
     }
   | { type: "CLOSE" }
   | { type: "BACK" }
@@ -123,6 +123,7 @@ export interface NavigateBuildInput {
   trigger: TriggerInput;
   transition: TransitionInput;
   afterTimeoutSeconds?: number;
+  resetScrollPosition?: boolean;
 }
 
 export interface ScrollBuildInput {
@@ -130,6 +131,7 @@ export interface ScrollBuildInput {
   trigger: TriggerInput;
   transition: TransitionInput;
   afterTimeoutSeconds?: number;
+  resetScrollPosition?: boolean;
 }
 
 export interface OverlayBuildInput {
@@ -137,6 +139,7 @@ export interface OverlayBuildInput {
   trigger: TriggerInput;
   transition: TransitionInput;
   afterTimeoutSeconds?: number;
+  resetScrollPosition?: boolean;
 }
 
 export interface CloseBuildInput {
@@ -161,6 +164,7 @@ export interface SwapOverlayBuildInput {
   transition: TransitionInput;
   targetFrameId: string;
   afterTimeoutSeconds?: number;
+  resetScrollPosition?: boolean;
 }
 
 export function resolveEasing(input: EasingInput | undefined): EasingShape {
@@ -260,47 +264,44 @@ export function buildTrigger(
 }
 
 export function buildNavigateReaction(input: NavigateBuildInput): BuiltReaction {
+  const action: BuiltAction = {
+    type: "NODE",
+    destinationId: input.targetFrameId,
+    navigation: "NAVIGATE",
+    transition: buildTransition(input.transition),
+    ...(input.resetScrollPosition !== undefined && { resetScrollPosition: input.resetScrollPosition }),
+  };
   return {
     trigger: buildTrigger(input.trigger, input.afterTimeoutSeconds),
-    actions: [
-      {
-        type: "NODE",
-        destinationId: input.targetFrameId,
-        navigation: "NAVIGATE",
-        transition: buildTransition(input.transition),
-        preserveScrollPosition: false,
-      },
-    ],
+    actions: [action],
   };
 }
 
 export function buildScrollReaction(input: ScrollBuildInput): BuiltReaction {
+  const action: BuiltAction = {
+    type: "NODE",
+    destinationId: input.targetNodeId,
+    navigation: "SCROLL_TO",
+    transition: buildTransition(input.transition),
+    ...(input.resetScrollPosition !== undefined && { resetScrollPosition: input.resetScrollPosition }),
+  };
   return {
     trigger: buildTrigger(input.trigger, input.afterTimeoutSeconds),
-    actions: [
-      {
-        type: "NODE",
-        destinationId: input.targetNodeId,
-        navigation: "SCROLL_TO",
-        transition: buildTransition(input.transition),
-        preserveScrollPosition: false,
-      },
-    ],
+    actions: [action],
   };
 }
 
 export function buildOverlayReaction(input: OverlayBuildInput): BuiltReaction {
+  const action: BuiltAction = {
+    type: "NODE",
+    destinationId: input.targetFrameId,
+    navigation: "OVERLAY",
+    transition: buildTransition(input.transition),
+    ...(input.resetScrollPosition !== undefined && { resetScrollPosition: input.resetScrollPosition }),
+  };
   return {
     trigger: buildTrigger(input.trigger, input.afterTimeoutSeconds),
-    actions: [
-      {
-        type: "NODE",
-        destinationId: input.targetFrameId,
-        navigation: "OVERLAY",
-        transition: buildTransition(input.transition),
-        preserveScrollPosition: false,
-      },
-    ],
+    actions: [action],
   };
 }
 
@@ -326,16 +327,15 @@ export function buildUrlReaction(input: UrlBuildInput): BuiltReaction {
 }
 
 export function buildSwapOverlayReaction(input: SwapOverlayBuildInput): BuiltReaction {
+  const action: BuiltAction = {
+    type: "NODE",
+    destinationId: input.targetFrameId,
+    navigation: "SWAP",
+    transition: buildTransition(input.transition),
+    ...(input.resetScrollPosition !== undefined && { resetScrollPosition: input.resetScrollPosition }),
+  };
   return {
     trigger: buildTrigger(input.trigger, input.afterTimeoutSeconds),
-    actions: [
-      {
-        type: "NODE",
-        destinationId: input.targetFrameId,
-        navigation: "SWAP",
-        transition: buildTransition(input.transition),
-        preserveScrollPosition: false,
-      },
-    ],
+    actions: [action],
   };
 }
