@@ -656,6 +656,17 @@ describe("CreateReactionsInput — conditional action MVP", () => {
     expect(r.success).toBe(false);
   });
 
+  it("rejects empty else array (must omit or have at least 1)", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "conditional", condition: baseCond,
+          then: [navHome], else: [] },
+      }],
+    });
+    expect(r.success).toBe(false);
+  });
+
   it("rejects unknown operator", () => {
     const r = CreateReactionsInput.safeParse({
       connections: [{

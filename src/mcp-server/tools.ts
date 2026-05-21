@@ -161,7 +161,7 @@ const ConditionalActionInput = z.object({
   type: z.literal("conditional"),
   condition: ConditionInput,
   then: z.array(NonConditionalActionInput).min(1),
-  else: z.array(NonConditionalActionInput).optional(),
+  else: z.array(NonConditionalActionInput).min(1).optional(),
 });
 
 const ActionInput = z.discriminatedUnion("type", [
