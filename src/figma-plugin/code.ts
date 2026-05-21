@@ -353,7 +353,15 @@ function validateVariableLiteralCompat(
   variable: Variable,
   value: boolean | number | string,
   context: string,                       // "comparison" or "assignment"
-): unknown {
+): {
+  type: "BOOLEAN"; resolvedType: "BOOLEAN"; value: boolean;
+} | {
+  type: "FLOAT"; resolvedType: "FLOAT"; value: number;
+} | {
+  type: "STRING"; resolvedType: "STRING"; value: string;
+} | {
+  type: "COLOR"; resolvedType: "COLOR"; value: { r: number; g: number; b: number; a: number };
+} {
   const valueType = typeof value;
 
   if (variable.resolvedType === "COLOR") {
@@ -382,11 +390,16 @@ function validateVariableLiteralCompat(
     const action = context === "comparison" ? "compare against" : "assign";
     throw new Error(`Variable "${variable.name}" is ${variable.resolvedType}; cannot ${action} ${valueType} literal (expected ${expected})`);
   }
-  return {
-    type: variable.resolvedType,
-    resolvedType: variable.resolvedType,
-    value,
-  };
+
+  // Explicit narrowing to discriminated union based on expected type
+  if (expected === "boolean") {
+    return { type: "BOOLEAN", resolvedType: "BOOLEAN", value: value as boolean };
+  }
+  if (expected === "number") {
+    return { type: "FLOAT", resolvedType: "FLOAT", value: value as number };
+  }
+  // expected === "string"
+  return { type: "STRING", resolvedType: "STRING", value: value as string };
 }
 
 async function resolveVariableByName(name: string): Promise<{
