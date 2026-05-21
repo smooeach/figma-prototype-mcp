@@ -137,6 +137,33 @@ const SwapOverlayActionInput = z.object({
   resetScrollPosition: z.boolean().optional(),
 });
 
+const ComparisonOperator = z.enum(["==", "!=", "<", "<=", ">", ">="]);
+
+const ConditionInput = z.object({
+  variable: z.string().min(1),
+  operator: ComparisonOperator,
+  value: z.union([z.boolean(), z.number(), z.string()]),
+});
+
+// The set of action types that may appear inside a conditional then/else branch.
+// Deliberately excludes ConditionalActionInput to block nesting.
+const NonConditionalActionInput = z.discriminatedUnion("type", [
+  NavigateActionInput,
+  ScrollActionInput,
+  OverlayActionInput,
+  CloseActionInput,
+  BackActionInput,
+  UrlActionInput,
+  SwapOverlayActionInput,
+]);
+
+const ConditionalActionInput = z.object({
+  type: z.literal("conditional"),
+  condition: ConditionInput,
+  then: z.array(NonConditionalActionInput).min(1),
+  else: z.array(NonConditionalActionInput).optional(),
+});
+
 const ActionInput = z.discriminatedUnion("type", [
   NavigateActionInput,
   ScrollActionInput,
@@ -145,6 +172,7 @@ const ActionInput = z.discriminatedUnion("type", [
   BackActionInput,
   UrlActionInput,
   SwapOverlayActionInput,
+  ConditionalActionInput,
 ]);
 
 const ConnectionInput = z.object({

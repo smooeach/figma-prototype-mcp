@@ -591,6 +591,129 @@ describe("SetFrameScrollInput", () => {
   });
 });
 
+describe("CreateReactionsInput — conditional action MVP", () => {
+  const trigger = "ON_CLICK" as const;
+  const baseCond = { variable: "loggedIn", operator: "==", value: true } as const;
+  const navHome = { type: "navigate", targetFrameId: "home" } as const;
+  const navLogin = { type: "navigate", targetFrameId: "login" } as const;
+
+  it("accepts conditional with then only", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "conditional", condition: baseCond, then: [navHome] },
+      }],
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("accepts conditional with then + else", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "conditional", condition: baseCond, then: [navHome], else: [navLogin] },
+      }],
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("accepts each of 6 operators", () => {
+    const ops = ["==", "!=", "<", "<=", ">", ">="] as const;
+    for (const op of ops) {
+      const r = CreateReactionsInput.safeParse({
+        connections: [{
+          sourceNodeId: "1:1", trigger,
+          action: { type: "conditional",
+            condition: { variable: "x", operator: op, value: 1 },
+            then: [navHome] },
+        }],
+      });
+      expect(r.success).toBe(true);
+    }
+  });
+
+  it("accepts boolean, number, and string literal values", () => {
+    for (const v of [true, 42, "gold"] as const) {
+      const r = CreateReactionsInput.safeParse({
+        connections: [{
+          sourceNodeId: "1:1", trigger,
+          action: { type: "conditional",
+            condition: { variable: "x", operator: "==", value: v },
+            then: [navHome] },
+        }],
+      });
+      expect(r.success).toBe(true);
+    }
+  });
+
+  it("rejects empty then array", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "conditional", condition: baseCond, then: [] },
+      }],
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects unknown operator", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "conditional",
+          condition: { variable: "x", operator: "===" as any, value: true },
+          then: [navHome] },
+      }],
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects missing variable name", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "conditional",
+          condition: { variable: "", operator: "==", value: true } as any,
+          then: [navHome] },
+      }],
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects nested conditional inside then", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "conditional", condition: baseCond,
+          then: [{ type: "conditional", condition: baseCond, then: [navHome] } as any] },
+      }],
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects nested conditional inside else", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "conditional", condition: baseCond, then: [navHome],
+          else: [{ type: "conditional", condition: baseCond, then: [navHome] } as any] },
+      }],
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("accepts then with multiple actions (e.g. close + navigate)", () => {
+    const r = CreateReactionsInput.safeParse({
+      connections: [{
+        sourceNodeId: "1:1", trigger,
+        action: { type: "conditional", condition: baseCond,
+          then: [{ type: "close" }, navHome] },
+      }],
+    });
+    expect(r.success).toBe(true);
+  });
+});
+
 describe("CreateReactionsInput — resetScrollPosition option", () => {
   const trigger = "ON_CLICK" as const;
   it("accepts navigate with resetScrollPosition: false", () => {
