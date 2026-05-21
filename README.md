@@ -17,34 +17,45 @@ npm install
 npm run build:plugin
 ```
 
-## Run (three terminals)
+## Run (one process)
 
-**1. Relay** (always-on local WebSocket server):
+Phase A (v0.18.0+) ships a single unified server: Express + MCP SSE + Figma plugin WebSocket on the same port.
+
+**1. Start the server** (one terminal, leave it running):
+
 ```bash
-npm run relay
-# [relay] listening on ws://localhost:3055
+npm start
+# [server] listening on http://localhost:3000
+# [server]   MCP SSE endpoint: GET /sse
+# [server]   Plugin WebSocket:  ws://localhost:3000/ws
 ```
 
+The server is designed to run 24/7. Wrap with PM2/systemd if you want it to auto-restart.
+
+`PORT` can be overridden: `PORT=4000 npm start`.
+
 **2. Figma plugin**:
+
 - Open Figma desktop app.
 - Plugins → Development → Import plugin from manifest...
 - Choose `dist/figma-plugin/manifest.json`.
-- Run the plugin. The UI auto-loads your last-used channel and tries to connect. On first launch the input is empty — type a channel name (e.g. `my-session`) and click **Connect**. After a successful connect the channel is remembered via `figma.clientStorage`; later launches reconnect without typing. Click **Disconnect** to switch channels.
+- Run the plugin. It auto-connects to `ws://localhost:3000/ws` (single-active session — only one plugin at a time, latest connection wins). Click **Connect** if it doesn't auto-connect on launch.
 
-**3. MCP server**:
-Configure your MCP client (e.g. Claude Code) to launch the server with the matching channel:
+**3. MCP client** (Claude Desktop or Claude Code):
+
+Configure your client to connect to the SSE endpoint:
 
 ```json
 {
   "mcpServers": {
     "figma-prototype": {
-      "command": "npx",
-      "args": ["tsx", "src/mcp-server/index.ts"],
-      "env": { "FIGMA_CHANNEL": "my-session" }
+      "url": "http://localhost:3000/sse"
     }
   }
 }
 ```
+
+No `command` / `args` / env vars needed — the URL is enough.
 
 ## Tools
 
@@ -182,6 +193,16 @@ After install + all three components running, verify these scenarios in Figma. E
   (h) STRING variable with hex-shaped string: `set_variable <some-STRING-var> = "#FF4040"`. Expected: stored as STRING (not COLOR — type follows variable, not value). Echo returns `"#FF4040"` as plain string.
   (i) Error — Conditional condition references COLOR variable: `condition: { variable: "bgColor", operator: "==", value: "#FF4040" }`. Expected: `"COLOR; conditional comparison against COLOR variables is not supported in v1.18"`.
   (j) Manual Play-mode: bind a frame's fill to `bgColor` in the Figma UI, enter Present, click the button → frame color changes to the value set in (a) or (b). Visual confirm.
+
+- [x] **25. Phase A SSE+WS regression smoke test (v0.18.0)**:
+  Setup: server running via `npm start`, Figma plugin reloaded and showing "Connected" status, Claude config switched to SSE URL.
+  (a) Re-run scenario 1 (selection-based wiring). Expected: identical behavior to v0.17.0 — wire success, 3 reactions on the 3 buttons.
+  (b) Re-run scenario 7 (overlay open + close). Expected: openBtn / closeBtn wires intact, overlay opens and closes in Present mode.
+  (c) Re-run scenario 19 (set_frame_scroll). Expected: overflowDirection set per direction value; Figma read-back persists.
+  (d) Re-run scenario 23 (set_variable + toggle_variable). Expected: toggle on showMenu desugars+round-trips; set_variable on count works.
+  (e) Re-run scenario 24 (COLOR via hex). Expected: bgColor accepts `#FF4040`; echo returns the hex.
+  (f) **New behavior — 3s timeout guard**: disconnect plugin (close Figma or click Disconnect). Within 3s ask Claude any tool call. Expected: tool returns `status: "error"` with message containing `"피그마 플러그인 연결을 확인해주세요"`. Reconnect plugin within 3s of a fresh call → call succeeds (validates the wait-for-connection path).
+  (g) [Live] MCP-over-SSE probe caught a real bug: `express.json()` middleware drained the body before `SSEServerTransport.handlePostMessage` could re-read it. Fixed by passing `req.body` as the third arg. Reinforces probe discipline — Task 1 only verified GET /sse + WS upgrade, not the POST /messages roundtrip.
 
 ## Known limitations (v1)
 
