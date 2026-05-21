@@ -30,7 +30,7 @@ app.post("/messages", express.json(), async (req: Request, res: Response) => {
     res.status(400).send("unknown session");
     return;
   }
-  await t.handlePostMessage(req, res);
+  await t.handlePostMessage(req, res, req.body);
 });
 
 const httpServer = app.listen(PORT, () => {
