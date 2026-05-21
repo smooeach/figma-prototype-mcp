@@ -9,6 +9,7 @@ import {
   buildBackReaction,
   buildUrlReaction,
   buildSwapOverlayReaction,
+  buildConditionalReaction,
   buildTrigger,
   type BuiltReaction,
   type BuiltAction,
@@ -16,6 +17,17 @@ import {
   type TransitionInput,
 } from "./reaction-builder.js";
 import { CommandQueue } from "./command-queue.js";
+
+const COMPARISON_OPERATOR_MAP = {
+  "==": "EQUALS",
+  "!=": "NOT_EQUAL",
+  "<":  "LESS_THAN",
+  "<=": "LESS_THAN_OR_EQUAL",
+  ">":  "GREATER_THAN",
+  ">=": "GREATER_THAN_OR_EQUAL",
+} as const;
+
+type ComparisonOperator = keyof typeof COMPARISON_OPERATOR_MAP;
 
 figma.showUI(__html__, { width: 320, height: 220 });
 
@@ -277,6 +289,70 @@ function buildNonConditionalAction(
   return { built: reaction.actions[0]! };
 }
 
+async function resolveVariableByName(name: string): Promise<{
+  variable: Variable;
+  warning?: string;
+}> {
+  const all = await figma.variables.getLocalVariablesAsync();
+  const matches = all.filter((v) => v.name === name);
+  if (matches.length === 0) {
+    throw new Error(`Variable not found: ${name}`);
+  }
+  const picked = matches[0]!;
+  const warning = matches.length > 1
+    ? `Multiple local variables named "${name}" (${matches.length}); using the first (id ${picked.id})`
+    : undefined;
+  return { variable: picked, warning };
+}
+
+/**
+ * Build the condition VariableData (Expression form) that wraps a variable
+ * reference + literal comparison. Also validates literal type vs variable type.
+ */
+async function buildCondition(input: {
+  variable: string;
+  operator: ComparisonOperator;
+  value: boolean | number | string;
+}): Promise<{ condition: unknown; warning?: string }> {
+  const { variable, warning } = await resolveVariableByName(input.variable);
+
+  // Type compatibility check
+  const valueType = typeof input.value;
+  const expected =
+    variable.resolvedType === "BOOLEAN" ? "boolean"
+    : variable.resolvedType === "FLOAT" ? "number"
+    : variable.resolvedType === "STRING" ? "string"
+    : "unknown";
+  if (expected === "unknown") {
+    throw new Error(`Variable "${input.variable}" has unsupported type ${variable.resolvedType} for conditional comparison (supported: BOOLEAN, FLOAT, STRING)`);
+  }
+  if (valueType !== expected) {
+    throw new Error(`Variable "${input.variable}" is ${variable.resolvedType}; cannot compare against ${valueType} literal (expected ${expected})`);
+  }
+
+  const literalVD =
+    valueType === "boolean" ? { type: "BOOLEAN", resolvedType: "BOOLEAN", value: input.value as boolean } :
+    valueType === "number"  ? { type: "FLOAT",   resolvedType: "FLOAT",   value: input.value as number  } :
+                              { type: "STRING",  resolvedType: "STRING",  value: input.value as string  };
+
+  const condition = {
+    type: "EXPRESSION",
+    resolvedType: "BOOLEAN",
+    value: {
+      expressionFunction: COMPARISON_OPERATOR_MAP[input.operator],
+      expressionArguments: [
+        {
+          type: "VARIABLE_ALIAS",
+          resolvedType: variable.resolvedType,
+          value: { type: "VARIABLE_ALIAS", id: variable.id },
+        },
+        literalVD,
+      ],
+    },
+  };
+  return { condition, warning };
+}
+
 async function handleGetCanvasOverview(params: { pageId?: string }) {
   const page = await loadPage(params.pageId);
   const frames = page.children
@@ -424,8 +500,35 @@ async function handleCreateReactions(params: {
       let warning: string | undefined;
 
       if (conn.action.type === "conditional") {
-        // Conditional handler arrives in Task 6
-        throw new Error("Conditional action handler not yet implemented (v1.16 Task 6)");
+        const { condition, warning: condWarning } = await buildCondition({
+          variable: conn.action.condition.variable,
+          operator: conn.action.condition.operator,
+          value: conn.action.condition.value,
+        });
+        if (condWarning) warning = condWarning;
+
+        const thenBuilt: BuiltAction[] = [];
+        for (const a of conn.action.then) {
+          const r = buildNonConditionalAction(a, conn.trigger, conn.afterTimeoutSeconds, conn.transition);
+          thenBuilt.push(r.built);
+          // Inner-branch scroll warnings: surface the first one upward
+          if (r.warning && !warning) warning = r.warning;
+        }
+        const elseBuilt: BuiltAction[] | undefined = conn.action.else
+          ? conn.action.else.map((a) => {
+              const r = buildNonConditionalAction(a, conn.trigger, conn.afterTimeoutSeconds, conn.transition);
+              if (r.warning && !warning) warning = r.warning;
+              return r.built;
+            })
+          : undefined;
+
+        newReaction = buildConditionalReaction({
+          trigger: conn.trigger,
+          afterTimeoutSeconds: conn.afterTimeoutSeconds,
+          condition,
+          thenActions: thenBuilt,
+          elseActions: elseBuilt,
+        });
       } else {
         const { built, warning: branchWarning } = buildNonConditionalAction(
           conn.action,
