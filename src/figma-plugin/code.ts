@@ -490,13 +490,15 @@ async function handleSetFrameScroll(params: {
   let successCount = 0;
   let errorCount = 0;
   for (const { frameId, direction, fixedChildren } of params.frames) {
+    // Lifted out so a mid-loop throw (e.g. OOR fixedChildren) still surfaces which fields
+    // were already mutated before the throw — caller-visible partial state.
+    const applied: string[] = [];
     try {
       const node = figma.getNodeById(frameId);
       if (!node) throw new Error(`Frame not found: ${frameId}`);
       if (node.type !== "FRAME") {
         throw new Error(`Node is not a FRAME: ${node.name} (type: ${node.type})`);
       }
-      const applied: string[] = [];
       if (direction !== undefined) {
         (node as FrameNode).overflowDirection = direction;
         applied.push("direction");
@@ -508,7 +510,7 @@ async function handleSetFrameScroll(params: {
       results.push({ frameId, status: "success", applied });
       successCount++;
     } catch (e: any) {
-      results.push({ frameId, status: "error", error: e?.message ?? String(e) });
+      results.push({ frameId, status: "error", applied, error: e?.message ?? String(e) });
       errorCount++;
     }
   }
