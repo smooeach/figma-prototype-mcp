@@ -106,7 +106,9 @@ export const TOOLS: ToolEntry[] = [
     description:
       "Create overlay reactions in batch. Each entry has mode = \"open\" | \"swap\" | \"close\". " +
       "open/swap require an `overlay` frameId; close has none. " +
-      "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally.",
+      "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally. " +
+      "Note: Figma's runtime rejects SMART_ANIMATE on overlay/swap/close navigation, so any SMART_ANIMATE-based " +
+      "motion (including all M3/HIG presets) is silently rewritten to DISSOLVE while preserving duration + easing.",
     schema: ProtoOverlayInput,
     handler: async (input, session) => {
       const compiled = compileProtoOverlay(input as ProtoOverlayInput);
