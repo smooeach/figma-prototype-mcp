@@ -120,6 +120,17 @@ describe("proto_url records on success", () => {
     const entry = store.getLast()[0]!;
     expect((entry.input as { urls: { openInNewTab: boolean }[] }).urls[0]!.openInNewTab).toBe(true);
   });
+
+  it("does not record when successCount is 0", async () => {
+    const store = new HistoryStore();
+    const handler = findHandler(makeTools(store), "proto_url");
+    const session = makeStubSession({ successCount: 0, errorCount: 1, warningCount: 0, results: [] });
+    await handler(
+      { urls: [{ from: "1:1", url: "https://figma.com" }], replaceExisting: false },
+      session,
+    );
+    expect(store.size()).toBe(0);
+  });
 });
 
 describe("mixed proto_* calls preserve ordering", () => {

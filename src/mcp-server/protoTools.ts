@@ -67,6 +67,8 @@ export const ProtoScrollInput = z.object({
   replaceExisting: z.boolean().default(false),
 });
 
+// Non-strict to match ProtoWireEntry / ProtoScrollEntry pattern (v1.20 convention).
+// ProtoUrlEntry below is .strict() because it specifically enforces no-motion.
 const ProtoBackEntry = z.object({
   from: z.string().min(1),
   trigger: TriggerInput.optional(),
