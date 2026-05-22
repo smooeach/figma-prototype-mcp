@@ -66,6 +66,11 @@ Three intent-oriented tools that wrap `create_reactions` with named motion prese
 | `proto_wire` | Wire source nodes to destination frames with **Navigate To**. Batch input `{ wires: [{ from, to, trigger?, motion?, resetScrollPosition? }], replaceExisting? }`. Defaults: `trigger=ON_CLICK`, `motion=M3_EMPHASIZED`. |
 | `proto_overlay` | Open / swap / close overlays. Batch input `{ overlays: [{ mode: "open"\|"swap"\|"close", from, overlay?, trigger?, motion? }] }` — `overlay` is required for `open`/`swap`, forbidden for `close`. **Note:** Figma's runtime does not accept Smart Animate on overlay/swap/close navigations (the UI hides it too); when a SMART_ANIMATE-based motion preset is supplied, the compile step substitutes `DISSOLVE` while preserving `duration` and `easing` so the M3/HIG feel survives. |
 | `proto_scroll` | Wire source nodes to scroll targets (**Scroll To**). Batch input `{ scrolls: [{ from, to, trigger?, motion?, resetScrollPosition? }] }`. |
+| `proto_get_last_history` | Read the in-memory history of recent `proto_*` calls (FIFO ring buffer, capacity 10, server-lifetime). Input `{ count?: 1..10 }`, default 1. Returns `{ entries: HistoryEntry[] }` with entries in oldest-to-newest order. Use to support "modify the last one I made"-style requests by recovering source/target IDs and motion preset, then re-calling with `replaceExisting: true`. |
+
+### History stack
+
+The server keeps an in-memory record of every successful `proto_wire` / `proto_overlay` / `proto_scroll` call — `historyId` (UUID), `timestamp`, `tool` name, full parsed `input`, and `result` counts — up to 10 entries (FIFO ring buffer, cleared on server restart). `proto_get_last_history` exposes this so an LLM can resolve natural-language references like "the last thing I made" / "방금 만든 거" without the human re-stating nodeIds. Low-level tools (`create_reactions`, `set_frame_scroll`, etc.) are NOT recorded — only the three `proto_*` entry-points.
 
 ### Motion presets
 
