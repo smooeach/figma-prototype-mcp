@@ -45,7 +45,7 @@ const TriggerObjectMediaHit = z.object({
   mediaHitTime: z.number().nonnegative(),
 });
 
-const TriggerInput = z.union([
+export const TriggerInput = z.union([
   TriggerEnum,
   TriggerObjectNoParam,
   TriggerObjectAfterTimeout,
@@ -97,7 +97,7 @@ const DirectionalTransitionObject = z.object({
   easing: EasingInputUnion.optional(),
 });
 
-const TransitionInput = z.union([TransitionEnum, SimpleTransitionObject, DirectionalTransitionObject]);
+export const TransitionInput = z.union([TransitionEnum, SimpleTransitionObject, DirectionalTransitionObject]);
 
 const NavigateActionInput = z.object({
   type: z.literal("navigate"),
@@ -243,3 +243,5 @@ export type CreateReactionsInput = z.infer<typeof CreateReactionsInput>;
 export type ListReactionsInput = z.infer<typeof ListReactionsInput>;
 export type ClearReactionsInput = z.infer<typeof ClearReactionsInput>;
 export type SetFrameScrollInput = z.infer<typeof SetFrameScrollInput>;
+export type TriggerInput = z.infer<typeof TriggerInput>;
+export type TransitionInput = z.infer<typeof TransitionInput>;
