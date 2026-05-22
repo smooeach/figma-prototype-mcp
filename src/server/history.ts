@@ -1,6 +1,13 @@
 import { randomUUID } from "node:crypto";
 
-export type ProtoToolName = "proto_wire" | "proto_overlay" | "proto_scroll" | "proto_back" | "proto_url";
+export type ProtoToolName =
+  | "proto_wire"
+  | "proto_overlay"
+  | "proto_scroll"
+  | "proto_back"
+  | "proto_url"
+  | "proto_set_variable"
+  | "proto_toggle_variable";
 
 export interface HistoryEntry {
   historyId: string;
