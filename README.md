@@ -240,6 +240,50 @@ After install + all three components running, verify these scenarios in Figma. E
   (f) **New behavior — 3s timeout guard**: disconnect plugin (close Figma or click Disconnect). Within 3s ask Claude any tool call. Expected: tool returns `status: "error"` with message containing `"피그마 플러그인 연결을 확인해주세요"`. Reconnect plugin within 3s of a fresh call → call succeeds (validates the wait-for-connection path).
   (g) [Live] MCP-over-SSE probe caught a real bug: `express.json()` middleware drained the body before `SSEServerTransport.handlePostMessage` could re-read it. Fixed by passing `req.body` as the third arg. Reinforces probe discipline — Task 1 only verified GET /sse + WS upgrade, not the POST /messages roundtrip.
 
+- [x] **26. `proto_wire` (M3_EMPHASIZED default)**:
+  Setup: A page containing two top-level frames (`screen01` with a child button + `screen02`).
+
+  ```
+  proto_wire({ wires: [{ from: "<button>", to: "<screen02>" }], replaceExisting: true })
+  ```
+
+  Inspect Figma's Prototype panel on the button. Expected: **On Click** → **Navigate To** screen02 → **Smart Animate** → **Custom Curve** (cubic-bezier (0.2, 0, 0, 1)) → **500ms**. (Live-verified 2026-05-22.)
+
+- [x] **27. `proto_overlay` open + HIG_SNAPPY (SMART_ANIMATE → DISSOLVE rewrite)**:
+  Setup: A page containing `screen01` (with a button) + an overlay frame `popup01`.
+
+  ```
+  proto_overlay({ overlays: [{ mode: "open", from: "<button>", overlay: "<popup01>", motion: "HIG_SNAPPY" }], replaceExisting: true })
+  ```
+
+  Inspect Prototype panel. Expected: **On Click** → **Open Overlay** popup01 → **Dissolve** (NOT Smart Animate — Figma constraint, see v1.20 design notes) → named spring **Quick**. (Live-verified 2026-05-22 via v1.20 bypass-probe — caught the SMART_ANIMATE incompatibility.)
+
+- [x] **28. `proto_scroll` raw `TransitionInput`**:
+  Setup: A page containing `screen01` (with a button) and a long frame `screen03` containing a child node `scroll01`. Set screen03's `overflowDirection` to `VERTICAL` first (manually or via `set_frame_scroll`).
+
+  ```
+  proto_scroll({
+    scrolls: [{
+      from: "<button>", to: "<scroll01>",
+      motion: { type: "SCROLL_ANIMATE", duration: 0.8, easing: "EASE_IN_AND_OUT" }
+    }],
+    replaceExisting: true,
+  })
+  ```
+
+  Expected: **On Click** → **Scroll To** scroll01 → **Animate** → **Ease In and Out** → **800ms**. (Live-verified 2026-05-22.)
+
+- [x] **29. `proto_get_last_history` (3-shot: shape, order, FIFO)**:
+  After scenarios 26-28 ran in order, call:
+
+  ```
+  proto_get_last_history({ count: 3 })
+  ```
+
+  Expected: an `entries` array of length 3, with `entries[0].tool === "proto_overlay"`, `entries[1].tool === "proto_scroll"` (or `proto_wire` if 28 ran last), `entries[2].tool` the most recent. Each entry carries a valid UUID `historyId`, numeric `timestamp`, full parsed `input`, and `result` counts.
+
+  Then run 11 sequential `proto_wire` calls (same from/to is fine with `replaceExisting: true`) and call `proto_get_last_history({ count: 10 })`. Expected: 10 entries, timestamps strictly ascending, all `tool === "proto_wire"`. Confirms FIFO eviction at capacity. (Live-verified 2026-05-22 via v1.21 bypass-probe.)
+
 ## Known limitations (v1)
 
 - Reaction actions: **Navigate To**, **Scroll To**, **Open Overlay**, **Close Overlay**, **Back**, **Open URL**, **Swap Overlay**, **Conditional** (single comparison, IF/ELSE). No SET_VARIABLE, set-variant (component swap), AND/OR/NOT, nested conditionals, media-runtime.
