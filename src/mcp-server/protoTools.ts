@@ -71,6 +71,12 @@ export type ProtoWireInput = z.infer<typeof ProtoWireInput>;
 export type ProtoOverlayInput = z.infer<typeof ProtoOverlayInput>;
 export type ProtoScrollInput = z.infer<typeof ProtoScrollInput>;
 
+export const ProtoGetLastHistoryInput = z.object({
+  count: z.number().int().min(1).max(10).default(1),
+});
+
+export type ProtoGetLastHistoryInput = z.infer<typeof ProtoGetLastHistoryInput>;
+
 type Connection = CreateReactionsInputType["connections"][number];
 
 const DEFAULT_TRIGGER = "ON_CLICK" as const;

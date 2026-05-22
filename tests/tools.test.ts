@@ -892,3 +892,24 @@ describe("CreateReactionsInput — set_variable + toggle_variable", () => {
     expect(r.success).toBe(true);
   });
 });
+
+import { ProtoGetLastHistoryInput } from "../src/mcp-server/protoTools.js";
+
+describe("ProtoGetLastHistoryInput", () => {
+  it("accepts empty input — count defaults to 1", () => {
+    const r = ProtoGetLastHistoryInput.parse({});
+    expect(r.count).toBe(1);
+  });
+
+  it("accepts count: 5", () => {
+    expect(ProtoGetLastHistoryInput.parse({ count: 5 }).count).toBe(5);
+  });
+
+  it("rejects count: 0", () => {
+    expect(() => ProtoGetLastHistoryInput.parse({ count: 0 })).toThrow();
+  });
+
+  it("rejects count: 11 (above max 10)", () => {
+    expect(() => ProtoGetLastHistoryInput.parse({ count: 11 })).toThrow();
+  });
+});
