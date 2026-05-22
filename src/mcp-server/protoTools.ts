@@ -67,6 +67,29 @@ export const ProtoScrollInput = z.object({
   replaceExisting: z.boolean().default(false),
 });
 
+const ProtoBackEntry = z.object({
+  from: z.string().min(1),
+  trigger: TriggerInput.optional(),
+  motion: MotionInputSchema.optional(),
+});
+
+export const ProtoBackInput = z.object({
+  backs: z.array(ProtoBackEntry).min(1),
+  replaceExisting: z.boolean().default(false),
+});
+
+const ProtoUrlEntry = z.object({
+  from: z.string().min(1),
+  url: z.string().min(1),
+  openInNewTab: z.boolean().optional(),
+  trigger: TriggerInput.optional(),
+}).strict();
+
+export const ProtoUrlInput = z.object({
+  urls: z.array(ProtoUrlEntry).min(1),
+  replaceExisting: z.boolean().default(false),
+});
+
 export const ProtoGetLastHistoryInput = z.object({
   count: z.number().int().min(1).max(10).default(1),
 });
@@ -74,6 +97,8 @@ export const ProtoGetLastHistoryInput = z.object({
 export type ProtoWireInput = z.infer<typeof ProtoWireInput>;
 export type ProtoOverlayInput = z.infer<typeof ProtoOverlayInput>;
 export type ProtoScrollInput = z.infer<typeof ProtoScrollInput>;
+export type ProtoBackInput = z.infer<typeof ProtoBackInput>;
+export type ProtoUrlInput = z.infer<typeof ProtoUrlInput>;
 export type ProtoGetLastHistoryInput = z.infer<typeof ProtoGetLastHistoryInput>;
 
 type Connection = CreateReactionsInputType["connections"][number];

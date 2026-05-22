@@ -3,6 +3,8 @@ import {
   ProtoWireInput,
   ProtoOverlayInput,
   ProtoScrollInput,
+  ProtoBackInput,
+  ProtoUrlInput,
 } from "../src/mcp-server/protoTools.js";
 
 describe("ProtoWireInput", () => {
@@ -108,5 +110,67 @@ describe("ProtoScrollInput", () => {
 
   it("rejects empty scrolls array", () => {
     expect(() => ProtoScrollInput.parse({ scrolls: [] })).toThrow();
+  });
+});
+
+describe("ProtoBackInput", () => {
+  it("accepts a minimal back (from only)", () => {
+    const r = ProtoBackInput.parse({
+      backs: [{ from: "1:1" }],
+    });
+    expect(r.backs[0]).toMatchObject({ from: "1:1" });
+    expect(r.replaceExisting).toBe(false);
+  });
+
+  it("accepts trigger and motion overrides", () => {
+    const r = ProtoBackInput.parse({
+      backs: [{ from: "1:1", trigger: "ON_HOVER", motion: "HIG_SNAPPY" }],
+      replaceExisting: true,
+    });
+    expect(r.backs[0]!.trigger).toBe("ON_HOVER");
+    expect(r.backs[0]!.motion).toBe("HIG_SNAPPY");
+    expect(r.replaceExisting).toBe(true);
+  });
+
+  it("rejects empty backs array", () => {
+    expect(() => ProtoBackInput.parse({ backs: [] })).toThrow();
+  });
+
+  it("rejects missing `from`", () => {
+    expect(() => ProtoBackInput.parse({ backs: [{}] })).toThrow();
+  });
+});
+
+describe("ProtoUrlInput", () => {
+  it("accepts a minimal url entry (from + url)", () => {
+    const r = ProtoUrlInput.parse({
+      urls: [{ from: "1:1", url: "https://figma.com" }],
+    });
+    expect(r.urls[0]).toMatchObject({ from: "1:1", url: "https://figma.com" });
+    expect(r.replaceExisting).toBe(false);
+  });
+
+  it("accepts openInNewTab and trigger overrides", () => {
+    const r = ProtoUrlInput.parse({
+      urls: [{ from: "1:1", url: "https://figma.com", openInNewTab: true, trigger: "ON_HOVER" }],
+    });
+    expect(r.urls[0]!.openInNewTab).toBe(true);
+    expect(r.urls[0]!.trigger).toBe("ON_HOVER");
+  });
+
+  it("rejects empty urls array", () => {
+    expect(() => ProtoUrlInput.parse({ urls: [] })).toThrow();
+  });
+
+  it("rejects empty url string", () => {
+    expect(() => ProtoUrlInput.parse({ urls: [{ from: "1:1", url: "" }] })).toThrow();
+  });
+
+  it("rejects unknown `motion` field on a url entry (strict)", () => {
+    expect(() =>
+      ProtoUrlInput.parse({
+        urls: [{ from: "1:1", url: "https://figma.com", motion: "M3_EMPHASIZED" }],
+      }),
+    ).toThrow();
   });
 });
