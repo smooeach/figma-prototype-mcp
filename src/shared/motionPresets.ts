@@ -60,9 +60,6 @@ export type MotionInput = PresetName | TransitionInput;
 
 export function resolveMotion(m: MotionInput | undefined): TransitionInput {
   if (m === undefined) return PRESETS["M3_EMPHASIZED"];
-  if (typeof m === "string") {
-    if (isPresetName(m)) return PRESETS[m];
-    throw new Error(`Unknown motion preset: ${m}`);
-  }
+  if (typeof m === "string" && isPresetName(m)) return PRESETS[m];
   return m;
 }

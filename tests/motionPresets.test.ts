@@ -61,9 +61,6 @@ describe("motionPresets — M3", () => {
     }
   });
 
-  it("throws on a string that is not a known preset", () => {
-    expect(() => resolveMotion("NOT_A_PRESET" as never)).toThrow(/Unknown motion preset/);
-  });
 });
 
 describe("motionPresets — HIG", () => {
@@ -126,5 +123,13 @@ describe("motionPresets — resolveMotion fallbacks", () => {
 
   it("PRESET_NAMES length is 10", () => {
     expect(PRESET_NAMES.length).toBe(10);
+  });
+
+  it("raw TransitionEnum strings pass through (\"INSTANT\" / \"DISSOLVE\" / \"SMART_ANIMATE\")", () => {
+    // These are valid TransitionInput values that happen to be strings but are not preset names.
+    // resolveMotion must return them as-is so they survive zod parsing downstream.
+    expect(resolveMotion("INSTANT")).toBe("INSTANT");
+    expect(resolveMotion("DISSOLVE")).toBe("DISSOLVE");
+    expect(resolveMotion("SMART_ANIMATE")).toBe("SMART_ANIMATE");
   });
 });

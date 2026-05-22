@@ -131,6 +131,74 @@ describe("compileProtoOverlay", () => {
     expect(out.connections[0]!.action.type).toBe("overlay");
     expect(out.connections[1]!.action.type).toBe("close");
   });
+
+  // Figma rejects SMART_ANIMATE on overlay/swap/close navigation (verified live
+  // 2026-05-22). compileProtoOverlay rewrites the transition.type to DISSOLVE
+  // while preserving easing+duration so the designer's intent (M3/HIG feel) survives.
+  describe("SMART_ANIMATE → DISSOLVE rewrite (Figma overlay constraint)", () => {
+    it("rewrites M3_EMPHASIZED (default) to DISSOLVE preserving bezier+duration", () => {
+      const input = ProtoOverlayInput.parse({
+        overlays: [{ mode: "open", from: "1:1", overlay: "1:9" }],
+      });
+      const transition = compileProtoOverlay(input).connections[0]!.transition;
+      expect(transition).toEqual({
+        type: "DISSOLVE",
+        duration: 0.5,
+        easing: { type: "CUSTOM_CUBIC_BEZIER", x1: 0.2, y1: 0, x2: 0, y2: 1 },
+      });
+    });
+
+    it("rewrites HIG_SNAPPY to DISSOLVE preserving named-spring easing", () => {
+      const input = ProtoOverlayInput.parse({
+        overlays: [{ mode: "open", from: "1:1", overlay: "1:9", motion: "HIG_SNAPPY" }],
+      });
+      expect(compileProtoOverlay(input).connections[0]!.transition).toEqual({
+        type: "DISSOLVE",
+        easing: "QUICK",
+      });
+    });
+
+    it("rewrites string \"SMART_ANIMATE\" to string \"DISSOLVE\"", () => {
+      const input = ProtoOverlayInput.parse({
+        overlays: [{ mode: "swap", from: "1:1", overlay: "1:9", motion: "SMART_ANIMATE" }],
+      });
+      expect(compileProtoOverlay(input).connections[0]!.transition).toBe("DISSOLVE");
+    });
+
+    it("passes through DISSOLVE-typed motion unchanged", () => {
+      const input = ProtoOverlayInput.parse({
+        overlays: [{
+          mode: "open", from: "1:1", overlay: "1:9",
+          motion: { type: "DISSOLVE", duration: 0.7, easing: "EASE_OUT" },
+        }],
+      });
+      expect(compileProtoOverlay(input).connections[0]!.transition).toEqual({
+        type: "DISSOLVE", duration: 0.7, easing: "EASE_OUT",
+      });
+    });
+
+    it("passes through directional transition (MOVE_IN) unchanged", () => {
+      const input = ProtoOverlayInput.parse({
+        overlays: [{
+          mode: "open", from: "1:1", overlay: "1:9",
+          motion: { type: "MOVE_IN", direction: "BOTTOM", duration: 0.4 },
+        }],
+      });
+      expect(compileProtoOverlay(input).connections[0]!.transition).toEqual({
+        type: "MOVE_IN", direction: "BOTTOM", duration: 0.4,
+      });
+    });
+
+    it("applies rewrite to close mode too", () => {
+      const input = ProtoOverlayInput.parse({
+        overlays: [{ mode: "close", from: "1:1", motion: "M3_STANDARD" }],
+      });
+      expect(compileProtoOverlay(input).connections[0]!.transition).toMatchObject({
+        type: "DISSOLVE",
+        duration: 0.3,
+      });
+    });
+  });
 });
 
 describe("compileProtoScroll", () => {

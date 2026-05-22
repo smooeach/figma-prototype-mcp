@@ -80,13 +80,28 @@ function buildConnection(
   triggerArg: Connection["trigger"] | undefined,
   motionArg: MotionInput | undefined,
   action: Connection["action"],
+  transformTransition?: (t: Connection["transition"]) => Connection["transition"],
 ): Connection {
+  const baseTransition = resolveMotion(motionArg);
   return {
     sourceNodeId: from,
     trigger: triggerArg ?? DEFAULT_TRIGGER,
-    transition: resolveMotion(motionArg),
+    transition: transformTransition ? transformTransition(baseTransition) : baseTransition,
     action,
   };
+}
+
+// Figma's runtime rejects SMART_ANIMATE transitions on OVERLAY/SWAP/CLOSE navigation
+// actions (the UI also hides Smart Animate from the overlay transition dropdown).
+// Rewrite to DISSOLVE preserving duration/easing so the designer's motion intent
+// (e.g. M3 emphasized curve, HIG snappy spring) is preserved within Figma's overlay
+// transition constraint. Verified live 2026-05-22 via diag-overlay probe.
+function rewriteForOverlay(t: Connection["transition"]): Connection["transition"] {
+  if (t === "SMART_ANIMATE") return "DISSOLVE";
+  if (typeof t !== "string" && t.type === "SMART_ANIMATE") {
+    return { ...t, type: "DISSOLVE" };
+  }
+  return t;
 }
 
 export function compileProtoWire(input: ProtoWireInput): CreateReactionsInputType {
@@ -109,7 +124,7 @@ export function compileProtoOverlay(input: ProtoOverlayInput): CreateReactionsIn
     } else {
       action = { type: "close" };
     }
-    return buildConnection(o.from, o.trigger, o.motion, action);
+    return buildConnection(o.from, o.trigger, o.motion, action, rewriteForOverlay);
   });
   return { connections, replaceExisting: input.replaceExisting };
 }
