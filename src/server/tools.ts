@@ -144,7 +144,11 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
       name: "proto_scroll",
       description:
         "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
-        "Wire source nodes to scroll targets (Scroll To). " +
+        "Wire source nodes to scroll targets — Figma's SCROLL_TO action: clicking the source jumps the prototype " +
+        "view to a target NODE inside the same scrollable frame (the target frame must have overflowDirection set, " +
+        "e.g. via set_frame_scroll). " +
+        "NOT for the general 'scroll feel' between pages — for that effect, use a directional transition " +
+        "(PUSH or SLIDE_*) via proto_wire instead. " +
         "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally.",
       schema: ProtoScrollInput,
       handler: async (input, session) => {
