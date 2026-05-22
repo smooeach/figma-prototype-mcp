@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { TriggerInput, TransitionInput } from "./tools.js";
-import { PRESET_NAMES } from "../shared/motionPresets.js";
+import { PRESET_NAMES, resolveMotion } from "../shared/motionPresets.js";
+import type { MotionInput } from "../shared/motionPresets.js";
+import type { CreateReactionsInput as CreateReactionsInputType } from "./tools.js";
 
 const PresetNameEnum = z.enum(PRESET_NAMES);
 const MotionInputSchema = z.union([PresetNameEnum, TransitionInput]);
@@ -69,9 +71,6 @@ export type ProtoWireInput = z.infer<typeof ProtoWireInput>;
 export type ProtoOverlayInput = z.infer<typeof ProtoOverlayInput>;
 export type ProtoScrollInput = z.infer<typeof ProtoScrollInput>;
 
-import { resolveMotion } from "../shared/motionPresets.js";
-import type { CreateReactionsInput as CreateReactionsInputType } from "./tools.js";
-
 type Connection = CreateReactionsInputType["connections"][number];
 
 const DEFAULT_TRIGGER = "ON_CLICK" as const;
@@ -79,13 +78,13 @@ const DEFAULT_TRIGGER = "ON_CLICK" as const;
 function buildConnection(
   from: string,
   triggerArg: Connection["trigger"] | undefined,
-  motionArg: unknown,
+  motionArg: MotionInput | undefined,
   action: Connection["action"],
 ): Connection {
   return {
     sourceNodeId: from,
     trigger: triggerArg ?? DEFAULT_TRIGGER,
-    transition: resolveMotion(motionArg as Parameters<typeof resolveMotion>[0]),
+    transition: resolveMotion(motionArg),
     action,
   };
 }
