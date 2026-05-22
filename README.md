@@ -57,7 +57,38 @@ Configure your client to connect to the SSE endpoint:
 
 No `command` / `args` / env vars needed — the URL is enough.
 
-## Tools
+## High-level tools (recommended)
+
+Three intent-oriented tools that wrap `create_reactions` with named motion presets. The lower-level 6 tools below remain available as the escape hatch for back/url/conditional/variable actions, directional transitions, and any case the high-level surface doesn't cover.
+
+| Tool | Purpose |
+|---|---|
+| `proto_wire` | Wire source nodes to destination frames with **Navigate To**. Batch input `{ wires: [{ from, to, trigger?, motion?, resetScrollPosition? }], replaceExisting? }`. Defaults: `trigger=ON_CLICK`, `motion=M3_EMPHASIZED`. |
+| `proto_overlay` | Open / swap / close overlays. Batch input `{ overlays: [{ mode: "open"\|"swap"\|"close", from, overlay?, trigger?, motion? }] }` — `overlay` is required for `open`/`swap`, forbidden for `close`. **Note:** Figma's runtime does not accept Smart Animate on overlay/swap/close navigations (the UI hides it too); when a SMART_ANIMATE-based motion preset is supplied, the compile step substitutes `DISSOLVE` while preserving `duration` and `easing` so the M3/HIG feel survives. |
+| `proto_scroll` | Wire source nodes to scroll targets (**Scroll To**). Batch input `{ scrolls: [{ from, to, trigger?, motion?, resetScrollPosition? }] }`. |
+
+### Motion presets
+
+`motion` accepts a preset name (string) or a full `TransitionInput` object. The 10 presets cover the common design-system tones:
+
+| Preset | Compiled transition |
+|---|---|
+| `M3_EMPHASIZED` *(default)* | SMART_ANIMATE, 500ms, cubic-bezier(0.2, 0, 0, 1) |
+| `M3_EMPHASIZED_DECELERATE` | SMART_ANIMATE, 400ms, cubic-bezier(0.05, 0.7, 0.1, 1) |
+| `M3_EMPHASIZED_ACCELERATE` | SMART_ANIMATE, 200ms, cubic-bezier(0.3, 0, 0.8, 0.15) |
+| `M3_STANDARD` | SMART_ANIMATE, 300ms, cubic-bezier(0.2, 0, 0, 1) |
+| `M3_STANDARD_DECELERATE` | SMART_ANIMATE, 250ms, cubic-bezier(0, 0, 0, 1) |
+| `M3_STANDARD_ACCELERATE` | SMART_ANIMATE, 200ms, cubic-bezier(0.3, 0, 1, 1) |
+| `HIG_DEFAULT` | SMART_ANIMATE, named spring GENTLE |
+| `HIG_SMOOTH` | SMART_ANIMATE, named spring SLOW |
+| `HIG_SNAPPY` | SMART_ANIMATE, named spring QUICK |
+| `HIG_BOUNCY` | SMART_ANIMATE, named spring BOUNCY |
+
+For `proto_overlay`, the `SMART_ANIMATE` type is rewritten to `DISSOLVE` at compile time per the Figma constraint noted above.
+
+To bypass the preset system (e.g. for `MOVE_IN`/`PUSH`/`SLIDE_*` directional transitions or fully custom timing), pass `motion` as a raw `TransitionInput` object instead of a preset name.
+
+## Tools (low-level escape hatch)
 
 | Tool | Purpose |
 |---|---|
