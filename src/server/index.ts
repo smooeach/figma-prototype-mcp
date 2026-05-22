@@ -1,17 +1,22 @@
 import express, { type Request, type Response } from "express";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { readFileSync } from "node:fs";
 import { PluginSession } from "./sessions.js";
 import { attachPluginWebSocket } from "./plugin-ws.js";
 import { registerToolHandlers } from "./tools.js";
 import { HistoryStore } from "./history.js";
+
+const pkg = JSON.parse(
+  readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
+) as { version: string };
 
 const PORT = Number(process.env.PORT ?? 3000);
 
 const session = new PluginSession();
 const historyStore = new HistoryStore();
 const mcp = new Server(
-  { name: "figma-prototype-mcp", version: "0.20.0" },
+  { name: "figma-prototype-mcp", version: pkg.version },
   { capabilities: { tools: {} } }
 );
 registerToolHandlers(mcp, session, historyStore);
