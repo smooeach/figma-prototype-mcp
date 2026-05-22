@@ -40,6 +40,11 @@ export class HistoryStore {
     return entry;
   }
 
+  /**
+   * Return up to `count` most-recent entries in oldest-to-newest order
+   * (so `arr.at(-1)` is the most recent). Empty array if count < 1.
+   * Clamped to `buffer.length` when count exceeds it.
+   */
   getLast(count = 1): HistoryEntry[] {
     if (count < 1) return [];
     return this.buffer.slice(-Math.min(count, this.buffer.length));
