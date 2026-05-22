@@ -68,6 +68,8 @@ Three intent-oriented tools that wrap `create_reactions` with named motion prese
 | `proto_scroll` | Wire source nodes to scroll targets (**Scroll To**). Batch input `{ scrolls: [{ from, to, trigger?, motion?, resetScrollPosition? }] }`. |
 | `proto_back` | Wire source nodes to the **Back** navigation action (pops the prototype history stack). Batch input `{ backs: [{ from, trigger?, motion? }], replaceExisting? }`. Defaults: `trigger=ON_CLICK`, `motion=M3_EMPHASIZED`. |
 | `proto_url` | Wire source nodes to the **Open URL** action. Batch input `{ urls: [{ from, url, openInNewTab?, trigger? }], replaceExisting? }`. No `motion` field — URL is a terminal event; the reaction's transition defaults to INSTANT. |
+| `proto_set_variable` | Wire source nodes to the **Set Variable** action — clicking the source assigns a literal value to a local Figma variable (resolved by name). Batch input `{ sets: [{ from, variable, value, trigger? }], replaceExisting? }`. `value`: boolean / number / string; for COLOR variables, pass a hex string (`"#RRGGBB"` or `"#RRGGBBAA"`). No `motion` field — variable changes are instant. |
+| `proto_toggle_variable` | Wire source nodes to the **Toggle Variable** action — clicking the source flips a local BOOLEAN variable. Batch input `{ toggles: [{ from, variable, trigger? }], replaceExisting? }`. Variable must be BOOLEAN; non-boolean throws at runtime. No `motion` field. |
 | `proto_get_last_history` | Read the in-memory history of recent `proto_*` calls (FIFO ring buffer, capacity 10, server-lifetime). Input `{ count?: 1..10 }`, default 1. Returns `{ entries: HistoryEntry[] }` with entries in oldest-to-newest order. Use to support "modify the last one I made"-style requests by recovering source/target IDs and motion preset, then re-calling with `replaceExisting: true`. |
 
 ### History stack
@@ -303,6 +305,24 @@ After install + all three components running, verify these scenarios in Figma. E
   ```
 
   Inspect Prototype panel: **On Click** → **Open URL** → URL field = `https://figma.com` → **"Open in new tab"** checked. (Live-verified at v0.21.0 ship.)
+
+- [x] **32. `proto_set_variable` (BOOLEAN true)**:
+  Setup: a page with `screen01 > button` and a local BOOLEAN variable named `showMenu` (default false). Reuse the v1.17 MCP_Test_10 fixture.
+
+  ```
+  proto_set_variable({ sets: [{ from: "<button>", variable: "showMenu", value: true }], replaceExisting: true })
+  ```
+
+  Inspect Prototype panel: **On Click** → **Set Variable** → showMenu = true. Run prototype mode and confirm the variable flips on click. (Live-verified at v0.22.0 ship.)
+
+- [x] **33. `proto_toggle_variable` (BOOLEAN flip)**:
+  Same fixture (BOOLEAN variable `showMenu`).
+
+  ```
+  proto_toggle_variable({ toggles: [{ from: "<button>", variable: "showMenu" }], replaceExisting: true })
+  ```
+
+  Inspect Prototype panel: **On Click** → **Toggle Variable** → showMenu (the friendly UI form; internally desugared to CONDITIONAL+2 SET_VARIABLE per v1.17 plugin logic; list_reactions round-trips to the toggle shape). Run prototype mode and confirm the variable flips back and forth on successive clicks. (Live-verified at v0.22.0 ship.)
 
 ## Known limitations (v1)
 
