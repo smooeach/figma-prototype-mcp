@@ -66,6 +66,8 @@ Three intent-oriented tools that wrap `create_reactions` with named motion prese
 | `proto_wire` | Wire source nodes to destination frames with **Navigate To**. Batch input `{ wires: [{ from, to, trigger?, motion?, resetScrollPosition? }], replaceExisting? }`. Defaults: `trigger=ON_CLICK`, `motion=M3_EMPHASIZED`. |
 | `proto_overlay` | Open / swap / close overlays. Batch input `{ overlays: [{ mode: "open"\|"swap"\|"close", from, overlay?, trigger?, motion? }] }` — `overlay` is required for `open`/`swap`, forbidden for `close`. **Note:** Figma's runtime does not accept Smart Animate on overlay/swap/close navigations (the UI hides it too); when a SMART_ANIMATE-based motion preset is supplied, the compile step substitutes `DISSOLVE` while preserving `duration` and `easing` so the M3/HIG feel survives. |
 | `proto_scroll` | Wire source nodes to scroll targets (**Scroll To**). Batch input `{ scrolls: [{ from, to, trigger?, motion?, resetScrollPosition? }] }`. |
+| `proto_back` | Wire source nodes to the **Back** navigation action (pops the prototype history stack). Batch input `{ backs: [{ from, trigger?, motion? }], replaceExisting? }`. Defaults: `trigger=ON_CLICK`, `motion=M3_EMPHASIZED`. |
+| `proto_url` | Wire source nodes to the **Open URL** action. Batch input `{ urls: [{ from, url, openInNewTab?, trigger? }], replaceExisting? }`. No `motion` field — URL is a terminal event; the reaction's transition defaults to INSTANT. |
 | `proto_get_last_history` | Read the in-memory history of recent `proto_*` calls (FIFO ring buffer, capacity 10, server-lifetime). Input `{ count?: 1..10 }`, default 1. Returns `{ entries: HistoryEntry[] }` with entries in oldest-to-newest order. Use to support "modify the last one I made"-style requests by recovering source/target IDs and motion preset, then re-calling with `replaceExisting: true`. |
 
 ### History stack
@@ -283,6 +285,24 @@ After install + all three components running, verify these scenarios in Figma. E
   Expected: an `entries` array of length 3 in oldest-to-newest order — `entries[0].tool === "proto_wire"` (from 26), `entries[1].tool === "proto_overlay"` (from 27), `entries[2].tool === "proto_scroll"` (from 28, most recent). Each entry carries a valid UUID `historyId`, numeric `timestamp`, full parsed `input`, and `result` counts.
 
   Then run 11 sequential `proto_wire` calls (same from/to is fine with `replaceExisting: true`) and call `proto_get_last_history({ count: 10 })`. Expected: 10 entries, timestamps strictly ascending, all `tool === "proto_wire"`. Confirms FIFO eviction at capacity. (Live-verified 2026-05-22 via v1.21 bypass-probe.)
+
+- [x] **30. `proto_back` (M3_EMPHASIZED default)**:
+  Setup: a page with `screen01` containing a button. Reuse Scenario 26's fixture.
+
+  ```
+  proto_back({ backs: [{ from: "<button>" }], replaceExisting: true })
+  ```
+
+  Inspect the Prototype panel: **On Click** → **Back** → **Smart Animate** + cubic-bezier (0.2, 0, 0, 1) + **500ms**. (Live-verified at v0.21.0 ship.)
+
+- [x] **31. `proto_url` open in new tab**:
+  Setup: `screen01` with a button (can be the same button from 30 — Probe overwrites with `replaceExisting: true`).
+
+  ```
+  proto_url({ urls: [{ from: "<button>", url: "https://figma.com", openInNewTab: true }], replaceExisting: true })
+  ```
+
+  Inspect Prototype panel: **On Click** → **Open URL** → URL field = `https://figma.com` → **"Open in new tab"** checked. (Live-verified at v0.21.0 ship.)
 
 ## Known limitations (v1)
 
