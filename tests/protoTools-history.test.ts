@@ -60,3 +60,59 @@ describe("proto_wire records on success", () => {
     expect((oldest.input as { wires: { from: string }[] }).wires[0]!.from).toBe("1:1");
   });
 });
+
+async function callProtoOverlay(session: ReturnType<typeof makeStubSession>, store: HistoryStore, input: unknown) {
+  const parsed = ProtoOverlayInput.parse(input);
+  const compiled = compileProtoOverlay(parsed);
+  const result = await session.sendCommand("CREATE_REACTIONS", compiled);
+  store.record("proto_overlay", parsed, summarizeResult(result));
+  return result;
+}
+
+async function callProtoScroll(session: ReturnType<typeof makeStubSession>, store: HistoryStore, input: unknown) {
+  const parsed = ProtoScrollInput.parse(input);
+  const compiled = compileProtoScroll(parsed);
+  const result = await session.sendCommand("CREATE_REACTIONS", compiled);
+  store.record("proto_scroll", parsed, summarizeResult(result));
+  return result;
+}
+
+describe("proto_overlay records on success", () => {
+  it("records one entry with tool='proto_overlay'", async () => {
+    const session = makeStubSession({ successCount: 1, errorCount: 0, warningCount: 0, results: [] });
+    const store = new HistoryStore();
+    await callProtoOverlay(session, store, { overlays: [{ mode: "open", from: "1:1", overlay: "1:9" }] });
+    expect(store.size()).toBe(1);
+    expect(store.getLast()[0]!.tool).toBe("proto_overlay");
+  });
+
+  it("does not record when successCount is 0", async () => {
+    const session = makeStubSession({ successCount: 0, errorCount: 1, warningCount: 0, results: [] });
+    const store = new HistoryStore();
+    await callProtoOverlay(session, store, { overlays: [{ mode: "open", from: "1:1", overlay: "1:9" }] });
+    expect(store.size()).toBe(0);
+  });
+});
+
+describe("proto_scroll records on success", () => {
+  it("records one entry with tool='proto_scroll'", async () => {
+    const session = makeStubSession({ successCount: 1, errorCount: 0, warningCount: 0, results: [] });
+    const store = new HistoryStore();
+    await callProtoScroll(session, store, { scrolls: [{ from: "1:1", to: "1:5" }] });
+    expect(store.size()).toBe(1);
+    expect(store.getLast()[0]!.tool).toBe("proto_scroll");
+  });
+});
+
+describe("mixed proto_* calls preserve ordering", () => {
+  it("proto_overlay then proto_wire → getLast(2) returns [overlay, wire]", async () => {
+    const session = makeStubSession({ successCount: 1, errorCount: 0, warningCount: 0, results: [] });
+    const store = new HistoryStore();
+    await callProtoOverlay(session, store, { overlays: [{ mode: "open", from: "1:1", overlay: "1:9" }] });
+    await callProtoWire(session, store, { wires: [{ from: "1:2", to: "1:3" }] });
+    const last2 = store.getLast(2);
+    expect(last2).toHaveLength(2);
+    expect(last2[0]!.tool).toBe("proto_overlay");
+    expect(last2[1]!.tool).toBe("proto_wire");
+  });
+});

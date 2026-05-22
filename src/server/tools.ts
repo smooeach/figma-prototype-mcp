@@ -122,8 +122,11 @@ export function registerToolHandlers(
         "motion (including all M3/HIG presets) is silently rewritten to DISSOLVE while preserving duration + easing.",
       schema: ProtoOverlayInput,
       handler: async (input, session) => {
-        const compiled = compileProtoOverlay(input as ProtoOverlayInput);
-        return await session.sendCommand("CREATE_REACTIONS" as CommandName, compiled);
+        const parsedInput = input as ProtoOverlayInput;
+        const compiled = compileProtoOverlay(parsedInput);
+        const result = await session.sendCommand("CREATE_REACTIONS" as CommandName, compiled);
+        historyStore.record("proto_overlay", parsedInput, summarizeResult(result));
+        return result;
       },
     },
     {
@@ -133,8 +136,11 @@ export function registerToolHandlers(
         "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally.",
       schema: ProtoScrollInput,
       handler: async (input, session) => {
-        const compiled = compileProtoScroll(input as ProtoScrollInput);
-        return await session.sendCommand("CREATE_REACTIONS" as CommandName, compiled);
+        const parsedInput = input as ProtoScrollInput;
+        const compiled = compileProtoScroll(parsedInput);
+        const result = await session.sendCommand("CREATE_REACTIONS" as CommandName, compiled);
+        historyStore.record("proto_scroll", parsedInput, summarizeResult(result));
+        return result;
       },
     },
   ];
