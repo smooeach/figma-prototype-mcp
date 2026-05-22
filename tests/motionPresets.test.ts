@@ -60,4 +60,8 @@ describe("motionPresets — M3", () => {
       expect(parsed.success, `${name} should pass TransitionInput`).toBe(true);
     }
   });
+
+  it("throws on a string that is not a known preset", () => {
+    expect(() => resolveMotion("NOT_A_PRESET" as never)).toThrow(/Unknown motion preset/);
+  });
 });
