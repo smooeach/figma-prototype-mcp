@@ -19,12 +19,16 @@ import {
   ProtoScrollInput,
   ProtoBackInput,
   ProtoUrlInput,
+  ProtoSetVariableInput,
+  ProtoToggleVariableInput,
   ProtoGetLastHistoryInput,
   compileProtoWire,
   compileProtoOverlay,
   compileProtoScroll,
   compileProtoBack,
   compileProtoUrl,
+  compileProtoSetVariable,
+  compileProtoToggleVariable,
 } from "../mcp-server/protoTools.js";
 import type { CommandName } from "../mcp-server/types.js";
 import type { PluginSession } from "./sessions.js";
@@ -184,6 +188,42 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         const parsedInput = input as ProtoUrlInput;
         return recordedHandler(historyStore, "proto_url", parsedInput, () =>
           session.sendCommand("CREATE_REACTIONS" as CommandName, compileProtoUrl(parsedInput)),
+        );
+      },
+    },
+    {
+      name: "proto_set_variable",
+      description:
+        "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
+        "Wire source nodes to the Set Variable action — clicking the source assigns a literal value to a local " +
+        "Figma variable (resolved by NAME). Input `{ sets: [{ from, variable, value }] }`. " +
+        "`value` is boolean / number / string and must match the variable's resolvedType; for COLOR variables, " +
+        "pass `value` as a hex string (\"#RRGGBB\" or \"#RRGGBBAA\"). " +
+        "Defaults: trigger=ON_CLICK. No `motion` field — variable changes are instant (transition defaults to INSTANT). " +
+        "Compiles to create_reactions internally.",
+      schema: ProtoSetVariableInput,
+      handler: async (input, session) => {
+        const parsedInput = input as ProtoSetVariableInput;
+        return recordedHandler(historyStore, "proto_set_variable", parsedInput, () =>
+          session.sendCommand("CREATE_REACTIONS" as CommandName, compileProtoSetVariable(parsedInput)),
+        );
+      },
+    },
+    {
+      name: "proto_toggle_variable",
+      description:
+        "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
+        "Wire source nodes to the Toggle Variable action — clicking the source flips a local BOOLEAN variable " +
+        "(resolved by NAME). Input `{ toggles: [{ from, variable }] }`. The variable's resolvedType MUST be BOOLEAN " +
+        "(plugin rejects otherwise). " +
+        "Defaults: trigger=ON_CLICK. No `motion` field — variable changes are instant. " +
+        "Compiles to create_reactions internally (desugars to CONDITIONAL + 2 SET_VARIABLE under the hood; " +
+        "list_reactions round-trips to toggle_variable shape).",
+      schema: ProtoToggleVariableInput,
+      handler: async (input, session) => {
+        const parsedInput = input as ProtoToggleVariableInput;
+        return recordedHandler(historyStore, "proto_toggle_variable", parsedInput, () =>
+          session.sendCommand("CREATE_REACTIONS" as CommandName, compileProtoToggleVariable(parsedInput)),
         );
       },
     },

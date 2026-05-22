@@ -148,3 +148,55 @@ describe("mixed proto_* calls preserve ordering", () => {
     expect(last2[1]!.tool).toBe("proto_wire");
   });
 });
+
+describe("proto_set_variable records on success", () => {
+  it("records one entry with tool='proto_set_variable' and value captured", async () => {
+    const store = new HistoryStore();
+    const handler = findHandler(makeTools(store), "proto_set_variable");
+    const session = makeStubSession({ successCount: 1, errorCount: 0, warningCount: 0, results: [] });
+    await handler(
+      { sets: [{ from: "1:1", variable: "showMenu", value: true }], replaceExisting: false },
+      session,
+    );
+    expect(store.size()).toBe(1);
+    const entry = store.getLast()[0]!;
+    expect(entry.tool).toBe("proto_set_variable");
+    expect((entry.input as { sets: { value: unknown }[] }).sets[0]!.value).toBe(true);
+  });
+
+  it("does not record when successCount is 0", async () => {
+    const store = new HistoryStore();
+    const handler = findHandler(makeTools(store), "proto_set_variable");
+    const session = makeStubSession({ successCount: 0, errorCount: 1, warningCount: 0, results: [] });
+    await handler(
+      { sets: [{ from: "1:1", variable: "showMenu", value: true }], replaceExisting: false },
+      session,
+    );
+    expect(store.size()).toBe(0);
+  });
+});
+
+describe("proto_toggle_variable records on success", () => {
+  it("records one entry with tool='proto_toggle_variable'", async () => {
+    const store = new HistoryStore();
+    const handler = findHandler(makeTools(store), "proto_toggle_variable");
+    const session = makeStubSession({ successCount: 1, errorCount: 0, warningCount: 0, results: [] });
+    await handler(
+      { toggles: [{ from: "1:1", variable: "showMenu" }], replaceExisting: false },
+      session,
+    );
+    expect(store.size()).toBe(1);
+    expect(store.getLast()[0]!.tool).toBe("proto_toggle_variable");
+  });
+
+  it("does not record when successCount is 0", async () => {
+    const store = new HistoryStore();
+    const handler = findHandler(makeTools(store), "proto_toggle_variable");
+    const session = makeStubSession({ successCount: 0, errorCount: 1, warningCount: 0, results: [] });
+    await handler(
+      { toggles: [{ from: "1:1", variable: "showMenu" }], replaceExisting: false },
+      session,
+    );
+    expect(store.size()).toBe(0);
+  });
+});
