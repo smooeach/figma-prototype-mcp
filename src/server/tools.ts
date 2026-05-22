@@ -17,6 +17,7 @@ import {
   ProtoWireInput,
   ProtoOverlayInput,
   ProtoScrollInput,
+  ProtoGetLastHistoryInput,
   compileProtoWire,
   compileProtoOverlay,
   compileProtoScroll,
@@ -100,6 +101,7 @@ export function registerToolHandlers(
     {
       name: "proto_wire",
       description:
+        "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
         "Wire one or more source nodes to destination frames with Navigate To. " +
         "Accepts a `motion` preset name (e.g. \"M3_EMPHASIZED\") or a full TransitionInput. " +
         "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally.",
@@ -115,6 +117,7 @@ export function registerToolHandlers(
     {
       name: "proto_overlay",
       description:
+        "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
         "Create overlay reactions in batch. Each entry has mode = \"open\" | \"swap\" | \"close\". " +
         "open/swap require an `overlay` frameId; close has none. " +
         "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally. " +
@@ -132,6 +135,7 @@ export function registerToolHandlers(
     {
       name: "proto_scroll",
       description:
+        "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
         "Wire source nodes to scroll targets (Scroll To). " +
         "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally.",
       schema: ProtoScrollInput,
@@ -141,6 +145,20 @@ export function registerToolHandlers(
         const result = await session.sendCommand("CREATE_REACTIONS" as CommandName, compiled);
         historyStore.record("proto_scroll", parsedInput, summarizeResult(result));
         return result;
+      },
+    },
+    {
+      name: "proto_get_last_history",
+      description:
+        "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
+        "Returns the most-recent successful proto_* tool calls as an array of HistoryEntry objects, " +
+        "newest-last. Use when the user references \"the last thing I made\" / \"방금 만든 거\" " +
+        "to recover the source/target IDs and motion preset, then re-call the corresponding proto_* " +
+        "with replaceExisting=true to apply a modification.",
+      schema: ProtoGetLastHistoryInput,
+      handler: async (input) => {
+        const { count } = input as ProtoGetLastHistoryInput;
+        return { entries: historyStore.getLast(count) };
       },
     },
   ];
