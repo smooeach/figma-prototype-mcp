@@ -27,7 +27,7 @@ import type { PluginSession } from "./sessions.js";
 import type { HistoryStore, ProtoToolName } from "./history.js";
 import { summarizeResult } from "./history.js";
 
-type ToolEntry =
+export type ToolEntry =
   | {
       name: string;
       description: string;
@@ -54,12 +54,8 @@ async function recordedHandler<S>(
   return result;
 }
 
-export function registerToolHandlers(
-  mcp: Server,
-  session: PluginSession,
-  historyStore: HistoryStore,
-): void {
-  const TOOLS: ToolEntry[] = [
+export function makeTools(historyStore: HistoryStore): ToolEntry[] {
+  return [
     {
       name: "get_canvas_overview",
       description:
@@ -169,6 +165,14 @@ export function registerToolHandlers(
       },
     },
   ];
+}
+
+export function registerToolHandlers(
+  mcp: Server,
+  session: PluginSession,
+  historyStore: HistoryStore,
+): void {
+  const TOOLS = makeTools(historyStore);
 
   mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: TOOLS.map((t) => ({
