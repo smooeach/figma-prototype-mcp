@@ -280,7 +280,7 @@ After install + all three components running, verify these scenarios in Figma. E
   proto_get_last_history({ count: 3 })
   ```
 
-  Expected: an `entries` array of length 3, with `entries[0].tool === "proto_overlay"`, `entries[1].tool === "proto_scroll"` (or `proto_wire` if 28 ran last), `entries[2].tool` the most recent. Each entry carries a valid UUID `historyId`, numeric `timestamp`, full parsed `input`, and `result` counts.
+  Expected: an `entries` array of length 3 in oldest-to-newest order — `entries[0].tool === "proto_wire"` (from 26), `entries[1].tool === "proto_overlay"` (from 27), `entries[2].tool === "proto_scroll"` (from 28, most recent). Each entry carries a valid UUID `historyId`, numeric `timestamp`, full parsed `input`, and `result` counts.
 
   Then run 11 sequential `proto_wire` calls (same from/to is fine with `replaceExisting: true`) and call `proto_get_last_history({ count: 10 })`. Expected: 10 entries, timestamps strictly ascending, all `tool === "proto_wire"`. Confirms FIFO eviction at capacity. (Live-verified 2026-05-22 via v1.21 bypass-probe.)
 
