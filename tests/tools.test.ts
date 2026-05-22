@@ -905,6 +905,14 @@ describe("ProtoGetLastHistoryInput", () => {
     expect(ProtoGetLastHistoryInput.parse({ count: 5 }).count).toBe(5);
   });
 
+  it("accepts count: 1 (boundary min)", () => {
+    expect(ProtoGetLastHistoryInput.parse({ count: 1 }).count).toBe(1);
+  });
+
+  it("accepts count: 10 (boundary max)", () => {
+    expect(ProtoGetLastHistoryInput.parse({ count: 10 }).count).toBe(10);
+  });
+
   it("rejects count: 0", () => {
     expect(() => ProtoGetLastHistoryInput.parse({ count: 0 })).toThrow();
   });
