@@ -11,7 +11,7 @@ const PORT = Number(process.env.PORT ?? 3000);
 const session = new PluginSession();
 const historyStore = new HistoryStore();
 const mcp = new Server(
-  { name: "figma-prototype-mcp", version: "0.18.0" },
+  { name: "figma-prototype-mcp", version: "0.20.0" },
   { capabilities: { tools: {} } }
 );
 registerToolHandlers(mcp, session, historyStore);
