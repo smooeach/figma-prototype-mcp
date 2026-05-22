@@ -24,7 +24,7 @@ import {
 } from "../mcp-server/protoTools.js";
 import type { CommandName } from "../mcp-server/types.js";
 import type { PluginSession } from "./sessions.js";
-import type { HistoryStore } from "./history.js";
+import type { HistoryStore, ProtoToolName } from "./history.js";
 import { summarizeResult } from "./history.js";
 
 type ToolEntry =
@@ -43,6 +43,16 @@ type ToolEntry =
       handler: (input: unknown, session: PluginSession) => Promise<unknown>;
     };
 
+async function recordedHandler<S>(
+  store: HistoryStore,
+  tool: ProtoToolName,
+  parsedInput: S,
+  send: () => Promise<unknown>,
+): Promise<unknown> {
+  const result = await send();
+  store.record(tool, parsedInput, summarizeResult(result));
+  return result;
+}
 
 export function registerToolHandlers(
   mcp: Server,
@@ -108,10 +118,9 @@ export function registerToolHandlers(
       schema: ProtoWireInput,
       handler: async (input, session) => {
         const parsedInput = input as ProtoWireInput;
-        const compiled = compileProtoWire(parsedInput);
-        const result = await session.sendCommand("CREATE_REACTIONS" as CommandName, compiled);
-        historyStore.record("proto_wire", parsedInput, summarizeResult(result));
-        return result;
+        return recordedHandler(historyStore, "proto_wire", parsedInput, () =>
+          session.sendCommand("CREATE_REACTIONS" as CommandName, compileProtoWire(parsedInput)),
+        );
       },
     },
     {
@@ -126,10 +135,9 @@ export function registerToolHandlers(
       schema: ProtoOverlayInput,
       handler: async (input, session) => {
         const parsedInput = input as ProtoOverlayInput;
-        const compiled = compileProtoOverlay(parsedInput);
-        const result = await session.sendCommand("CREATE_REACTIONS" as CommandName, compiled);
-        historyStore.record("proto_overlay", parsedInput, summarizeResult(result));
-        return result;
+        return recordedHandler(historyStore, "proto_overlay", parsedInput, () =>
+          session.sendCommand("CREATE_REACTIONS" as CommandName, compileProtoOverlay(parsedInput)),
+        );
       },
     },
     {
@@ -141,10 +149,9 @@ export function registerToolHandlers(
       schema: ProtoScrollInput,
       handler: async (input, session) => {
         const parsedInput = input as ProtoScrollInput;
-        const compiled = compileProtoScroll(parsedInput);
-        const result = await session.sendCommand("CREATE_REACTIONS" as CommandName, compiled);
-        historyStore.record("proto_scroll", parsedInput, summarizeResult(result));
-        return result;
+        return recordedHandler(historyStore, "proto_scroll", parsedInput, () =>
+          session.sendCommand("CREATE_REACTIONS" as CommandName, compileProtoScroll(parsedInput)),
+        );
       },
     },
     {
