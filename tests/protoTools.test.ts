@@ -5,6 +5,8 @@ import {
   ProtoScrollInput,
   ProtoBackInput,
   ProtoUrlInput,
+  ProtoSetVariableInput,
+  ProtoToggleVariableInput,
 } from "../src/mcp-server/protoTools.js";
 
 describe("ProtoWireInput", () => {
@@ -170,6 +172,90 @@ describe("ProtoUrlInput", () => {
     expect(() =>
       ProtoUrlInput.parse({
         urls: [{ from: "1:1", url: "https://figma.com", motion: "M3_EMPHASIZED" }],
+      }),
+    ).toThrow();
+  });
+});
+
+describe("ProtoSetVariableInput", () => {
+  it("accepts a minimal set (boolean value)", () => {
+    const r = ProtoSetVariableInput.parse({
+      sets: [{ from: "1:1", variable: "showMenu", value: true }],
+    });
+    expect(r.sets[0]).toMatchObject({ from: "1:1", variable: "showMenu", value: true });
+    expect(r.replaceExisting).toBe(false);
+  });
+
+  it("accepts number value", () => {
+    const r = ProtoSetVariableInput.parse({
+      sets: [{ from: "1:1", variable: "score", value: 42 }],
+    });
+    expect(r.sets[0]!.value).toBe(42);
+  });
+
+  it("accepts string value (hex for COLOR variables)", () => {
+    const r = ProtoSetVariableInput.parse({
+      sets: [{ from: "1:1", variable: "bgColor", value: "#FF8800" }],
+    });
+    expect(r.sets[0]!.value).toBe("#FF8800");
+  });
+
+  it("accepts trigger override", () => {
+    const r = ProtoSetVariableInput.parse({
+      sets: [{ from: "1:1", variable: "showMenu", value: true, trigger: "ON_HOVER" }],
+    });
+    expect(r.sets[0]!.trigger).toBe("ON_HOVER");
+  });
+
+  it("rejects empty sets array", () => {
+    expect(() => ProtoSetVariableInput.parse({ sets: [] })).toThrow();
+  });
+
+  it("rejects missing variable", () => {
+    expect(() => ProtoSetVariableInput.parse({ sets: [{ from: "1:1", value: true }] })).toThrow();
+  });
+
+  it("rejects missing value", () => {
+    expect(() => ProtoSetVariableInput.parse({ sets: [{ from: "1:1", variable: "x" }] })).toThrow();
+  });
+
+  it("rejects unknown `motion` field on a set entry (.strict)", () => {
+    expect(() =>
+      ProtoSetVariableInput.parse({
+        sets: [{ from: "1:1", variable: "x", value: true, motion: "M3_EMPHASIZED" }],
+      }),
+    ).toThrow();
+  });
+});
+
+describe("ProtoToggleVariableInput", () => {
+  it("accepts a minimal toggle (from + variable)", () => {
+    const r = ProtoToggleVariableInput.parse({
+      toggles: [{ from: "1:1", variable: "showMenu" }],
+    });
+    expect(r.toggles[0]).toMatchObject({ from: "1:1", variable: "showMenu" });
+    expect(r.replaceExisting).toBe(false);
+  });
+
+  it("accepts trigger override", () => {
+    const r = ProtoToggleVariableInput.parse({
+      toggles: [{ from: "1:1", variable: "showMenu", trigger: "ON_PRESS" }],
+    });
+    expect(r.toggles[0]!.trigger).toBe("ON_PRESS");
+  });
+
+  it("rejects empty toggles array", () => {
+    expect(() => ProtoToggleVariableInput.parse({ toggles: [] })).toThrow();
+  });
+
+  it("rejects missing variable", () => {
+    expect(() => ProtoToggleVariableInput.parse({ toggles: [{ from: "1:1" }] })).toThrow();
+  });
+
+  it("rejects unknown `motion` field on a toggle entry (.strict)", () => {
+    expect(() =>
+      ProtoToggleVariableInput.parse({
+        toggles: [{ from: "1:1", variable: "showMenu", motion: "M3_EMPHASIZED" }],
       }),
     ).toThrow();
   });

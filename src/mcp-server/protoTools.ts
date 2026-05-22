@@ -92,6 +92,29 @@ export const ProtoUrlInput = z.object({
   replaceExisting: z.boolean().default(false),
 });
 
+const ProtoSetVariableEntry = z.object({
+  from: z.string().min(1),
+  variable: z.string().min(1),
+  value: z.union([z.boolean(), z.number(), z.string()]),
+  trigger: TriggerInput.optional(),
+}).strict();
+
+export const ProtoSetVariableInput = z.object({
+  sets: z.array(ProtoSetVariableEntry).min(1),
+  replaceExisting: z.boolean().default(false),
+});
+
+const ProtoToggleVariableEntry = z.object({
+  from: z.string().min(1),
+  variable: z.string().min(1),
+  trigger: TriggerInput.optional(),
+}).strict();
+
+export const ProtoToggleVariableInput = z.object({
+  toggles: z.array(ProtoToggleVariableEntry).min(1),
+  replaceExisting: z.boolean().default(false),
+});
+
 export const ProtoGetLastHistoryInput = z.object({
   count: z.number().int().min(1).max(10).default(1),
 });
@@ -101,6 +124,8 @@ export type ProtoOverlayInput = z.infer<typeof ProtoOverlayInput>;
 export type ProtoScrollInput = z.infer<typeof ProtoScrollInput>;
 export type ProtoBackInput = z.infer<typeof ProtoBackInput>;
 export type ProtoUrlInput = z.infer<typeof ProtoUrlInput>;
+export type ProtoSetVariableInput = z.infer<typeof ProtoSetVariableInput>;
+export type ProtoToggleVariableInput = z.infer<typeof ProtoToggleVariableInput>;
 export type ProtoGetLastHistoryInput = z.infer<typeof ProtoGetLastHistoryInput>;
 
 type Connection = CreateReactionsInputType["connections"][number];
