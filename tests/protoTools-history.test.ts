@@ -1,40 +1,24 @@
 import { describe, it, expect, vi } from "vitest";
 import { HistoryStore } from "../src/server/history.js";
+import { makeTools, type ToolEntry } from "../src/server/tools.js";
+import type { PluginSession } from "../src/server/sessions.js";
 
-// Helper: simulate what a proto_wire handler call would do, mirroring src/server/tools.ts.
-// In the actual handler, the sequence is: parse → compile → sendCommand → record → return.
-// This test exercises the record() step assuming the server-side handler wires it correctly.
-//
-// We don't import the handler directly because registerToolHandlers is the only export
-// — instead we replicate the handler body inline against a mocked session.sendCommand.
-
-import {
-  ProtoWireInput,
-  ProtoOverlayInput,
-  ProtoScrollInput,
-  compileProtoWire,
-  compileProtoOverlay,
-  compileProtoScroll,
-} from "../src/mcp-server/protoTools.js";
-import { summarizeResult } from "../src/server/history.js";
-
-function makeStubSession(response: unknown) {
-  return { sendCommand: vi.fn().mockResolvedValue(response) };
+function makeStubSession(response: unknown): PluginSession {
+  return { sendCommand: vi.fn().mockResolvedValue(response) } as unknown as PluginSession;
 }
 
-async function callProtoWire(session: ReturnType<typeof makeStubSession>, store: HistoryStore, input: unknown) {
-  const parsed = ProtoWireInput.parse(input);
-  const compiled = compileProtoWire(parsed);
-  const result = await session.sendCommand("CREATE_REACTIONS", compiled);
-  store.record("proto_wire", parsed, summarizeResult(result));
-  return result;
+function findHandler(tools: ToolEntry[], name: string) {
+  const t = tools.find((x) => x.name === name);
+  if (!t || t.handler === undefined) throw new Error(`no handler for ${name}`);
+  return t.handler;
 }
 
 describe("proto_wire records on success", () => {
   it("records one entry with the parsed input", async () => {
-    const session = makeStubSession({ successCount: 1, errorCount: 0, warningCount: 0, results: [] });
     const store = new HistoryStore();
-    await callProtoWire(session, store, { wires: [{ from: "1:1", to: "1:2" }] });
+    const handler = findHandler(makeTools(store), "proto_wire");
+    const session = makeStubSession({ successCount: 1, errorCount: 0, warningCount: 0, results: [] });
+    await handler({ wires: [{ from: "1:1", to: "1:2" }], replaceExisting: false }, session);
     expect(store.size()).toBe(1);
     const last = store.getLast()[0]!;
     expect(last.tool).toBe("proto_wire");
@@ -43,17 +27,19 @@ describe("proto_wire records on success", () => {
   });
 
   it("does not record when successCount is 0", async () => {
-    const session = makeStubSession({ successCount: 0, errorCount: 1, warningCount: 0, results: [] });
     const store = new HistoryStore();
-    await callProtoWire(session, store, { wires: [{ from: "1:1", to: "1:2" }] });
+    const handler = findHandler(makeTools(store), "proto_wire");
+    const session = makeStubSession({ successCount: 0, errorCount: 1, warningCount: 0, results: [] });
+    await handler({ wires: [{ from: "1:1", to: "1:2" }], replaceExisting: false }, session);
     expect(store.size()).toBe(0);
   });
 
   it("FIFO ring: 11 sequential proto_wire calls leave store size 10", async () => {
-    const session = makeStubSession({ successCount: 1, errorCount: 0, warningCount: 0, results: [] });
     const store = new HistoryStore();
+    const handler = findHandler(makeTools(store), "proto_wire");
+    const session = makeStubSession({ successCount: 1, errorCount: 0, warningCount: 0, results: [] });
     for (let i = 0; i < 11; i++) {
-      await callProtoWire(session, store, { wires: [{ from: `1:${i}`, to: "1:99" }] });
+      await handler({ wires: [{ from: `1:${i}`, to: "1:99" }], replaceExisting: false }, session);
     }
     expect(store.size()).toBe(10);
     const oldest = store.getLast(10)[0]!;
@@ -61,44 +47,31 @@ describe("proto_wire records on success", () => {
   });
 });
 
-async function callProtoOverlay(session: ReturnType<typeof makeStubSession>, store: HistoryStore, input: unknown) {
-  const parsed = ProtoOverlayInput.parse(input);
-  const compiled = compileProtoOverlay(parsed);
-  const result = await session.sendCommand("CREATE_REACTIONS", compiled);
-  store.record("proto_overlay", parsed, summarizeResult(result));
-  return result;
-}
-
-async function callProtoScroll(session: ReturnType<typeof makeStubSession>, store: HistoryStore, input: unknown) {
-  const parsed = ProtoScrollInput.parse(input);
-  const compiled = compileProtoScroll(parsed);
-  const result = await session.sendCommand("CREATE_REACTIONS", compiled);
-  store.record("proto_scroll", parsed, summarizeResult(result));
-  return result;
-}
-
 describe("proto_overlay records on success", () => {
   it("records one entry with tool='proto_overlay'", async () => {
-    const session = makeStubSession({ successCount: 1, errorCount: 0, warningCount: 0, results: [] });
     const store = new HistoryStore();
-    await callProtoOverlay(session, store, { overlays: [{ mode: "open", from: "1:1", overlay: "1:9" }] });
+    const handler = findHandler(makeTools(store), "proto_overlay");
+    const session = makeStubSession({ successCount: 1, errorCount: 0, warningCount: 0, results: [] });
+    await handler({ overlays: [{ mode: "open", from: "1:1", overlay: "1:9" }], replaceExisting: false }, session);
     expect(store.size()).toBe(1);
     expect(store.getLast()[0]!.tool).toBe("proto_overlay");
   });
 
   it("does not record when successCount is 0", async () => {
-    const session = makeStubSession({ successCount: 0, errorCount: 1, warningCount: 0, results: [] });
     const store = new HistoryStore();
-    await callProtoOverlay(session, store, { overlays: [{ mode: "open", from: "1:1", overlay: "1:9" }] });
+    const handler = findHandler(makeTools(store), "proto_overlay");
+    const session = makeStubSession({ successCount: 0, errorCount: 1, warningCount: 0, results: [] });
+    await handler({ overlays: [{ mode: "open", from: "1:1", overlay: "1:9" }], replaceExisting: false }, session);
     expect(store.size()).toBe(0);
   });
 });
 
 describe("proto_scroll records on success", () => {
   it("records one entry with tool='proto_scroll'", async () => {
-    const session = makeStubSession({ successCount: 1, errorCount: 0, warningCount: 0, results: [] });
     const store = new HistoryStore();
-    await callProtoScroll(session, store, { scrolls: [{ from: "1:1", to: "1:5" }] });
+    const handler = findHandler(makeTools(store), "proto_scroll");
+    const session = makeStubSession({ successCount: 1, errorCount: 0, warningCount: 0, results: [] });
+    await handler({ scrolls: [{ from: "1:1", to: "1:5" }], replaceExisting: false }, session);
     expect(store.size()).toBe(1);
     expect(store.getLast()[0]!.tool).toBe("proto_scroll");
   });
@@ -106,10 +79,13 @@ describe("proto_scroll records on success", () => {
 
 describe("mixed proto_* calls preserve ordering", () => {
   it("proto_overlay then proto_wire → getLast(2) returns [overlay, wire]", async () => {
-    const session = makeStubSession({ successCount: 1, errorCount: 0, warningCount: 0, results: [] });
     const store = new HistoryStore();
-    await callProtoOverlay(session, store, { overlays: [{ mode: "open", from: "1:1", overlay: "1:9" }] });
-    await callProtoWire(session, store, { wires: [{ from: "1:2", to: "1:3" }] });
+    const tools = makeTools(store);
+    const overlayHandler = findHandler(tools, "proto_overlay");
+    const wireHandler = findHandler(tools, "proto_wire");
+    const session = makeStubSession({ successCount: 1, errorCount: 0, warningCount: 0, results: [] });
+    await overlayHandler({ overlays: [{ mode: "open", from: "1:1", overlay: "1:9" }], replaceExisting: false }, session);
+    await wireHandler({ wires: [{ from: "1:2", to: "1:3" }], replaceExisting: false }, session);
     const last2 = store.getLast(2);
     expect(last2).toHaveLength(2);
     expect(last2[0]!.tool).toBe("proto_overlay");
