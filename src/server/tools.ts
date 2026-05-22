@@ -23,6 +23,7 @@ import {
 } from "../mcp-server/protoTools.js";
 import type { CommandName } from "../mcp-server/types.js";
 import type { PluginSession } from "./sessions.js";
+import type { HistoryStore } from "./history.js";
 
 type ToolEntry =
   | {
@@ -128,7 +129,11 @@ export const TOOLS: ToolEntry[] = [
   },
 ];
 
-export function registerToolHandlers(mcp: Server, session: PluginSession): void {
+export function registerToolHandlers(
+  mcp: Server,
+  session: PluginSession,
+  historyStore: HistoryStore,
+): void {
   mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: TOOLS.map((t) => ({
       name: t.name,

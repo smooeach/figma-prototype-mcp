@@ -4,15 +4,17 @@ import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { PluginSession } from "./sessions.js";
 import { attachPluginWebSocket } from "./plugin-ws.js";
 import { registerToolHandlers } from "./tools.js";
+import { HistoryStore } from "./history.js";
 
 const PORT = Number(process.env.PORT ?? 3000);
 
 const session = new PluginSession();
+const historyStore = new HistoryStore();
 const mcp = new Server(
   { name: "figma-prototype-mcp", version: "0.18.0" },
   { capabilities: { tools: {} } }
 );
-registerToolHandlers(mcp, session);
+registerToolHandlers(mcp, session, historyStore);
 
 const app = express();
 const transports = new Map<string, SSEServerTransport>();
