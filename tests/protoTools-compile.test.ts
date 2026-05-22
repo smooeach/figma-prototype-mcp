@@ -5,11 +5,15 @@ import {
   ProtoScrollInput,
   ProtoBackInput,
   ProtoUrlInput,
+  ProtoSetVariableInput,
+  ProtoToggleVariableInput,
   compileProtoWire,
   compileProtoOverlay,
   compileProtoScroll,
   compileProtoBack,
   compileProtoUrl,
+  compileProtoSetVariable,
+  compileProtoToggleVariable,
 } from "../src/mcp-server/protoTools.js";
 import { CreateReactionsInput } from "../src/mcp-server/tools.js";
 
@@ -315,5 +319,89 @@ describe("compileProtoUrl", () => {
     expect(out.connections).toHaveLength(2);
     expect((out.connections[0]!.action as { url: string }).url).toBe("https://a.com");
     expect((out.connections[1]!.action as { url: string; openInNewTab: boolean }).openInNewTab).toBe(true);
+  });
+});
+
+describe("compileProtoSetVariable", () => {
+  it("compiles a minimal set (defaults ON_CLICK, no transition)", () => {
+    const input = ProtoSetVariableInput.parse({
+      sets: [{ from: "1:1", variable: "showMenu", value: true }],
+    });
+    const out = compileProtoSetVariable(input);
+    expect(out.connections[0]!.action).toEqual({
+      type: "set_variable",
+      variable: "showMenu",
+      value: true,
+    });
+    expect(out.connections[0]!.trigger).toBe("ON_CLICK");
+    expect("transition" in out.connections[0]!).toBe(false);
+    expect(CreateReactionsInput.safeParse(out).success).toBe(true);
+  });
+
+  it("compiles a number value", () => {
+    const input = ProtoSetVariableInput.parse({
+      sets: [{ from: "1:1", variable: "score", value: 100 }],
+    });
+    const action = compileProtoSetVariable(input).connections[0]!.action;
+    expect(action).toEqual({ type: "set_variable", variable: "score", value: 100 });
+  });
+
+  it("compiles a string value (hex passthrough for COLOR)", () => {
+    const input = ProtoSetVariableInput.parse({
+      sets: [{ from: "1:1", variable: "bgColor", value: "#FF8800" }],
+    });
+    const action = compileProtoSetVariable(input).connections[0]!.action;
+    expect(action).toEqual({ type: "set_variable", variable: "bgColor", value: "#FF8800" });
+  });
+
+  it("forwards trigger override", () => {
+    const input = ProtoSetVariableInput.parse({
+      sets: [{ from: "1:1", variable: "x", value: true, trigger: "ON_HOVER" }],
+    });
+    expect(compileProtoSetVariable(input).connections[0]!.trigger).toBe("ON_HOVER");
+  });
+
+  it("compiles batch of multiple sets", () => {
+    const input = ProtoSetVariableInput.parse({
+      sets: [
+        { from: "1:1", variable: "a", value: true },
+        { from: "1:2", variable: "b", value: 42 },
+      ],
+    });
+    const out = compileProtoSetVariable(input);
+    expect(out.connections).toHaveLength(2);
+  });
+});
+
+describe("compileProtoToggleVariable", () => {
+  it("compiles a minimal toggle (defaults ON_CLICK, no transition)", () => {
+    const input = ProtoToggleVariableInput.parse({
+      toggles: [{ from: "1:1", variable: "showMenu" }],
+    });
+    const out = compileProtoToggleVariable(input);
+    expect(out.connections[0]!.action).toEqual({
+      type: "toggle_variable",
+      variable: "showMenu",
+    });
+    expect(out.connections[0]!.trigger).toBe("ON_CLICK");
+    expect("transition" in out.connections[0]!).toBe(false);
+    expect(CreateReactionsInput.safeParse(out).success).toBe(true);
+  });
+
+  it("forwards trigger override", () => {
+    const input = ProtoToggleVariableInput.parse({
+      toggles: [{ from: "1:1", variable: "showMenu", trigger: "ON_PRESS" }],
+    });
+    expect(compileProtoToggleVariable(input).connections[0]!.trigger).toBe("ON_PRESS");
+  });
+
+  it("compiles batch of multiple toggles", () => {
+    const input = ProtoToggleVariableInput.parse({
+      toggles: [
+        { from: "1:1", variable: "a" },
+        { from: "1:2", variable: "b" },
+      ],
+    });
+    expect(compileProtoToggleVariable(input).connections).toHaveLength(2);
   });
 });

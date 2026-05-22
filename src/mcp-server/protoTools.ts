@@ -222,3 +222,35 @@ export function compileProtoUrl(input: ProtoUrlInput): CreateReactionsInputType 
   });
   return { connections, replaceExisting: input.replaceExisting };
 }
+
+export function compileProtoSetVariable(input: ProtoSetVariableInput): CreateReactionsInputType {
+  const connections: Connection[] = input.sets.map((s) => {
+    const action: Connection["action"] = {
+      type: "set_variable",
+      variable: s.variable,
+      value: s.value,
+    };
+    // No `transition` — create_reactions zod schema defaults it to "INSTANT".
+    return {
+      sourceNodeId: s.from,
+      trigger: s.trigger ?? DEFAULT_TRIGGER,
+      action,
+    } as Connection;
+  });
+  return { connections, replaceExisting: input.replaceExisting };
+}
+
+export function compileProtoToggleVariable(input: ProtoToggleVariableInput): CreateReactionsInputType {
+  const connections: Connection[] = input.toggles.map((t) => {
+    const action: Connection["action"] = {
+      type: "toggle_variable",
+      variable: t.variable,
+    };
+    return {
+      sourceNodeId: t.from,
+      trigger: t.trigger ?? DEFAULT_TRIGGER,
+      action,
+    } as Connection;
+  });
+  return { connections, replaceExisting: input.replaceExisting };
+}
