@@ -65,3 +65,66 @@ describe("motionPresets — M3", () => {
     expect(() => resolveMotion("NOT_A_PRESET" as never)).toThrow(/Unknown motion preset/);
   });
 });
+
+describe("motionPresets — HIG", () => {
+  it("HIG_DEFAULT → SMART_ANIMATE + GENTLE (no duration)", () => {
+    expect(resolveMotion("HIG_DEFAULT")).toEqual({
+      type: "SMART_ANIMATE",
+      easing: "GENTLE",
+    });
+  });
+
+  it("HIG_SMOOTH → SMART_ANIMATE + SLOW", () => {
+    expect(resolveMotion("HIG_SMOOTH")).toEqual({
+      type: "SMART_ANIMATE",
+      easing: "SLOW",
+    });
+  });
+
+  it("HIG_SNAPPY → SMART_ANIMATE + QUICK", () => {
+    expect(resolveMotion("HIG_SNAPPY")).toEqual({
+      type: "SMART_ANIMATE",
+      easing: "QUICK",
+    });
+  });
+
+  it("HIG_BOUNCY → SMART_ANIMATE + BOUNCY", () => {
+    expect(resolveMotion("HIG_BOUNCY")).toEqual({
+      type: "SMART_ANIMATE",
+      easing: "BOUNCY",
+    });
+  });
+
+  it("HIG presets have no `duration` field (springs ignore duration in Figma runtime)", () => {
+    for (const name of ["HIG_DEFAULT", "HIG_SMOOTH", "HIG_SNAPPY", "HIG_BOUNCY"] as const) {
+      const t = resolveMotion(name) as Record<string, unknown>;
+      expect(t).not.toHaveProperty("duration");
+    }
+  });
+
+  it("every HIG preset passes the TransitionInput zod schema", () => {
+    for (const name of ["HIG_DEFAULT", "HIG_SMOOTH", "HIG_SNAPPY", "HIG_BOUNCY"] as const) {
+      const parsed = TransitionInput.safeParse(resolveMotion(name));
+      expect(parsed.success, `${name} should pass TransitionInput`).toBe(true);
+    }
+  });
+});
+
+describe("motionPresets — resolveMotion fallbacks", () => {
+  it("undefined → defaults to M3_EMPHASIZED", () => {
+    expect(resolveMotion(undefined)).toEqual(resolveMotion("M3_EMPHASIZED"));
+  });
+
+  it("a full TransitionInput object passes through unchanged", () => {
+    const custom: import("../src/mcp-server/tools.js").TransitionInput = {
+      type: "DISSOLVE",
+      duration: 0.7,
+      easing: "EASE_OUT",
+    };
+    expect(resolveMotion(custom)).toEqual(custom);
+  });
+
+  it("PRESET_NAMES length is 10", () => {
+    expect(PRESET_NAMES.length).toBe(10);
+  });
+});

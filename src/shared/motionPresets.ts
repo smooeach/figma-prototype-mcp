@@ -7,6 +7,10 @@ export const PRESET_NAMES = [
   "M3_STANDARD",
   "M3_STANDARD_DECELERATE",
   "M3_STANDARD_ACCELERATE",
+  "HIG_DEFAULT",
+  "HIG_SMOOTH",
+  "HIG_SNAPPY",
+  "HIG_BOUNCY",
 ] as const;
 
 export type PresetName = (typeof PRESET_NAMES)[number];
@@ -42,6 +46,10 @@ const PRESETS: Record<PresetName, TransitionInput> = {
     duration: 0.2,
     easing: { type: "CUSTOM_CUBIC_BEZIER", x1: 0.3, y1: 0, x2: 1, y2: 1 },
   },
+  HIG_DEFAULT: { type: "SMART_ANIMATE", easing: "GENTLE" },
+  HIG_SMOOTH:  { type: "SMART_ANIMATE", easing: "SLOW"   },
+  HIG_SNAPPY:  { type: "SMART_ANIMATE", easing: "QUICK"  },
+  HIG_BOUNCY:  { type: "SMART_ANIMATE", easing: "BOUNCY" },
 };
 
 export function isPresetName(s: string): s is PresetName {
