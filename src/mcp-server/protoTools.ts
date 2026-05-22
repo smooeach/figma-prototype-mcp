@@ -168,3 +168,30 @@ export function compileProtoScroll(input: ProtoScrollInput): CreateReactionsInpu
   });
   return { connections, replaceExisting: input.replaceExisting };
 }
+
+export function compileProtoBack(input: ProtoBackInput): CreateReactionsInputType {
+  const connections: Connection[] = input.backs.map((b) => {
+    const action: Connection["action"] = { type: "back" };
+    return buildConnection(b.from, b.trigger, b.motion, action);
+  });
+  return { connections, replaceExisting: input.replaceExisting };
+}
+
+export function compileProtoUrl(input: ProtoUrlInput): CreateReactionsInputType {
+  const connections: Connection[] = input.urls.map((u) => {
+    const action: Connection["action"] = {
+      type: "url",
+      url: u.url,
+      openInNewTab: u.openInNewTab ?? false,
+    };
+    // Deliberately do NOT set `transition` — let create_reactions zod default it to "INSTANT".
+    // The Connection type requires `transition` (post-parse), but we're returning the PRE-parse
+    // shape that create_reactions consumes, where `transition: TransitionInput.default("INSTANT")`.
+    return {
+      sourceNodeId: u.from,
+      trigger: u.trigger ?? DEFAULT_TRIGGER,
+      action,
+    } as Connection;
+  });
+  return { connections, replaceExisting: input.replaceExisting };
+}

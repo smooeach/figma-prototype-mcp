@@ -3,9 +3,13 @@ import {
   ProtoWireInput,
   ProtoOverlayInput,
   ProtoScrollInput,
+  ProtoBackInput,
+  ProtoUrlInput,
   compileProtoWire,
   compileProtoOverlay,
   compileProtoScroll,
+  compileProtoBack,
+  compileProtoUrl,
 } from "../src/mcp-server/protoTools.js";
 import { CreateReactionsInput } from "../src/mcp-server/tools.js";
 
@@ -220,5 +224,96 @@ describe("compileProtoScroll", () => {
     expect(compileProtoScroll(input).connections[0]!.action).toEqual({
       type: "scroll", targetNodeId: "1:5", resetScrollPosition: false,
     });
+  });
+});
+
+describe("compileProtoBack", () => {
+  it("compiles a single back (defaults: ON_CLICK + M3_EMPHASIZED)", () => {
+    const input = ProtoBackInput.parse({ backs: [{ from: "1:1" }] });
+    const out = compileProtoBack(input);
+    expect(out).toEqual({
+      replaceExisting: false,
+      connections: [{
+        sourceNodeId: "1:1",
+        trigger: "ON_CLICK",
+        transition: M3_EMPHASIZED_TRANSITION,
+        action: { type: "back" },
+      }],
+    });
+    expect(CreateReactionsInput.safeParse(out).success).toBe(true);
+  });
+
+  it("compiles with HIG_SNAPPY motion (named spring on back)", () => {
+    const input = ProtoBackInput.parse({ backs: [{ from: "1:1", motion: "HIG_SNAPPY" }] });
+    const out = compileProtoBack(input);
+    expect(out.connections[0]!.transition).toEqual({
+      type: "SMART_ANIMATE",
+      easing: "QUICK",
+    });
+  });
+
+  it("forwards replaceExisting on the batch", () => {
+    const input = ProtoBackInput.parse({ backs: [{ from: "1:1" }], replaceExisting: true });
+    expect(compileProtoBack(input).replaceExisting).toBe(true);
+  });
+
+  it("compiles a batch of multiple backs with different triggers", () => {
+    const input = ProtoBackInput.parse({
+      backs: [
+        { from: "1:1" },
+        { from: "1:2", trigger: "ON_HOVER" },
+      ],
+    });
+    const out = compileProtoBack(input);
+    expect(out.connections).toHaveLength(2);
+    expect(out.connections[0]!.trigger).toBe("ON_CLICK");
+    expect(out.connections[1]!.trigger).toBe("ON_HOVER");
+  });
+});
+
+describe("compileProtoUrl", () => {
+  it("compiles a minimal url (no openInNewTab → defaults false; no transition)", () => {
+    const input = ProtoUrlInput.parse({ urls: [{ from: "1:1", url: "https://figma.com" }] });
+    const out = compileProtoUrl(input);
+    expect(out.connections[0]!.action).toEqual({
+      type: "url",
+      url: "https://figma.com",
+      openInNewTab: false,
+    });
+    // No `transition` in the compiled connection — create_reactions zod defaults it to "INSTANT".
+    expect("transition" in out.connections[0]!).toBe(false);
+    // Round-trip through create_reactions schema must succeed (transition default fires).
+    expect(CreateReactionsInput.safeParse(out).success).toBe(true);
+  });
+
+  it("forwards openInNewTab when true", () => {
+    const input = ProtoUrlInput.parse({
+      urls: [{ from: "1:1", url: "https://figma.com", openInNewTab: true }],
+    });
+    expect(compileProtoUrl(input).connections[0]!.action).toEqual({
+      type: "url",
+      url: "https://figma.com",
+      openInNewTab: true,
+    });
+  });
+
+  it("forwards trigger override", () => {
+    const input = ProtoUrlInput.parse({
+      urls: [{ from: "1:1", url: "https://figma.com", trigger: "ON_HOVER" }],
+    });
+    expect(compileProtoUrl(input).connections[0]!.trigger).toBe("ON_HOVER");
+  });
+
+  it("compiles batch of multiple urls", () => {
+    const input = ProtoUrlInput.parse({
+      urls: [
+        { from: "1:1", url: "https://a.com" },
+        { from: "1:2", url: "https://b.com", openInNewTab: true },
+      ],
+    });
+    const out = compileProtoUrl(input);
+    expect(out.connections).toHaveLength(2);
+    expect((out.connections[0]!.action as { url: string }).url).toBe("https://a.com");
+    expect((out.connections[1]!.action as { url: string; openInNewTab: boolean }).openInNewTab).toBe(true);
   });
 });
