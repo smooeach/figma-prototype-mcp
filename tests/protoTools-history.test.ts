@@ -77,6 +77,51 @@ describe("proto_scroll records on success", () => {
   });
 });
 
+describe("proto_back records on success", () => {
+  it("records one entry with tool='proto_back'", async () => {
+    const store = new HistoryStore();
+    const handler = findHandler(makeTools(store), "proto_back");
+    const session = makeStubSession({ successCount: 1, errorCount: 0, warningCount: 0, results: [] });
+    await handler({ backs: [{ from: "1:1" }], replaceExisting: false }, session);
+    expect(store.size()).toBe(1);
+    expect(store.getLast()[0]!.tool).toBe("proto_back");
+  });
+
+  it("does not record when successCount is 0", async () => {
+    const store = new HistoryStore();
+    const handler = findHandler(makeTools(store), "proto_back");
+    const session = makeStubSession({ successCount: 0, errorCount: 1, warningCount: 0, results: [] });
+    await handler({ backs: [{ from: "1:1" }], replaceExisting: false }, session);
+    expect(store.size()).toBe(0);
+  });
+});
+
+describe("proto_url records on success", () => {
+  it("records one entry with tool='proto_url'", async () => {
+    const store = new HistoryStore();
+    const handler = findHandler(makeTools(store), "proto_url");
+    const session = makeStubSession({ successCount: 1, errorCount: 0, warningCount: 0, results: [] });
+    await handler(
+      { urls: [{ from: "1:1", url: "https://figma.com" }], replaceExisting: false },
+      session,
+    );
+    expect(store.size()).toBe(1);
+    expect(store.getLast()[0]!.tool).toBe("proto_url");
+  });
+
+  it("captures openInNewTab in the recorded input", async () => {
+    const store = new HistoryStore();
+    const handler = findHandler(makeTools(store), "proto_url");
+    const session = makeStubSession({ successCount: 1, errorCount: 0, warningCount: 0, results: [] });
+    await handler(
+      { urls: [{ from: "1:1", url: "https://figma.com", openInNewTab: true }], replaceExisting: false },
+      session,
+    );
+    const entry = store.getLast()[0]!;
+    expect((entry.input as { urls: { openInNewTab: boolean }[] }).urls[0]!.openInNewTab).toBe(true);
+  });
+});
+
 describe("mixed proto_* calls preserve ordering", () => {
   it("proto_overlay then proto_wire → getLast(2) returns [overlay, wire]", async () => {
     const store = new HistoryStore();

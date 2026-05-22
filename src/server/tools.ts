@@ -17,10 +17,14 @@ import {
   ProtoWireInput,
   ProtoOverlayInput,
   ProtoScrollInput,
+  ProtoBackInput,
+  ProtoUrlInput,
   ProtoGetLastHistoryInput,
   compileProtoWire,
   compileProtoOverlay,
   compileProtoScroll,
+  compileProtoBack,
+  compileProtoUrl,
 } from "../mcp-server/protoTools.js";
 import type { CommandName } from "../mcp-server/types.js";
 import type { PluginSession } from "./sessions.js";
@@ -147,6 +151,35 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         const parsedInput = input as ProtoScrollInput;
         return recordedHandler(historyStore, "proto_scroll", parsedInput, () =>
           session.sendCommand("CREATE_REACTIONS" as CommandName, compileProtoScroll(parsedInput)),
+        );
+      },
+    },
+    {
+      name: "proto_back",
+      description:
+        "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
+        "Wire source nodes to the Back navigation action (pops the prototype history stack — no destination). " +
+        "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally.",
+      schema: ProtoBackInput,
+      handler: async (input, session) => {
+        const parsedInput = input as ProtoBackInput;
+        return recordedHandler(historyStore, "proto_back", parsedInput, () =>
+          session.sendCommand("CREATE_REACTIONS" as CommandName, compileProtoBack(parsedInput)),
+        );
+      },
+    },
+    {
+      name: "proto_url",
+      description:
+        "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
+        "Wire source nodes to the Open URL action. Input `{ urls: [{ from, url, openInNewTab? }] }`. " +
+        "Defaults: trigger=ON_CLICK, openInNewTab=false. No `motion` field — URL is a terminal " +
+        "event and the underlying reaction's transition defaults to INSTANT. Compiles to create_reactions internally.",
+      schema: ProtoUrlInput,
+      handler: async (input, session) => {
+        const parsedInput = input as ProtoUrlInput;
+        return recordedHandler(historyStore, "proto_url", parsedInput, () =>
+          session.sendCommand("CREATE_REACTIONS" as CommandName, compileProtoUrl(parsedInput)),
         );
       },
     },
