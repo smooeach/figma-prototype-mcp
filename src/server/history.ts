@@ -7,7 +7,8 @@ export type ProtoToolName =
   | "proto_back"
   | "proto_url"
   | "proto_set_variable"
-  | "proto_toggle_variable";
+  | "proto_toggle_variable"
+  | "proto_conditional";
 
 export interface HistoryEntry {
   historyId: string;
