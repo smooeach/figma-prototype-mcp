@@ -239,6 +239,7 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "`if.operator` defaults to \"==\" if omitted (most common case); other operators: !=, <, <=, >, >=. " +
         "`then` / `else` each take exactly ONE branch action (single sugar entry). Branch sugar keys: " +
         "`navigate` / `scroll` / `overlay` / `swap` / `close` / `back` / `url` / `set`. " +
+        "`toggle_variable` is not available inside conditional (toggle itself desugars to CONDITIONAL — nesting is meaningless). " +
         "For multi-action branches, use low-level `create_reactions` (escape hatch). " +
         "Overlay/swap branches: if either branch is `{ overlay }` or `{ swap }`, SMART_ANIMATE auto-rewrites to " +
         "DISSOLVE (Figma's overlay transition constraint); the motion intent (duration/easing) is preserved. " +

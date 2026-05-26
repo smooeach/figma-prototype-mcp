@@ -243,4 +243,29 @@ describe("proto_conditional records on success", () => {
     );
     expect(store.size()).toBe(0);
   });
+
+  it("FIFO ring caps proto_conditional history at 10 across 11 calls", async () => {
+    const store = new HistoryStore();
+    const handler = findHandler(makeTools(store), "proto_conditional");
+    const session = makeStubSession({ successCount: 1, errorCount: 0, warningCount: 0, results: [] });
+    for (let i = 0; i < 11; i++) {
+      await handler(
+        {
+          conditions: [{
+            from: `1:${i}`,
+            if: { variable: "x", value: true },
+            then: { close: true },
+          }],
+          replaceExisting: false,
+        },
+        session,
+      );
+    }
+    expect(store.size()).toBe(10);
+    const all = store.getLast(10);
+    // Newest-last: the first entry in `all` should be the call with from="1:1" (i=1),
+    // because i=0 was evicted when the 11th call (i=10) was pushed.
+    expect((all[0]!.input as { conditions: { from: string }[] }).conditions[0]!.from).toBe("1:1");
+    expect((all[9]!.input as { conditions: { from: string }[] }).conditions[0]!.from).toBe("1:10");
+  });
 });
