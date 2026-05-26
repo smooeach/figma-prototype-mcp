@@ -115,6 +115,71 @@ export const ProtoToggleVariableInput = z.object({
   replaceExisting: z.boolean().default(false),
 });
 
+const ComparisonOperator = z.enum(["==", "!=", "<", "<=", ">", ">="]);
+
+const ProtoConditionIf = z.object({
+  variable: z.string().min(1),
+  operator: ComparisonOperator.default("=="),
+  value: z.union([z.boolean(), z.number(), z.string()]),
+}).strict();
+
+const BranchNavigate = z.object({
+  navigate: z.string().min(1),
+  resetScrollPosition: z.boolean().optional(),
+}).strict();
+
+const BranchScroll = z.object({
+  scroll: z.string().min(1),
+  resetScrollPosition: z.boolean().optional(),
+}).strict();
+
+const BranchOverlay = z.object({
+  overlay: z.string().min(1),
+}).strict();
+
+const BranchSwap = z.object({
+  swap: z.string().min(1),
+}).strict();
+
+const BranchClose = z.object({
+  close: z.literal(true),
+}).strict();
+
+const BranchBack = z.object({
+  back: z.literal(true),
+}).strict();
+
+const BranchUrl = z.object({
+  url: z.string().min(1),
+  openInNewTab: z.boolean().optional(),
+}).strict();
+
+const BranchSet = z.object({
+  set: z.object({
+    variable: z.string().min(1),
+    value: z.union([z.boolean(), z.number(), z.string()]),
+  }).strict(),
+}).strict();
+
+const BranchAction = z.union([
+  BranchNavigate, BranchScroll, BranchOverlay, BranchSwap,
+  BranchClose, BranchBack, BranchUrl, BranchSet,
+]);
+
+const ProtoConditionalEntry = z.object({
+  from: z.string().min(1),
+  trigger: TriggerInput.optional(),
+  motion: MotionInputSchema.optional(),
+  if: ProtoConditionIf,
+  then: BranchAction,
+  else: BranchAction.optional(),
+}).strict();
+
+export const ProtoConditionalInput = z.object({
+  conditions: z.array(ProtoConditionalEntry).min(1),
+  replaceExisting: z.boolean().default(false),
+});
+
 export const ProtoGetLastHistoryInput = z.object({
   count: z.number().int().min(1).max(10).default(1),
 });
@@ -126,6 +191,7 @@ export type ProtoBackInput = z.infer<typeof ProtoBackInput>;
 export type ProtoUrlInput = z.infer<typeof ProtoUrlInput>;
 export type ProtoSetVariableInput = z.infer<typeof ProtoSetVariableInput>;
 export type ProtoToggleVariableInput = z.infer<typeof ProtoToggleVariableInput>;
+export type ProtoConditionalInput = z.infer<typeof ProtoConditionalInput>;
 export type ProtoGetLastHistoryInput = z.infer<typeof ProtoGetLastHistoryInput>;
 
 type Connection = CreateReactionsInputType["connections"][number];

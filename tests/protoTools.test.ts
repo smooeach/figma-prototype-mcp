@@ -7,6 +7,7 @@ import {
   ProtoUrlInput,
   ProtoSetVariableInput,
   ProtoToggleVariableInput,
+  ProtoConditionalInput,
 } from "../src/mcp-server/protoTools.js";
 
 describe("ProtoWireInput", () => {
@@ -256,6 +257,209 @@ describe("ProtoToggleVariableInput", () => {
     expect(() =>
       ProtoToggleVariableInput.parse({
         toggles: [{ from: "1:1", variable: "showMenu", motion: "M3_EMPHASIZED" }],
+      }),
+    ).toThrow();
+  });
+});
+
+describe("ProtoConditionalInput — happy paths", () => {
+  it("accepts a minimal entry (then only, no else, operator default '==')", () => {
+    const r = ProtoConditionalInput.parse({
+      conditions: [{
+        from: "1:1",
+        if: { variable: "showMenu", value: true },
+        then: { close: true },
+      }],
+    });
+    expect(r.conditions[0]!.if.operator).toBe("==");
+    expect(r.conditions[0]!.if.variable).toBe("showMenu");
+    expect(r.conditions[0]!.if.value).toBe(true);
+    expect(r.conditions[0]!.then).toEqual({ close: true });
+    expect(r.conditions[0]!.else).toBeUndefined();
+    expect(r.replaceExisting).toBe(false);
+  });
+
+  it("accepts an explicit operator '!='", () => {
+    const r = ProtoConditionalInput.parse({
+      conditions: [{
+        from: "1:1",
+        if: { variable: "step", operator: "!=", value: 1 },
+        then: { back: true },
+      }],
+    });
+    expect(r.conditions[0]!.if.operator).toBe("!=");
+  });
+
+  it("accepts each of the 6 comparison operators", () => {
+    for (const op of ["==", "!=", "<", "<=", ">", ">="] as const) {
+      const r = ProtoConditionalInput.parse({
+        conditions: [{
+          from: "1:1",
+          if: { variable: "n", operator: op, value: 5 },
+          then: { back: true },
+        }],
+      });
+      expect(r.conditions[0]!.if.operator).toBe(op);
+    }
+  });
+
+  it("accepts each branch sugar key (8 keys) as then", () => {
+    const branches = [
+      { navigate: "frame:1" },
+      { scroll: "node:1" },
+      { overlay: "frame:1" },
+      { swap: "frame:1" },
+      { close: true as const },
+      { back: true as const },
+      { url: "https://example.com" },
+      { set: { variable: "x", value: 1 } },
+    ];
+    for (const then of branches) {
+      const r = ProtoConditionalInput.parse({
+        conditions: [{
+          from: "1:1",
+          if: { variable: "x", value: true },
+          then,
+        }],
+      });
+      expect(r.conditions[0]!.then).toMatchObject(then);
+    }
+  });
+
+  it("accepts both then and else (different sugar keys allowed)", () => {
+    const r = ProtoConditionalInput.parse({
+      conditions: [{
+        from: "1:1",
+        if: { variable: "loggedIn", value: true },
+        then: { navigate: "home:1" },
+        else: { navigate: "login:1" },
+      }],
+    });
+    expect(r.conditions[0]!.then).toEqual({ navigate: "home:1" });
+    expect(r.conditions[0]!.else).toEqual({ navigate: "login:1" });
+  });
+
+  it("accepts trigger override on the entry", () => {
+    const r = ProtoConditionalInput.parse({
+      conditions: [{
+        from: "1:1",
+        trigger: "ON_HOVER",
+        if: { variable: "x", value: true },
+        then: { close: true },
+      }],
+    });
+    expect(r.conditions[0]!.trigger).toBe("ON_HOVER");
+  });
+
+  it("accepts motion preset on the entry", () => {
+    const r = ProtoConditionalInput.parse({
+      conditions: [{
+        from: "1:1",
+        motion: "M3_STANDARD",
+        if: { variable: "x", value: true },
+        then: { navigate: "f:1" },
+      }],
+    });
+    expect(r.conditions[0]!.motion).toBe("M3_STANDARD");
+  });
+});
+
+describe("ProtoConditionalInput — rejections", () => {
+  it("rejects empty conditions array", () => {
+    expect(() =>
+      ProtoConditionalInput.parse({ conditions: [] }),
+    ).toThrow();
+  });
+
+  it("rejects missing then", () => {
+    expect(() =>
+      ProtoConditionalInput.parse({
+        conditions: [{ from: "1:1", if: { variable: "x", value: true } }],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects empty then object (no discriminator sugar key)", () => {
+    expect(() =>
+      ProtoConditionalInput.parse({
+        conditions: [{
+          from: "1:1",
+          if: { variable: "x", value: true },
+          then: {},
+        }],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects unknown `motion` field inside a branch sugar (.strict)", () => {
+    expect(() =>
+      ProtoConditionalInput.parse({
+        conditions: [{
+          from: "1:1",
+          if: { variable: "x", value: true },
+          then: { navigate: "f:1", motion: "M3_STANDARD" },
+        }],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects unknown `trigger` field inside a branch sugar (.strict)", () => {
+    expect(() =>
+      ProtoConditionalInput.parse({
+        conditions: [{
+          from: "1:1",
+          if: { variable: "x", value: true },
+          then: { close: true, trigger: "ON_HOVER" },
+        }],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects unknown top-level entry field (.strict)", () => {
+    expect(() =>
+      ProtoConditionalInput.parse({
+        conditions: [{
+          from: "1:1",
+          if: { variable: "x", value: true },
+          then: { close: true },
+          unknown: "x",
+        }],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects invalid operator value", () => {
+    expect(() =>
+      ProtoConditionalInput.parse({
+        conditions: [{
+          from: "1:1",
+          if: { variable: "x", operator: "===", value: 1 },
+          then: { close: true },
+        }],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects if.value of object/array type", () => {
+    expect(() =>
+      ProtoConditionalInput.parse({
+        conditions: [{
+          from: "1:1",
+          if: { variable: "x", value: { nested: true } },
+          then: { close: true },
+        }],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects `close: false` (must be literal true)", () => {
+    expect(() =>
+      ProtoConditionalInput.parse({
+        conditions: [{
+          from: "1:1",
+          if: { variable: "x", value: true },
+          then: { close: false },
+        }],
       }),
     ).toThrow();
   });
