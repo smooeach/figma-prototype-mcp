@@ -21,6 +21,7 @@ import {
   ProtoUrlInput,
   ProtoSetVariableInput,
   ProtoToggleVariableInput,
+  ProtoConditionalInput,
   ProtoGetLastHistoryInput,
   compileProtoWire,
   compileProtoOverlay,
@@ -29,6 +30,7 @@ import {
   compileProtoUrl,
   compileProtoSetVariable,
   compileProtoToggleVariable,
+  compileProtoConditional,
 } from "../mcp-server/protoTools.js";
 import type { CommandName } from "../mcp-server/types.js";
 import type { PluginSession } from "./sessions.js";
@@ -224,6 +226,29 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         const parsedInput = input as ProtoToggleVariableInput;
         return recordedHandler(historyStore, "proto_toggle_variable", parsedInput, () =>
           session.sendCommand("CREATE_REACTIONS" as CommandName, compileProtoToggleVariable(parsedInput)),
+        );
+      },
+    },
+    {
+      name: "proto_conditional",
+      description:
+        "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
+        "Wire a conditional reaction (if/then/else) on a source node based on a variable comparison. " +
+        "The variable is referenced by NAME; the plugin resolves it to the local variable id at runtime. " +
+        "Input `{ conditions: [{ from, if: { variable, operator?, value }, then, else? }] }`. " +
+        "`if.operator` defaults to \"==\" if omitted (most common case); other operators: !=, <, <=, >, >=. " +
+        "`then` / `else` each take exactly ONE branch action (single sugar entry). Branch sugar keys: " +
+        "`navigate` / `scroll` / `overlay` / `swap` / `close` / `back` / `url` / `set`. " +
+        "For multi-action branches, use low-level `create_reactions` (escape hatch). " +
+        "Overlay/swap branches: if either branch is `{ overlay }` or `{ swap }`, SMART_ANIMATE auto-rewrites to " +
+        "DISSOLVE (Figma's overlay transition constraint); the motion intent (duration/easing) is preserved. " +
+        "Variable type must match `if.value` (BOOLEAN/FLOAT/STRING); COLOR variables are NOT comparable. " +
+        "`trigger` / `motion` apply at the conditional level (shared across branches); branch sugars do NOT accept them.",
+      schema: ProtoConditionalInput,
+      handler: async (input, session) => {
+        const parsedInput = input as ProtoConditionalInput;
+        return recordedHandler(historyStore, "proto_conditional", parsedInput, () =>
+          session.sendCommand("CREATE_REACTIONS" as CommandName, compileProtoConditional(parsedInput)),
         );
       },
     },

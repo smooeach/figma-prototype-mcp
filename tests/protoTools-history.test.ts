@@ -200,3 +200,47 @@ describe("proto_toggle_variable records on success", () => {
     expect(store.size()).toBe(0);
   });
 });
+
+describe("proto_conditional records on success", () => {
+  it("records one entry with tool='proto_conditional' and input captured", async () => {
+    const store = new HistoryStore();
+    const handler = findHandler(makeTools(store), "proto_conditional");
+    const session = makeStubSession({ successCount: 1, errorCount: 0, warningCount: 0, results: [] });
+    await handler(
+      {
+        conditions: [{
+          from: "1:1",
+          if: { variable: "showMenu", value: true },
+          then: { close: true },
+          else: { overlay: "menu:1" },
+        }],
+        replaceExisting: false,
+      },
+      session,
+    );
+    expect(store.size()).toBe(1);
+    const entry = store.getLast()[0]!;
+    expect(entry.tool).toBe("proto_conditional");
+    expect(
+      (entry.input as { conditions: { if: { variable: string } }[] }).conditions[0]!.if.variable,
+    ).toBe("showMenu");
+  });
+
+  it("does not record when successCount is 0", async () => {
+    const store = new HistoryStore();
+    const handler = findHandler(makeTools(store), "proto_conditional");
+    const session = makeStubSession({ successCount: 0, errorCount: 1, warningCount: 0, results: [] });
+    await handler(
+      {
+        conditions: [{
+          from: "1:1",
+          if: { variable: "x", value: true },
+          then: { close: true },
+        }],
+        replaceExisting: false,
+      },
+      session,
+    );
+    expect(store.size()).toBe(0);
+  });
+});
