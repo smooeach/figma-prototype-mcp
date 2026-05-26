@@ -457,6 +457,20 @@ describe("compileProtoConditional — basic shape", () => {
     expect(action.condition.operator).toBe(">=");
   });
 
+  it("preserves explicit operator '!='", () => {
+    const input = ProtoConditionalInput.parse({
+      conditions: [{
+        from: "1:1",
+        if: { variable: "state", operator: "!=", value: "idle" },
+        then: { close: true },
+      }],
+    });
+    const action = compileProtoConditional(input).connections[0]!.action as {
+      condition: { operator: string };
+    };
+    expect(action.condition.operator).toBe("!=");
+  });
+
   it("compiles both then and else", () => {
     const input = ProtoConditionalInput.parse({
       conditions: [{
@@ -513,6 +527,11 @@ describe("compileProtoConditional — branch sugar mapping (8 entries)", () => {
   it("scroll → { type: 'scroll', targetNodeId }", () => {
     expect(compileWithThen({ scroll: "node:1" }))
       .toEqual({ type: "scroll", targetNodeId: "node:1" });
+  });
+
+  it("scroll with resetScrollPosition forwarded", () => {
+    expect(compileWithThen({ scroll: "node:1", resetScrollPosition: true }))
+      .toEqual({ type: "scroll", targetNodeId: "node:1", resetScrollPosition: true });
   });
 
   it("overlay → { type: 'overlay', targetFrameId }", () => {
@@ -614,6 +633,13 @@ describe("compileProtoConditional — overlay/swap rewrite", () => {
     });
     const out = compileProtoConditional(input);
     expect(CreateReactionsInput.safeParse(out).success).toBe(true);
+    // M3_STANDARD resolves to a SMART_ANIMATE-based motion preset (object form with type SMART_ANIMATE)
+    const transition = out.connections[0]!.transition as { type?: string } | string;
+    if (typeof transition === "string") {
+      expect(transition).toBe("SMART_ANIMATE");
+    } else {
+      expect(transition.type).toBe("SMART_ANIMATE");
+    }
   });
 });
 
