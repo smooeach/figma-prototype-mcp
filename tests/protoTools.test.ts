@@ -463,4 +463,16 @@ describe("ProtoConditionalInput — rejections", () => {
       }),
     ).toThrow();
   });
+
+  it("rejects then with two sugar keys (navigate + overlay) — strict prevents ambiguity", () => {
+    expect(() =>
+      ProtoConditionalInput.parse({
+        conditions: [{
+          from: "1:1",
+          if: { variable: "x", value: true },
+          then: { navigate: "f:1", overlay: "f:2" },
+        }],
+      }),
+    ).toThrow();
+  });
 });
