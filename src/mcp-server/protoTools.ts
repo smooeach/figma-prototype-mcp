@@ -320,3 +320,61 @@ export function compileProtoToggleVariable(input: ProtoToggleVariableInput): Cre
   });
   return { connections, replaceExisting: input.replaceExisting };
 }
+
+type NonConditionalAction = Extract<
+  Connection["action"],
+  { type: "navigate" | "scroll" | "overlay" | "close" | "back" | "url" | "swap_overlay" | "set_variable" }
+>;
+
+function compileBranchAction(b: z.infer<typeof BranchAction>): NonConditionalAction {
+  if ("navigate" in b) {
+    return b.resetScrollPosition === undefined
+      ? { type: "navigate", targetFrameId: b.navigate }
+      : { type: "navigate", targetFrameId: b.navigate, resetScrollPosition: b.resetScrollPosition };
+  }
+  if ("scroll" in b) {
+    return b.resetScrollPosition === undefined
+      ? { type: "scroll", targetNodeId: b.scroll }
+      : { type: "scroll", targetNodeId: b.scroll, resetScrollPosition: b.resetScrollPosition };
+  }
+  if ("overlay" in b) return { type: "overlay", targetFrameId: b.overlay };
+  if ("swap" in b)    return { type: "swap_overlay", targetFrameId: b.swap };
+  if ("close" in b)   return { type: "close" };
+  if ("back" in b)    return { type: "back" };
+  if ("url" in b)     return { type: "url", url: b.url, openInNewTab: b.openInNewTab ?? false };
+  if ("set" in b)     return { type: "set_variable", variable: b.set.variable, value: b.set.value };
+  throw new Error("unreachable: zod parse guarantees BranchAction coverage");
+}
+
+function branchUsesOverlayOrSwap(b: z.infer<typeof BranchAction>): boolean {
+  return "overlay" in b || "swap" in b;
+}
+
+export function compileProtoConditional(input: ProtoConditionalInput): CreateReactionsInputType {
+  const connections: Connection[] = input.conditions.map((c) => {
+    const baseTransition = resolveMotion(c.motion);
+    const needsOverlayRewrite =
+      branchUsesOverlayOrSwap(c.then) ||
+      (c.else !== undefined && branchUsesOverlayOrSwap(c.else));
+    const transition = needsOverlayRewrite ? rewriteForOverlay(baseTransition) : baseTransition;
+
+    const action: Connection["action"] = {
+      type: "conditional",
+      condition: {
+        variable: c.if.variable,
+        operator: c.if.operator,        // zod already applied default "=="
+        value: c.if.value,
+      },
+      then: [compileBranchAction(c.then)],
+      ...(c.else !== undefined && { else: [compileBranchAction(c.else)] }),
+    };
+
+    return {
+      sourceNodeId: c.from,
+      trigger: c.trigger ?? DEFAULT_TRIGGER,
+      transition,
+      action,
+    } as Connection;
+  });
+  return { connections, replaceExisting: input.replaceExisting };
+}

@@ -7,6 +7,7 @@ import {
   ProtoUrlInput,
   ProtoSetVariableInput,
   ProtoToggleVariableInput,
+  ProtoConditionalInput,
   compileProtoWire,
   compileProtoOverlay,
   compileProtoScroll,
@@ -14,6 +15,7 @@ import {
   compileProtoUrl,
   compileProtoSetVariable,
   compileProtoToggleVariable,
+  compileProtoConditional,
 } from "../src/mcp-server/protoTools.js";
 import { CreateReactionsInput } from "../src/mcp-server/tools.js";
 
@@ -403,5 +405,227 @@ describe("compileProtoToggleVariable", () => {
       ],
     });
     expect(compileProtoToggleVariable(input).connections).toHaveLength(2);
+  });
+});
+
+describe("compileProtoConditional — basic shape", () => {
+  it("compiles minimal (then only, no else, default ON_CLICK)", () => {
+    const input = ProtoConditionalInput.parse({
+      conditions: [{
+        from: "1:1",
+        if: { variable: "showMenu", value: true },
+        then: { close: true },
+      }],
+    });
+    const out = compileProtoConditional(input);
+    expect(out.connections[0]!.action).toEqual({
+      type: "conditional",
+      condition: { variable: "showMenu", operator: "==", value: true },
+      then: [{ type: "close" }],
+    });
+    // No `else` key in low-level action when else omitted at proto level.
+    expect("else" in (out.connections[0]!.action as object)).toBe(false);
+    expect(out.connections[0]!.trigger).toBe("ON_CLICK");
+    expect(CreateReactionsInput.safeParse(out).success).toBe(true);
+  });
+
+  it("emits operator '==' explicitly even when proto-level omitted", () => {
+    const input = ProtoConditionalInput.parse({
+      conditions: [{
+        from: "1:1",
+        if: { variable: "x", value: true },         // operator omitted
+        then: { close: true },
+      }],
+    });
+    const action = compileProtoConditional(input).connections[0]!.action as {
+      type: string; condition: { operator: string };
+    };
+    expect(action.condition.operator).toBe("==");
+  });
+
+  it("preserves explicit operator '>='", () => {
+    const input = ProtoConditionalInput.parse({
+      conditions: [{
+        from: "1:1",
+        if: { variable: "step", operator: ">=", value: 2 },
+        then: { close: true },
+      }],
+    });
+    const action = compileProtoConditional(input).connections[0]!.action as {
+      condition: { operator: string };
+    };
+    expect(action.condition.operator).toBe(">=");
+  });
+
+  it("compiles both then and else", () => {
+    const input = ProtoConditionalInput.parse({
+      conditions: [{
+        from: "1:1",
+        if: { variable: "loggedIn", value: true },
+        then: { navigate: "home:1" },
+        else: { navigate: "login:1" },
+      }],
+    });
+    const action = compileProtoConditional(input).connections[0]!.action as {
+      then: unknown[]; else?: unknown[];
+    };
+    expect(action.then).toEqual([{ type: "navigate", targetFrameId: "home:1" }]);
+    expect(action.else).toEqual([{ type: "navigate", targetFrameId: "login:1" }]);
+  });
+
+  it("forwards trigger override", () => {
+    const input = ProtoConditionalInput.parse({
+      conditions: [{
+        from: "1:1",
+        trigger: "ON_HOVER",
+        if: { variable: "x", value: true },
+        then: { close: true },
+      }],
+    });
+    expect(compileProtoConditional(input).connections[0]!.trigger).toBe("ON_HOVER");
+  });
+});
+
+describe("compileProtoConditional — branch sugar mapping (8 entries)", () => {
+  function compileWithThen(then: unknown) {
+    const input = ProtoConditionalInput.parse({
+      conditions: [{
+        from: "1:1",
+        if: { variable: "x", value: true },
+        then,
+      }],
+    });
+    return (compileProtoConditional(input).connections[0]!.action as {
+      then: unknown[];
+    }).then[0];
+  }
+
+  it("navigate → { type: 'navigate', targetFrameId }", () => {
+    expect(compileWithThen({ navigate: "frame:1" }))
+      .toEqual({ type: "navigate", targetFrameId: "frame:1" });
+  });
+
+  it("navigate with resetScrollPosition forwarded", () => {
+    expect(compileWithThen({ navigate: "frame:1", resetScrollPosition: true }))
+      .toEqual({ type: "navigate", targetFrameId: "frame:1", resetScrollPosition: true });
+  });
+
+  it("scroll → { type: 'scroll', targetNodeId }", () => {
+    expect(compileWithThen({ scroll: "node:1" }))
+      .toEqual({ type: "scroll", targetNodeId: "node:1" });
+  });
+
+  it("overlay → { type: 'overlay', targetFrameId }", () => {
+    expect(compileWithThen({ overlay: "frame:1" }))
+      .toEqual({ type: "overlay", targetFrameId: "frame:1" });
+  });
+
+  it("swap → { type: 'swap_overlay', targetFrameId }", () => {
+    expect(compileWithThen({ swap: "frame:1" }))
+      .toEqual({ type: "swap_overlay", targetFrameId: "frame:1" });
+  });
+
+  it("close → { type: 'close' }", () => {
+    expect(compileWithThen({ close: true })).toEqual({ type: "close" });
+  });
+
+  it("back → { type: 'back' }", () => {
+    expect(compileWithThen({ back: true })).toEqual({ type: "back" });
+  });
+
+  it("url → { type: 'url', url, openInNewTab default false }", () => {
+    expect(compileWithThen({ url: "https://x.com" }))
+      .toEqual({ type: "url", url: "https://x.com", openInNewTab: false });
+  });
+
+  it("url with openInNewTab true forwarded", () => {
+    expect(compileWithThen({ url: "https://x.com", openInNewTab: true }))
+      .toEqual({ type: "url", url: "https://x.com", openInNewTab: true });
+  });
+
+  it("set → { type: 'set_variable', variable, value }", () => {
+    expect(compileWithThen({ set: { variable: "x", value: 42 } }))
+      .toEqual({ type: "set_variable", variable: "x", value: 42 });
+  });
+});
+
+describe("compileProtoConditional — overlay/swap rewrite", () => {
+  it("rewrites SMART_ANIMATE → DISSOLVE when then is overlay", () => {
+    const input = ProtoConditionalInput.parse({
+      conditions: [{
+        from: "1:1",
+        motion: "SMART_ANIMATE",
+        if: { variable: "x", value: true },
+        then: { overlay: "frame:1" },
+      }],
+    });
+    const transition = compileProtoConditional(input).connections[0]!.transition as { type?: string } | string;
+    if (typeof transition === "string") {
+      expect(transition).toBe("DISSOLVE");
+    } else {
+      expect(transition.type).toBe("DISSOLVE");
+    }
+  });
+
+  it("rewrites SMART_ANIMATE → DISSOLVE when else is swap", () => {
+    const input = ProtoConditionalInput.parse({
+      conditions: [{
+        from: "1:1",
+        motion: "SMART_ANIMATE",
+        if: { variable: "x", value: true },
+        then: { navigate: "f:1" },
+        else: { swap: "f:2" },
+      }],
+    });
+    const transition = compileProtoConditional(input).connections[0]!.transition as { type?: string } | string;
+    if (typeof transition === "string") {
+      expect(transition).toBe("DISSOLVE");
+    } else {
+      expect(transition.type).toBe("DISSOLVE");
+    }
+  });
+
+  it("does NOT rewrite when neither branch is overlay/swap", () => {
+    const input = ProtoConditionalInput.parse({
+      conditions: [{
+        from: "1:1",
+        motion: "SMART_ANIMATE",
+        if: { variable: "x", value: true },
+        then: { navigate: "f:1" },
+        else: { navigate: "f:2" },
+      }],
+    });
+    const transition = compileProtoConditional(input).connections[0]!.transition as { type?: string } | string;
+    if (typeof transition === "string") {
+      expect(transition).toBe("SMART_ANIMATE");
+    } else {
+      expect(transition.type).toBe("SMART_ANIMATE");
+    }
+  });
+
+  it("preserves M3_STANDARD motion (DISSOLVE-based; not rewritten)", () => {
+    const input = ProtoConditionalInput.parse({
+      conditions: [{
+        from: "1:1",
+        motion: "M3_STANDARD",
+        if: { variable: "x", value: true },
+        then: { navigate: "f:1" },
+      }],
+    });
+    const out = compileProtoConditional(input);
+    expect(CreateReactionsInput.safeParse(out).success).toBe(true);
+  });
+});
+
+describe("compileProtoConditional — batch", () => {
+  it("compiles multiple conditions", () => {
+    const input = ProtoConditionalInput.parse({
+      conditions: [
+        { from: "1:1", if: { variable: "a", value: true }, then: { close: true } },
+        { from: "1:2", if: { variable: "b", value: 1 }, then: { back: true } },
+      ],
+    });
+    const out = compileProtoConditional(input);
+    expect(out.connections).toHaveLength(2);
   });
 });
