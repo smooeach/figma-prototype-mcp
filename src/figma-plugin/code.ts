@@ -18,23 +18,12 @@ import {
 } from "./reaction-builder.js";
 import { CommandQueue } from "./command-queue.js";
 import { validateVariableLiteralCompat, rgbToHex } from "./variable-literal.js";
-
-const COMPARISON_OPERATOR_MAP = {
-  "==": "EQUALS",
-  "!=": "NOT_EQUAL",
-  "<":  "LESS_THAN",
-  "<=": "LESS_THAN_OR_EQUAL",
-  ">":  "GREATER_THAN",
-  ">=": "GREATER_THAN_OR_EQUAL",
-} as const;
-
-type ComparisonOperator = keyof typeof COMPARISON_OPERATOR_MAP;
-
-// Inverse of COMPARISON_OPERATOR_MAP — used by list_reactions echo to decode
-// Figma's ExpressionFunction back to our operator literal.
-const OPERATOR_INVERSE: Record<string, string> = Object.fromEntries(
-  Object.entries(COMPARISON_OPERATOR_MAP).map(([k, v]) => [v, k])
-);
+import {
+  buildConditionExpression,
+  decodeConditionExpression,
+  detectTogglePattern,
+  type ComparisonOperator,
+} from "./condition-codec.js";
 
 figma.showUI(__html__, { width: 320, height: 220 });
 
@@ -340,21 +329,12 @@ async function buildCondition(input: {
     input.value,
     "comparison",
   );
-  const condition = {
-    type: "EXPRESSION",
-    resolvedType: "BOOLEAN",
-    value: {
-      expressionFunction: COMPARISON_OPERATOR_MAP[input.operator],
-      expressionArguments: [
-        {
-          type: "VARIABLE_ALIAS",
-          resolvedType: variable.resolvedType,
-          value: { type: "VARIABLE_ALIAS", id: variable.id },
-        },
-        literalVD,
-      ],
-    },
-  };
+  const condition = buildConditionExpression({
+    variableId: variable.id,
+    resolvedType: variable.resolvedType,
+    operator: input.operator,
+    literal: literalVD,
+  });
   return { condition, warning };
 }
 
@@ -639,41 +619,6 @@ async function handleCreateReactions(params: {
   return { results, successCount, errorCount, warningCount };
 }
 
-/**
- * Match the exact toggle_variable desugar shape:
- *   blocks[0]: condition (varX == true) + actions [SET_VARIABLE varX = false]
- *   blocks[1]: no condition (else)      + actions [SET_VARIABLE varX = true]
- * Returns the variable id if matched, otherwise null.
- */
-function detectTogglePattern(blocks: any[]): string | null {
-  if (!Array.isArray(blocks) || blocks.length !== 2) return null;
-  const [b0, b1] = blocks;
-  if (b1?.condition !== undefined) return null;
-  // b0 condition shape
-  const cond = b0?.condition;
-  if (!cond || cond.type !== "EXPRESSION" || !cond.value) return null;
-  if (cond.value.expressionFunction !== "EQUALS") return null;
-  const args = cond.value.expressionArguments;
-  if (!Array.isArray(args) || args.length !== 2) return null;
-  const aliasArg = args[0], boolArg = args[1];
-  if (aliasArg?.type !== "VARIABLE_ALIAS") return null;
-  if (boolArg?.type !== "BOOLEAN" || boolArg.value !== true) return null;
-  const varId = aliasArg?.value?.id;
-  if (!varId) return null;
-  // b0 actions
-  const a0 = b0?.actions;
-  if (!Array.isArray(a0) || a0.length !== 1) return null;
-  if (a0[0]?.type !== "SET_VARIABLE") return null;
-  if (a0[0]?.variableId !== varId) return null;
-  if (a0[0]?.variableValue?.type !== "BOOLEAN" || a0[0]?.variableValue?.value !== false) return null;
-  // b1 actions
-  const a1 = b1?.actions;
-  if (!Array.isArray(a1) || a1.length !== 1) return null;
-  if (a1[0]?.type !== "SET_VARIABLE") return null;
-  if (a1[0]?.variableId !== varId) return null;
-  if (a1[0]?.variableValue?.type !== "BOOLEAN" || a1[0]?.variableValue?.value !== true) return null;
-  return varId;
-}
 
 async function encodeActionForListEcho(action: any): Promise<unknown> {
   if (!action || typeof action !== "object") return { type: "UNKNOWN" };
@@ -771,42 +716,24 @@ async function encodeActionForListEcho(action: any): Promise<unknown> {
  * doesn't match our expected EQUALS/comparison pattern.
  */
 async function decodeConditionForEcho(condition: any): Promise<unknown> {
-  if (!condition || condition.type !== "EXPRESSION" || !condition.value) {
-    return { raw: condition };
-  }
-  const expr = condition.value;
-  const fn: string = expr.expressionFunction;
-  const operator = OPERATOR_INVERSE[fn];
-  if (!operator) return { raw: condition };
-  const args = expr.expressionArguments ?? [];
-  if (args.length !== 2) return { raw: condition };
+  const decoded = decodeConditionExpression(condition);
+  if ("raw" in decoded) return { raw: decoded.raw };
 
-  // Args[0] is VARIABLE_ALIAS (the variable), args[1] is a literal
-  const aliasArg = args[0];
-  const literalArg = args[1];
-  if (aliasArg?.type !== "VARIABLE_ALIAS") return { raw: condition };
-
-  const varId = aliasArg.value?.id;
+  // Resolve the variable name from its id (the only impure step).
   let variableName: string | undefined;
-  if (varId) {
+  if (decoded.variableId) {
     try {
-      const v = await figma.variables.getVariableByIdAsync(varId);
+      const v = await figma.variables.getVariableByIdAsync(decoded.variableId);
       variableName = v?.name;
     } catch {
       // Variable may have been deleted; leave name undefined
     }
   }
 
-  // Extract literal value
-  let value: boolean | number | string | undefined;
-  if (literalArg?.type === "BOOLEAN" || literalArg?.type === "FLOAT" || literalArg?.type === "STRING") {
-    value = literalArg.value;
-  }
-
   return {
-    variable: variableName ?? `<id:${varId}>`,
-    operator,
-    value,
+    variable: variableName ?? `<id:${decoded.variableId}>`,
+    operator: decoded.operator,
+    value: decoded.value,
     raw: variableName === undefined ? condition : undefined, // keep raw if we lost the name
   };
 }
