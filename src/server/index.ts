@@ -1,11 +1,11 @@
 import express, { type Request, type Response } from "express";
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { readFileSync } from "node:fs";
 import { PluginSession } from "./sessions.js";
 import { attachPluginWebSocket } from "./plugin-ws.js";
-import { registerToolHandlers } from "./tools.js";
+import { createMcpServer } from "./tools.js";
 import { HistoryStore } from "./history.js";
+import { SseSession } from "./sse-session.js";
 
 const pkg = JSON.parse(
   readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
@@ -15,24 +15,20 @@ const PORT = Number(process.env.PORT ?? 3000);
 
 const session = new PluginSession();
 const historyStore = new HistoryStore();
-const mcp = new Server(
-  { name: "figma-prototype-mcp", version: pkg.version },
-  { capabilities: { tools: {} } }
-);
-registerToolHandlers(mcp, session, historyStore);
+const sse = new SseSession<SSEServerTransport>();
 
 const app = express();
-const transports = new Map<string, SSEServerTransport>();
 
 app.get("/sse", async (_req: Request, res: Response) => {
+  const server = createMcpServer(session, historyStore, pkg.version);
   const transport = new SSEServerTransport("/messages", res);
-  transports.set(transport.sessionId, transport);
-  res.on("close", () => transports.delete(transport.sessionId));
-  await mcp.connect(transport);
+  sse.activate(server, transport); // closes any prior active stream (newest-wins)
+  res.on("close", () => sse.clear(transport));
+  await server.connect(transport);
 });
 
 app.post("/messages", express.json(), async (req: Request, res: Response) => {
-  const t = transports.get(String(req.query.sessionId ?? ""));
+  const t = sse.get(String(req.query.sessionId ?? ""));
   if (!t) {
     res.status(400).send("unknown session");
     return;

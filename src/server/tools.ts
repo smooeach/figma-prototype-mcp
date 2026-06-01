@@ -304,3 +304,22 @@ export function registerToolHandlers(
     }
   });
 }
+
+/**
+ * Build a fresh MCP Server with all tool handlers registered, sharing the
+ * process-singleton PluginSession + HistoryStore. One Server per SSE connection
+ * (see SseSession) — avoids reusing a single Server's transport state across
+ * sequential client connections.
+ */
+export function createMcpServer(
+  session: PluginSession,
+  historyStore: HistoryStore,
+  version: string,
+): Server {
+  const server = new Server(
+    { name: "figma-prototype-mcp", version },
+    { capabilities: { tools: {} } },
+  );
+  registerToolHandlers(server, session, historyStore);
+  return server;
+}
