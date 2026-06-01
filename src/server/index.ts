@@ -22,9 +22,9 @@ const app = express();
 app.get("/sse", async (_req: Request, res: Response) => {
   const server = createMcpServer(session, historyStore, pkg.version);
   const transport = new SSEServerTransport("/messages", res);
-  sse.activate(server, transport); // closes any prior active stream (newest-wins)
   res.on("close", () => sse.clear(transport));
-  await server.connect(transport);
+  await server.connect(transport); // establish first (sends the SSE endpoint event); if this throws, the prior connection stays active
+  sse.activate(server, transport); // then evict any prior + mark this the active connection (newest-wins)
 });
 
 app.post("/messages", express.json(), async (req: Request, res: Response) => {
