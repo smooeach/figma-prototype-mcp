@@ -143,3 +143,14 @@ No live-API surprises expected (pure in-process server-side logic, no Figma runt
 
 - Update server-architecture memory: SSE side now newest-wins single-active, symmetric with the plugin side; the v0.22.0 zombie-SSE friction is resolved.
 - Version bump (patch/minor) + README run-section note if user-visible behavior changes (it doesn't materially — connecting a new client just works now).
+
+---
+
+## Live verification outcome (2026-06-01) — PASS
+
+Server restarted with the new code; Figma plugin auto-reconnected.
+
+- **Newest-wins takeover**: client-A connects (listTools → 15), client-B connects (listTools → 15), then A's follow-up call fails (stream evicted). PASS.
+- **Active client drives the plugin**: a fresh client's `get_canvas_overview` (page "ㄴ MCP - Test Zone") + `list_reactions` on button01 (`1073:30`) returned through the per-connection Server + shared `PluginSession`. PASS.
+
+No live-API surprises (pure in-process server-side change; no Figma runtime surface). The v0.22.0 zombie-SSE friction is resolved: a new connection cleanly replaces a prior/stale one without manual kill+retry.

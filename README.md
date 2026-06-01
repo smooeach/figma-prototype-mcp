@@ -59,6 +59,8 @@ Configure your client to connect to the SSE endpoint:
 
 No `command` / `args` / env vars needed — the URL is enough.
 
+Connecting a new MCP client automatically replaces any previous one (single-active, newest-wins — symmetric with the plugin side). A stale/backgrounded client never blocks a fresh connection; no need to kill it first.
+
 ## High-level tools (recommended)
 
 Nine intent-oriented `proto_*` tools (8 writers + 1 history reader) that wrap `create_reactions` with named motion presets — together they cover the full v1.x action surface (navigate / scroll / overlay / back / url / set & toggle variable / conditional). The lower-level 6 tools below remain available as the escape hatch for multi-action conditional branches, directional transitions (`MOVE_IN` / `PUSH` / `SLIDE_*`), advanced triggers (`ON_DRAG`, `MOUSE_*`, `ON_KEY_DOWN`, media), and any case the high-level surface doesn't cover.
