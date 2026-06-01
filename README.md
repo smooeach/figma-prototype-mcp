@@ -7,8 +7,10 @@ Why this exists: the official Figma MCP doesn't expose a write API for prototype
 ## Architecture
 
 ```
-Claude  <-- stdio -->  MCP server  <-- ws -->  relay  <-- ws -->  Figma plugin
+MCP client (Claude)  <-- SSE/HTTP -->  unified server (Express)  <-- ws -->  Figma plugin
 ```
+
+Since v0.18.0 the MCP server, the WebSocket relay, and the HTTP layer are a **single Express process** on one port (default 3000) — `/sse` for the MCP client, `/ws` for the plugin. The earlier stdio-MCP + standalone-relay split was removed.
 
 ## Install
 
@@ -59,7 +61,7 @@ No `command` / `args` / env vars needed — the URL is enough.
 
 ## High-level tools (recommended)
 
-Three intent-oriented tools that wrap `create_reactions` with named motion presets. The lower-level 6 tools below remain available as the escape hatch for back/url/conditional/variable actions, directional transitions, and any case the high-level surface doesn't cover.
+Nine intent-oriented `proto_*` tools (8 writers + 1 history reader) that wrap `create_reactions` with named motion presets — together they cover the full v1.x action surface (navigate / scroll / overlay / back / url / set & toggle variable / conditional). The lower-level 6 tools below remain available as the escape hatch for multi-action conditional branches, directional transitions (`MOVE_IN` / `PUSH` / `SLIDE_*`), advanced triggers (`ON_DRAG`, `MOUSE_*`, `ON_KEY_DOWN`, media), and any case the high-level surface doesn't cover.
 
 | Tool | Purpose |
 |---|---|
@@ -75,7 +77,7 @@ Three intent-oriented tools that wrap `create_reactions` with named motion prese
 
 ### History stack
 
-The server keeps an in-memory record of every successful `proto_wire` / `proto_overlay` / `proto_scroll` call — `historyId` (UUID), `timestamp`, `tool` name, full parsed `input`, and `result` counts — up to 10 entries (FIFO ring buffer, cleared on server restart). `proto_get_last_history` exposes this so an LLM can resolve natural-language references like "the last thing I made" / "방금 만든 거" without the human re-stating nodeIds. Low-level tools (`create_reactions`, `set_frame_scroll`, etc.) are NOT recorded — only the three `proto_*` entry-points.
+The server keeps an in-memory record of every successful **mutating** `proto_*` call (`proto_wire` / `proto_overlay` / `proto_scroll` / `proto_back` / `proto_url` / `proto_set_variable` / `proto_toggle_variable` / `proto_conditional`) — `historyId` (UUID), `timestamp`, `tool` name, full parsed `input`, and `result` counts — up to 10 entries (FIFO ring buffer, cleared on server restart). `proto_get_last_history` exposes this so an LLM can resolve natural-language references like "the last thing I made" / "방금 만든 거" without the human re-stating nodeIds. Low-level tools (`create_reactions`, `set_frame_scroll`, etc.) are NOT recorded — only the 8 mutating `proto_*` entry-points (`proto_get_last_history` itself is read-only and not recorded).
 
 ### Motion presets
 
@@ -135,12 +137,14 @@ After install + all three components running, verify these scenarios in Figma. E
   Setup: Reuse scenario 9's buttonExternal (`962:22117` in MCP_Test_05) — the URL action wired to https://figma.com.
   (a) Ask: "buttonExternal에서 https://anthropic.com을 새 탭에서 열게 해줘". Expected: reaction replaced. list_reactions on buttonExternal shows action.type=URL, url=https://anthropic.com, openInNewTab=true.
   (b) Ask: "이 버튼 어디로 연결돼 있어?" (buttonExternal selected). Expected: response includes the URL string and the openInNewTab flag.
-- [x] **11. Plugin auto-connect**:
+> **Note (scenarios 11–12):** these were verified at v1.7 / v1.8 against the **pre-v0.18.0 architecture** — a standalone relay (`npm run relay`) plus a channel-based pub/sub UI in the plugin. v0.18.0 (Phase A) merged the relay into the unified server and removed channels (the plugin now auto-connects to `ws://localhost:3000/ws`, single-active session). The steps below are kept as historical acceptance records; the `npm run relay` command and channel input no longer exist.
+
+- [x] **11. Plugin auto-connect** *(pre-v0.18.0 — channel/relay architecture, since removed)*:
   Setup: plugin already connected to `test1` from earlier scenarios.
   (a) Close the Figma plugin UI, then reopen it (Plugins → Development → figma-prototype). Expected: input is pre-filled with `test1` and the status flips to "Connected on channel: test1" automatically — no user input.
   (b) Click **Disconnect**. Input becomes editable. Type a different channel (e.g. `test2`) and click **Connect**. Reload the plugin once more. Expected: input auto-fills with `test2`.
   (c) (Optional cleanup) restore channel back to `test1` before continuing other scenarios.
-- [x] **12. Plugin auto-reconnect**:
+- [x] **12. Plugin auto-reconnect** *(pre-v0.18.0 — channel/relay architecture, since removed)*:
   Setup: plugin connected to `test1`. Relay terminal accessible.
   (a) Stop the relay (Ctrl-C in the relay terminal). Plugin UI status flips to "Reconnecting to test1 in 1s…" then "Reconnecting to test1…" then "Reconnecting to test1 in 2s…" with the next attempt, doubling each time up to 30s. Input stays disabled and the Disconnect button stays visible during retries.
   (b) Restart the relay (`npm run relay`). On the next retry attempt the WS reconnects and the status flips back to "Connected on channel: test1" automatically.
@@ -362,7 +366,7 @@ After install + all three components running, verify these scenarios in Figma. E
 
 ## Known limitations (v1)
 
-- Reaction actions: **Navigate To**, **Scroll To**, **Open Overlay**, **Close Overlay**, **Back**, **Open URL**, **Swap Overlay**, **Conditional** (single comparison, IF/ELSE). No SET_VARIABLE, set-variant (component swap), AND/OR/NOT, nested conditionals, media-runtime.
+- Reaction actions: **Navigate To**, **Scroll To**, **Open Overlay**, **Close Overlay**, **Back**, **Open URL**, **Swap Overlay**, **Set Variable** (boolean / number / string / COLOR-via-hex), **Toggle Variable** (BOOLEAN), **Conditional** (single comparison, IF/ELSE). Not supported: set-variant (component swap), AND/OR/NOT compound conditions, nested conditionals, media-runtime triggers.
 - Default transition is **Instant**. Smart Animate is available as an option but requires matching layer designs.
 - **Figma desktop/web app must be open and the plugin running** — no headless execution.
 - Single-page scope (cross-page navigation untested).
