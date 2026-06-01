@@ -70,6 +70,7 @@ Three intent-oriented tools that wrap `create_reactions` with named motion prese
 | `proto_url` | Wire source nodes to the **Open URL** action. Batch input `{ urls: [{ from, url, openInNewTab?, trigger? }], replaceExisting? }`. No `motion` field — URL is a terminal event; the reaction's transition defaults to INSTANT. |
 | `proto_set_variable` | Wire source nodes to the **Set Variable** action — clicking the source assigns a literal value to a local Figma variable (resolved by name). Batch input `{ sets: [{ from, variable, value, trigger? }], replaceExisting? }`. `value`: boolean / number / string; for COLOR variables, pass a hex string (`"#RRGGBB"` or `"#RRGGBBAA"`). No `motion` field — variable changes are instant. |
 | `proto_toggle_variable` | Wire source nodes to the **Toggle Variable** action — clicking the source flips a local BOOLEAN variable. Batch input `{ toggles: [{ from, variable, trigger? }], replaceExisting? }`. Variable must be BOOLEAN; non-boolean throws at runtime. No `motion` field. |
+| `proto_conditional` | Wire a **conditional reaction** (if/then/else) on a source node based on a variable comparison. Batch input `{ conditions: [{ from, if: { variable, operator?, value }, then, else?, trigger?, motion? }], replaceExisting? }`. `if.operator` defaults to `"=="`. `then`/`else` each take ONE branch sugar entry (single-action). Branch keys: `navigate` / `scroll` / `overlay` / `swap` / `close` / `back` / `url` / `set`. For multi-action branches, use low-level `create_reactions`. Overlay/swap branches: SMART_ANIMATE auto-rewrites to DISSOLVE. |
 | `proto_get_last_history` | Read the in-memory history of recent `proto_*` calls (FIFO ring buffer, capacity 10, server-lifetime). Input `{ count?: 1..10 }`, default 1. Returns `{ entries: HistoryEntry[] }` with entries in oldest-to-newest order. Use to support "modify the last one I made"-style requests by recovering source/target IDs and motion preset, then re-calling with `replaceExisting: true`. |
 
 ### History stack
@@ -323,6 +324,41 @@ After install + all three components running, verify these scenarios in Figma. E
   ```
 
   Inspect Prototype panel: **On Click** → **Toggle Variable** → showMenu (the friendly UI form; internally desugared to CONDITIONAL+2 SET_VARIABLE per v1.17 plugin logic; list_reactions round-trips to the toggle shape). Run prototype mode and confirm the variable flips back and forth on successive clicks. (Live-verified at v0.22.0 ship.)
+
+- [x] **34. `proto_conditional` (BOOLEAN if/then/else)**:
+  Setup: a page with `screen01 > button` and a local BOOLEAN variable named `showMenu` (default false). Reuse the v1.17/v0.22.0 MCP_Test_10 fixture. Also have a menu overlay frame ready.
+
+  ```
+  proto_conditional({
+    conditions: [{
+      from: "<button>",
+      if: { variable: "showMenu", value: true },
+      then: { close: true },
+      else: { overlay: "<menuFrameId>" }
+    }],
+    replaceExisting: true
+  })
+  ```
+
+  Inspect Prototype panel: **On Click** → **Conditional** → If showMenu is true → Close, Else → Open Overlay `<menuFrame>`. Run prototype mode and confirm clicking the button toggles between the two paths based on `showMenu`'s value. (Live-verified at v0.23.0 ship.)
+
+- [x] **35. `proto_conditional` (FLOAT operator + overlay rewrite)**:
+  Setup: same page, plus a FLOAT variable `step` (default 0), a navigation frame target, and an overlay frame target.
+
+  ```
+  proto_conditional({
+    conditions: [{
+      from: "<button>",
+      motion: "SMART_ANIMATE",
+      if: { variable: "step", operator: ">=", value: 2 },
+      then: { navigate: "<navFrameId>" },
+      else: { overlay: "<overlayFrameId>" }
+    }],
+    replaceExisting: true
+  })
+  ```
+
+  Inspect Prototype panel: **On Click** → **Conditional** → If step >= 2 → Navigate to `<navFrame>`, Else → Open Overlay `<overlayFrame>`. The shared transition shown is **Dissolve** (not Smart Animate) because the overlay branch triggers the SMART_ANIMATE → DISSOLVE rewrite. Run prototype mode: with `step` set to 0/1 you see the overlay; with `step` set to 2+ you see the navigation. (Live-verified at v0.23.0 ship.)
 
 ## Known limitations (v1)
 
