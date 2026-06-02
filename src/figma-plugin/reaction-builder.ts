@@ -3,6 +3,7 @@
 
 import type {
   TriggerName as WTriggerName,
+  // not re-exported below, so no name collision — imported unprefixed
   TriggerNoParamType,
   MouseClickType,
   MouseHoverType,
@@ -14,8 +15,8 @@ import type {
   Direction as WDirection,
 } from "../shared/wire-vocabulary.js";
 
-export type TransitionName = WTransitionName;
 // shortcut strings — keep for backward compat at the API surface
+export type TransitionName = WTransitionName;
 
 export type SimpleTransitionType = WSimpleTransitionType;
 
