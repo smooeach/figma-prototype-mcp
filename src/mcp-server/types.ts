@@ -1,5 +1,19 @@
 // Message envelope shared between MCP server, relay, and Figma plugin.
 
+import type {
+  TriggerName,
+  TriggerNoParamType,
+  MouseClickType,
+  MouseHoverType,
+  KeyboardDevice,
+  TransitionName,
+  SimpleTransitionType,
+  DirectionalTransitionType,
+  NamedEasingName,
+  Direction,
+  ComparisonOperator,
+} from "../shared/wire-vocabulary.js";
+
 export type CommandName =
   | "GET_CANVAS_OVERVIEW"
   | "FIND_NODES"
@@ -88,7 +102,7 @@ export type ReactionAction =
   | { type: "toggle_variable"; variable: string }
   | {
       type: "conditional";
-      condition: { variable: string; operator: "==" | "!=" | "<" | "<=" | ">" | ">="; value: boolean | number | string };
+      condition: { variable: string; operator: ComparisonOperator; value: boolean | number | string };
       then: Exclude<ReactionAction, { type: "conditional" } | { type: "toggle_variable" }>[];
       else?: Exclude<ReactionAction, { type: "conditional" } | { type: "toggle_variable" }>[];
     };
@@ -96,39 +110,35 @@ export type ReactionAction =
 export interface ReactionConnectionInput {
   sourceNodeId: string;
   trigger?:
-    | "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "AFTER_TIMEOUT"
-    | { type: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "ON_DRAG" | "ON_MEDIA_END" }
+    | TriggerName
+    | { type: TriggerNoParamType }
     | { type: "AFTER_TIMEOUT"; timeout: number }
-    | { type: "MOUSE_UP" | "MOUSE_DOWN"; delay?: number }
-    | { type: "MOUSE_ENTER" | "MOUSE_LEAVE"; delay?: number }
+    | { type: MouseClickType; delay?: number }
+    | { type: MouseHoverType; delay?: number }
     | { type: "ON_KEY_DOWN";
-        device: "KEYBOARD" | "XBOX_ONE" | "PS4" | "SWITCH_PRO" | "UNKNOWN_CONTROLLER";
+        device: KeyboardDevice;
         keyCodes: number[]; }
     | { type: "ON_MEDIA_HIT"; mediaHitTime: number };
   afterTimeoutSeconds?: number;
   transition?:
-    | "INSTANT" | "DISSOLVE" | "SMART_ANIMATE"
+    | TransitionName
     | {
-        type: "DISSOLVE" | "SMART_ANIMATE" | "SCROLL_ANIMATE";
+        type: SimpleTransitionType;
         duration?: number;
         easing?:
           // 11 named
-          | "LINEAR" | "EASE_IN" | "EASE_OUT" | "EASE_IN_AND_OUT"
-          | "EASE_IN_BACK" | "EASE_OUT_BACK" | "EASE_IN_AND_OUT_BACK"
-          | "GENTLE" | "QUICK" | "BOUNCY" | "SLOW"
+          | NamedEasingName
           // 2 custom flat
           | { type: "CUSTOM_CUBIC_BEZIER"; x1: number; y1: number; x2: number; y2: number }
           | { type: "CUSTOM_SPRING"; mass: number; stiffness: number; damping: number };
       }
     | {
-        type: "MOVE_IN" | "MOVE_OUT" | "PUSH" | "SLIDE_IN" | "SLIDE_OUT";
-        direction: "LEFT" | "RIGHT" | "TOP" | "BOTTOM";
+        type: DirectionalTransitionType;
+        direction: Direction;
         matchLayers?: boolean;
         duration?: number;
         easing?:
-          | "LINEAR" | "EASE_IN" | "EASE_OUT" | "EASE_IN_AND_OUT"
-          | "EASE_IN_BACK" | "EASE_OUT_BACK" | "EASE_IN_AND_OUT_BACK"
-          | "GENTLE" | "QUICK" | "BOUNCY" | "SLOW"
+          | NamedEasingName
           | { type: "CUSTOM_CUBIC_BEZIER"; x1: number; y1: number; x2: number; y2: number }
           | { type: "CUSTOM_SPRING"; mass: number; stiffness: number; damping: number };
       };
