@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
+import { COMPARISON_OPERATOR_MAP } from "../src/figma-plugin/condition-codec.js";
 import {
   TRIGGER_SHORTCUTS,
   TRIGGER_NOPARAM_TYPES,
@@ -47,5 +48,18 @@ describe("wire-vocabulary feeds z.enum", () => {
     const e = z.enum(TRIGGER_SHORTCUTS);
     for (const v of TRIGGER_SHORTCUTS) expect(e.parse(v)).toBe(v);
     expect(() => e.parse("NOT_A_TRIGGER")).toThrow();
+  });
+});
+
+describe("cross-side conformance: shared source reaches both sides", () => {
+  it("the plugin operator-translation map covers exactly the shared operators", () => {
+    expect(Object.keys(COMPARISON_OPERATOR_MAP).sort()).toEqual([...COMPARISON_OPERATORS].sort());
+  });
+
+  it("every shared comparison operator translates to a non-empty Figma function", () => {
+    for (const op of COMPARISON_OPERATORS) {
+      expect(typeof COMPARISON_OPERATOR_MAP[op]).toBe("string");
+      expect(COMPARISON_OPERATOR_MAP[op].length).toBeGreaterThan(0);
+    }
   });
 });
