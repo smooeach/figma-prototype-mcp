@@ -5,6 +5,9 @@
 // from these; the plugin derives `type X = typeof <CONST>[number]`.
 
 // --- Triggers ---
+// Triggers expressible as a bare string shorthand (no params) at the API surface.
+// Not the full Figma trigger surface — ON_DRAG / ON_MEDIA_END / ON_KEY_DOWN /
+// ON_MEDIA_HIT require the object form and appear in the other trigger consts.
 export const TRIGGER_SHORTCUTS = ["ON_CLICK", "ON_HOVER", "ON_PRESS", "AFTER_TIMEOUT"] as const;
 export type TriggerName = (typeof TRIGGER_SHORTCUTS)[number];
 
@@ -24,6 +27,9 @@ export type KeyboardDevice = (typeof KEYBOARD_DEVICES)[number];
 export const TRANSITION_SHORTCUTS = ["INSTANT", "DISSOLVE", "SMART_ANIMATE"] as const;
 export type TransitionName = (typeof TRANSITION_SHORTCUTS)[number];
 
+// Wire-shape transition discriminants. INSTANT is intentionally absent: it
+// resolves to `null` on the wire (no transition object), so it lives only in
+// TRANSITION_SHORTCUTS, not here.
 export const SIMPLE_TRANSITION_TYPES = ["DISSOLVE", "SMART_ANIMATE", "SCROLL_ANIMATE"] as const;
 export type SimpleTransitionType = (typeof SIMPLE_TRANSITION_TYPES)[number];
 
