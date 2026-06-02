@@ -1,15 +1,26 @@
 // Pure functions: convert our tool input to the shape that Figma Plugin API expects
 // when calling node.setReactionsAsync([reaction]).
 
-export type TransitionName = "INSTANT" | "DISSOLVE" | "SMART_ANIMATE";
+import type {
+  TriggerName as WTriggerName,
+  // not re-exported below, so no name collision — imported unprefixed
+  TriggerNoParamType,
+  MouseClickType,
+  MouseHoverType,
+  KeyboardDevice as WKeyboardDevice,
+  TransitionName as WTransitionName,
+  SimpleTransitionType as WSimpleTransitionType,
+  DirectionalTransitionType as WDirectionalTransitionType,
+  NamedEasingName as WNamedEasingName,
+  Direction as WDirection,
+} from "../shared/wire-vocabulary.js";
+
 // shortcut strings — keep for backward compat at the API surface
+export type TransitionName = WTransitionName;
 
-export type SimpleTransitionType = "DISSOLVE" | "SMART_ANIMATE" | "SCROLL_ANIMATE";
+export type SimpleTransitionType = WSimpleTransitionType;
 
-export type NamedEasingName =
-  | "LINEAR" | "EASE_IN" | "EASE_OUT" | "EASE_IN_AND_OUT"
-  | "EASE_IN_BACK" | "EASE_OUT_BACK" | "EASE_IN_AND_OUT_BACK"
-  | "GENTLE" | "QUICK" | "BOUNCY" | "SLOW";
+export type NamedEasingName = WNamedEasingName;
 
 // Backward-compat alias.
 export type EasingName = NamedEasingName;
@@ -52,10 +63,9 @@ export interface SimpleTransitionInput {
   easing?: EasingInput;    // default "EASE_OUT"
 }
 
-export type DirectionalTransitionType =
-  "MOVE_IN" | "MOVE_OUT" | "PUSH" | "SLIDE_IN" | "SLIDE_OUT";
+export type DirectionalTransitionType = WDirectionalTransitionType;
 
-export type Direction = "LEFT" | "RIGHT" | "TOP" | "BOTTOM";
+export type Direction = WDirection;
 
 export interface DirectionalTransitionInput {
   type: DirectionalTransitionType;
@@ -66,17 +76,16 @@ export interface DirectionalTransitionInput {
 }
 
 export type TransitionInput = TransitionName | SimpleTransitionInput | DirectionalTransitionInput;
-export type TriggerName = "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "AFTER_TIMEOUT";
+export type TriggerName = WTriggerName;
 
-export type KeyboardDevice =
-  | "KEYBOARD" | "XBOX_ONE" | "PS4" | "SWITCH_PRO" | "UNKNOWN_CONTROLLER";
+export type KeyboardDevice = WKeyboardDevice;
 
 export type TriggerInput =
-  | "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "AFTER_TIMEOUT"
-  | { type: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "ON_DRAG" | "ON_MEDIA_END" }
+  | TriggerName
+  | { type: TriggerNoParamType }
   | { type: "AFTER_TIMEOUT"; timeout: number }
-  | { type: "MOUSE_UP" | "MOUSE_DOWN"; delay?: number }
-  | { type: "MOUSE_ENTER" | "MOUSE_LEAVE"; delay?: number }
+  | { type: MouseClickType; delay?: number }
+  | { type: MouseHoverType; delay?: number }
   | { type: "ON_KEY_DOWN"; device: KeyboardDevice; keyCodes: number[] }
   | { type: "ON_MEDIA_HIT"; mediaHitTime: number };
 
@@ -114,10 +123,10 @@ export type BuiltAction =
   | { type: "SET_VARIABLE"; variableId: string; variableValue: unknown };
 
 export type TriggerShape =
-  | { type: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "ON_DRAG" | "ON_MEDIA_END" }
+  | { type: TriggerNoParamType }
   | { type: "AFTER_TIMEOUT"; timeout: number }
-  | { type: "MOUSE_UP" | "MOUSE_DOWN"; delay: number }
-  | { type: "MOUSE_ENTER" | "MOUSE_LEAVE"; delay: number }
+  | { type: MouseClickType; delay: number }
+  | { type: MouseHoverType; delay: number }
   | { type: "ON_KEY_DOWN"; device: KeyboardDevice; keyCodes: number[] }
   | { type: "ON_MEDIA_HIT"; mediaHitTime: number };
 

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TriggerInput, TransitionInput } from "./tools.js";
 import { PRESET_NAMES, resolveMotion } from "../shared/motionPresets.js";
 import type { MotionInput } from "../shared/motionPresets.js";
+import { COMPARISON_OPERATORS } from "../shared/wire-vocabulary.js";
 import type { CreateReactionsInput as CreateReactionsInputType } from "./tools.js";
 
 const PresetNameEnum = z.enum(PRESET_NAMES);
@@ -115,7 +116,7 @@ export const ProtoToggleVariableInput = z.object({
   replaceExisting: z.boolean().default(false),
 });
 
-const ComparisonOperator = z.enum(["==", "!=", "<", "<=", ">", ">="]);
+const ComparisonOperator = z.enum(COMPARISON_OPERATORS);
 
 const ProtoConditionIf = z.object({
   variable: z.string().min(1),

@@ -1,4 +1,18 @@
 import { z } from "zod";
+import {
+  TRIGGER_SHORTCUTS,
+  TRIGGER_NOPARAM_TYPES,
+  MOUSE_CLICK_TYPES,
+  MOUSE_HOVER_TYPES,
+  KEYBOARD_DEVICES,
+  TRANSITION_SHORTCUTS,
+  SIMPLE_TRANSITION_TYPES,
+  DIRECTIONAL_TRANSITION_TYPES,
+  NAMED_EASINGS,
+  DIRECTIONS,
+  COMPARISON_OPERATORS,
+  OVERFLOW_DIRECTIONS,
+} from "../shared/wire-vocabulary.js";
 
 export const GetCanvasOverviewInput = z.object({
   pageId: z.string().optional(),
@@ -11,28 +25,26 @@ export const FindNodesInput = z.object({
   limit: z.number().int().positive().max(500).default(50),
 });
 
-const TriggerEnum = z.enum(["ON_CLICK", "ON_HOVER", "ON_PRESS", "AFTER_TIMEOUT"]);
+const TriggerEnum = z.enum(TRIGGER_SHORTCUTS);
 
-const KeyboardDeviceEnum = z.enum([
-  "KEYBOARD", "XBOX_ONE", "PS4", "SWITCH_PRO", "UNKNOWN_CONTROLLER",
-]);
+const KeyboardDeviceEnum = z.enum(KEYBOARD_DEVICES);
 
 const TriggerObjectNoParam = z.object({
-  type: z.enum(["ON_CLICK", "ON_HOVER", "ON_PRESS", "ON_DRAG", "ON_MEDIA_END"]),
+  type: z.enum(TRIGGER_NOPARAM_TYPES),
 });
 const TriggerObjectAfterTimeout = z.object({
   type: z.literal("AFTER_TIMEOUT"),
   timeout: z.number().positive().max(60),
 });
 const TriggerObjectMouseClick = z.object({
-  type: z.enum(["MOUSE_UP", "MOUSE_DOWN"]),
+  type: z.enum(MOUSE_CLICK_TYPES),
   delay: z.number().nonnegative().max(60).optional(),
 });
 // Figma's runtime rejects `deprecatedVersion` despite the typings declaring it
 // required — same typings vs runtime pattern as CustomSpringEasing.initialVelocity.
 // Omit from input.
 const TriggerObjectMouseHover = z.object({
-  type: z.enum(["MOUSE_ENTER", "MOUSE_LEAVE"]),
+  type: z.enum(MOUSE_HOVER_TYPES),
   delay: z.number().nonnegative().max(60).optional(),
 });
 const TriggerObjectKeyDown = z.object({
@@ -55,13 +67,9 @@ export const TriggerInput = z.union([
   TriggerObjectMediaHit,
 ]);
 
-const TransitionEnum = z.enum(["INSTANT", "DISSOLVE", "SMART_ANIMATE"]);
+const TransitionEnum = z.enum(TRANSITION_SHORTCUTS);
 
-const NamedEasingEnum = z.enum([
-  "LINEAR", "EASE_IN", "EASE_OUT", "EASE_IN_AND_OUT",
-  "EASE_IN_BACK", "EASE_OUT_BACK", "EASE_IN_AND_OUT_BACK",
-  "GENTLE", "QUICK", "BOUNCY", "SLOW",
-]);
+const NamedEasingEnum = z.enum(NAMED_EASINGS);
 
 const CustomCubicBezierEasing = z.object({
   type: z.literal("CUSTOM_CUBIC_BEZIER"),
@@ -83,14 +91,14 @@ const CustomSpringEasing = z.object({
 const EasingInputUnion = z.union([NamedEasingEnum, CustomCubicBezierEasing, CustomSpringEasing]);
 
 const SimpleTransitionObject = z.object({
-  type: z.enum(["DISSOLVE", "SMART_ANIMATE", "SCROLL_ANIMATE"]),
+  type: z.enum(SIMPLE_TRANSITION_TYPES),
   duration: z.number().positive().max(10).optional(),
   easing: EasingInputUnion.optional(),
 });
 
-const DirectionEnum = z.enum(["LEFT", "RIGHT", "TOP", "BOTTOM"]);
+const DirectionEnum = z.enum(DIRECTIONS);
 const DirectionalTransitionObject = z.object({
-  type: z.enum(["MOVE_IN", "MOVE_OUT", "PUSH", "SLIDE_IN", "SLIDE_OUT"]),
+  type: z.enum(DIRECTIONAL_TRANSITION_TYPES),
   direction: DirectionEnum,
   matchLayers: z.boolean().optional(),
   duration: z.number().positive().max(10).optional(),
@@ -137,7 +145,7 @@ const SwapOverlayActionInput = z.object({
   resetScrollPosition: z.boolean().optional(),
 });
 
-const ComparisonOperator = z.enum(["==", "!=", "<", "<=", ">", ">="]);
+const ComparisonOperator = z.enum(COMPARISON_OPERATORS);
 
 const ConditionInput = z.object({
   variable: z.string().min(1),
@@ -220,7 +228,7 @@ export const ClearReactionsInput = z
     { message: "indices may only be specified when nodeIds has exactly 1 entry" }
   );
 
-const OverflowDirectionEnum = z.enum(["NONE", "HORIZONTAL", "VERTICAL", "BOTH"]);
+const OverflowDirectionEnum = z.enum(OVERFLOW_DIRECTIONS);
 
 const SetFrameScrollEntry = z
   .object({
