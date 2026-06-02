@@ -24,6 +24,7 @@ import {
   detectTogglePattern,
   type ComparisonOperator,
 } from "./condition-codec.js";
+import type { OverflowDirection } from "../shared/wire-vocabulary.js";
 
 figma.showUI(__html__, { width: 320, height: 220 });
 
@@ -110,7 +111,7 @@ type Command =
       params: {
         frames: Array<{
           frameId: string;
-          direction?: "NONE" | "HORIZONTAL" | "VERTICAL" | "BOTH";
+          direction?: OverflowDirection;
           fixedChildren?: number;
         }>;
       };
@@ -794,7 +795,7 @@ async function handleClearReactions(params: { nodeIds: string[]; indices?: numbe
 async function handleSetFrameScroll(params: {
   frames: Array<{
     frameId: string;
-    direction?: "NONE" | "HORIZONTAL" | "VERTICAL" | "BOTH";
+    direction?: OverflowDirection;
     fixedChildren?: number;
   }>;
 }) {

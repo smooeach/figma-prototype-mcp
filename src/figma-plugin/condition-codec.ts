@@ -4,17 +4,21 @@
 // callers resolve variable ids/names; this module is unit-testable in isolation.
 
 import type { LiteralVariableData, VariableResolvedType } from "./variable-literal.js";
+import type { ComparisonOperator } from "../shared/wire-vocabulary.js";
 
-export const COMPARISON_OPERATOR_MAP = {
+// Translation from our operator symbols (the shared wire vocabulary) to Figma's
+// ExpressionFunction. Typed as Record<ComparisonOperator, string> so adding an
+// operator to the shared set without a translation here is a compile error.
+export const COMPARISON_OPERATOR_MAP: Record<ComparisonOperator, string> = {
   "==": "EQUALS",
   "!=": "NOT_EQUAL",
   "<":  "LESS_THAN",
   "<=": "LESS_THAN_OR_EQUAL",
   ">":  "GREATER_THAN",
   ">=": "GREATER_THAN_OR_EQUAL",
-} as const;
+};
 
-export type ComparisonOperator = keyof typeof COMPARISON_OPERATOR_MAP;
+export type { ComparisonOperator };
 
 // Inverse of COMPARISON_OPERATOR_MAP — used by list_reactions echo to decode
 // Figma's ExpressionFunction back to our operator literal.
