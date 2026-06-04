@@ -251,5 +251,6 @@ export type CreateReactionsInput = z.infer<typeof CreateReactionsInput>;
 export type ListReactionsInput = z.infer<typeof ListReactionsInput>;
 export type ClearReactionsInput = z.infer<typeof ClearReactionsInput>;
 export type SetFrameScrollInput = z.infer<typeof SetFrameScrollInput>;
+export type NonConditionalActionInput = z.infer<typeof NonConditionalActionInput>;
 export type TriggerInput = z.infer<typeof TriggerInput>;
 export type TransitionInput = z.infer<typeof TransitionInput>;

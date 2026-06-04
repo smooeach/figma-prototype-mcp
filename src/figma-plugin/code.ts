@@ -31,21 +31,12 @@ import type {
   ListReactionsInput,
   ClearReactionsInput,
   SetFrameScrollInput,
+  NonConditionalActionInput,
 } from "../mcp-server/tools.js";
 
 figma.showUI(__html__, { width: 320, height: 220 });
 
 const commandQueue = new CommandQueue();
-
-type NonConditionalActionShape =
-  | { type: "navigate"; targetFrameId: string; resetScrollPosition?: boolean }
-  | { type: "scroll"; targetNodeId: string; resetScrollPosition?: boolean }
-  | { type: "overlay"; targetFrameId: string; resetScrollPosition?: boolean }
-  | { type: "close" }
-  | { type: "back" }
-  | { type: "url"; url: string; openInNewTab?: boolean }
-  | { type: "swap_overlay"; targetFrameId: string; resetScrollPosition?: boolean }
-  | { type: "set_variable"; variable: string; value: boolean | number | string };
 
 type Command =
   | { type: "GET_CANVAS_OVERVIEW"; params: GetCanvasOverviewInput }
@@ -152,7 +143,7 @@ function findScrollableAncestor(node: BaseNode): BaseNode | null {
  * try/catch.
  */
 async function buildNonConditionalAction(
-  action: NonConditionalActionShape,
+  action: NonConditionalActionInput,
   trigger: TriggerInput,
   afterTimeoutSeconds: number | undefined,
   transition: TransitionInput,
