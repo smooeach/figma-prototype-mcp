@@ -25,18 +25,13 @@ import {
   type ComparisonOperator,
 } from "./condition-codec.js";
 import type {
-  OverflowDirection,
-  TriggerName,
-  TriggerNoParamType,
-  MouseClickType,
-  MouseHoverType,
-  KeyboardDevice,
-  TransitionName,
-  SimpleTransitionType,
-  DirectionalTransitionType,
-  NamedEasingName,
-  Direction,
-} from "../shared/wire-vocabulary.js";
+  GetCanvasOverviewInput,
+  FindNodesInput,
+  CreateReactionsInput,
+  ListReactionsInput,
+  ClearReactionsInput,
+  SetFrameScrollInput,
+} from "../mcp-server/tools.js";
 
 figma.showUI(__html__, { width: 320, height: 220 });
 
@@ -53,77 +48,12 @@ type NonConditionalActionShape =
   | { type: "set_variable"; variable: string; value: boolean | number | string };
 
 type Command =
-  | { type: "GET_CANVAS_OVERVIEW"; params: { pageId?: string } }
-  | { type: "FIND_NODES"; params: { query: string; nodeTypes?: string[]; scope?: "page" | "document"; limit?: number } }
-  | {
-      type: "CREATE_REACTIONS";
-      params: {
-        connections: Array<{
-          sourceNodeId: string;
-          trigger:
-            | TriggerName
-            | { type: TriggerNoParamType }
-            | { type: "AFTER_TIMEOUT"; timeout: number }
-            | { type: MouseClickType; delay?: number }
-            | { type: MouseHoverType; delay?: number }
-            | { type: "ON_KEY_DOWN";
-                device: KeyboardDevice;
-                keyCodes: number[];
-              }
-            | { type: "ON_MEDIA_HIT"; mediaHitTime: number };
-          afterTimeoutSeconds?: number;
-          transition:
-            | TransitionName
-            | {
-                type: SimpleTransitionType;
-                duration?: number;
-                easing?:
-                  | NamedEasingName
-                  | { type: "CUSTOM_CUBIC_BEZIER"; x1: number; y1: number; x2: number; y2: number }
-                  | { type: "CUSTOM_SPRING"; mass: number; stiffness: number; damping: number };
-              }
-            | {
-                type: DirectionalTransitionType;
-                direction: Direction;
-                matchLayers?: boolean;
-                duration?: number;
-                easing?:
-                  | NamedEasingName
-                  | { type: "CUSTOM_CUBIC_BEZIER"; x1: number; y1: number; x2: number; y2: number }
-                  | { type: "CUSTOM_SPRING"; mass: number; stiffness: number; damping: number };
-              };
-          action:
-            | { type: "navigate"; targetFrameId: string; resetScrollPosition?: boolean }
-            | { type: "scroll"; targetNodeId: string; resetScrollPosition?: boolean }
-            | { type: "overlay"; targetFrameId: string; resetScrollPosition?: boolean }
-            | { type: "close" }
-            | { type: "back" }
-            | { type: "url"; url: string; openInNewTab?: boolean }
-            | { type: "swap_overlay"; targetFrameId: string; resetScrollPosition?: boolean }
-            | {
-                type: "conditional";
-                condition: { variable: string; operator: ComparisonOperator; value: boolean | number | string };
-                then: NonConditionalActionShape[];
-                else?: NonConditionalActionShape[];
-              }
-            | { type: "set_variable"; variable: string; value: boolean | number | string }
-            | { type: "toggle_variable"; variable: string };
-        }>;
-        replaceExisting: boolean;
-      };
-    }
-  | { type: "LIST_REACTIONS"; params: { nodeId: string } }
-  | { type: "CLEAR_REACTIONS"; params: { nodeIds: string[]; indices?: number[] } }
-  | {
-      type: "SET_FRAME_SCROLL";
-      params: {
-        frames: Array<{
-          frameId: string;
-          direction?: OverflowDirection;
-          fixedChildren?: number;
-        }>;
-      };
-    };
+  | { type: "GET_CANVAS_OVERVIEW"; params: GetCanvasOverviewInput }
+  | { type: "FIND_NODES"; params: FindNodesInput }
+  | { type: "CREATE_REACTIONS"; params: CreateReactionsInput }
+  | { type: "LIST_REACTIONS"; params: ListReactionsInput }
+  | { type: "CLEAR_REACTIONS"; params: ClearReactionsInput }
+  | { type: "SET_FRAME_SCROLL"; params: SetFrameScrollInput };
 
 figma.ui.onmessage = (msg: any) => {
   if (msg?.type === "load-channel") {
@@ -358,7 +288,7 @@ function buildSetVariableData(
   );
 }
 
-async function handleGetCanvasOverview(params: { pageId?: string }) {
+async function handleGetCanvasOverview(params: GetCanvasOverviewInput) {
   const page = await loadPage(params.pageId);
   const frames = page.children
     .filter((n) => n.type === "FRAME")
@@ -381,7 +311,7 @@ async function handleGetCanvasOverview(params: { pageId?: string }) {
   return { page: { id: page.id, name: page.name }, frames, selection };
 }
 
-async function handleFindNodes(params: { query: string; nodeTypes?: string[]; scope?: "page" | "document"; limit?: number }) {
+async function handleFindNodes(params: FindNodesInput) {
   const scope = params.scope ?? "page";
   const limit = params.limit ?? 50;
   const q = params.query.toLowerCase();
@@ -425,60 +355,7 @@ function pathOf(node: BaseNode): string {
   return parts.join(" > ");
 }
 
-async function handleCreateReactions(params: {
-  connections: Array<{
-    sourceNodeId: string;
-    trigger:
-      | TriggerName
-      | { type: TriggerNoParamType }
-      | { type: "AFTER_TIMEOUT"; timeout: number }
-      | { type: MouseClickType; delay?: number }
-      | { type: MouseHoverType; delay?: number }
-      | { type: "ON_KEY_DOWN";
-          device: KeyboardDevice;
-          keyCodes: number[];
-        }
-      | { type: "ON_MEDIA_HIT"; mediaHitTime: number };
-    afterTimeoutSeconds?: number;
-    transition:
-      | TransitionName
-      | {
-          type: SimpleTransitionType;
-          duration?: number;
-          easing?:
-            | NamedEasingName
-            | { type: "CUSTOM_CUBIC_BEZIER"; x1: number; y1: number; x2: number; y2: number }
-            | { type: "CUSTOM_SPRING"; mass: number; stiffness: number; damping: number };
-        }
-      | {
-          type: DirectionalTransitionType;
-          direction: Direction;
-          matchLayers?: boolean;
-          duration?: number;
-          easing?:
-            | NamedEasingName
-            | { type: "CUSTOM_CUBIC_BEZIER"; x1: number; y1: number; x2: number; y2: number }
-            | { type: "CUSTOM_SPRING"; mass: number; stiffness: number; damping: number };
-        };
-    action:
-      | { type: "navigate"; targetFrameId: string; resetScrollPosition?: boolean }
-      | { type: "scroll"; targetNodeId: string; resetScrollPosition?: boolean }
-      | { type: "overlay"; targetFrameId: string; resetScrollPosition?: boolean }
-      | { type: "close" }
-      | { type: "back" }
-      | { type: "url"; url: string; openInNewTab?: boolean }
-      | { type: "swap_overlay"; targetFrameId: string; resetScrollPosition?: boolean }
-      | {
-          type: "conditional";
-          condition: { variable: string; operator: ComparisonOperator; value: boolean | number | string };
-          then: NonConditionalActionShape[];
-          else?: NonConditionalActionShape[];
-        }
-      | { type: "set_variable"; variable: string; value: boolean | number | string }
-      | { type: "toggle_variable"; variable: string };
-  }>;
-  replaceExisting: boolean;
-}) {
+async function handleCreateReactions(params: CreateReactionsInput) {
   await figma.loadAllPagesAsync();
   const results: Array<{
     sourceNodeId: string;
@@ -743,7 +620,7 @@ async function decodeConditionForEcho(condition: any): Promise<unknown> {
   };
 }
 
-async function handleListReactions(params: { nodeId: string }) {
+async function handleListReactions(params: ListReactionsInput) {
   await figma.loadAllPagesAsync();
   const node = figma.getNodeById(params.nodeId);
   if (!node) throw new Error(`Node not found: ${params.nodeId}`);
@@ -763,7 +640,7 @@ async function handleListReactions(params: { nodeId: string }) {
   };
 }
 
-async function handleClearReactions(params: { nodeIds: string[]; indices?: number[] }) {
+async function handleClearReactions(params: ClearReactionsInput) {
   await figma.loadAllPagesAsync();
   const results = [];
 
@@ -796,13 +673,7 @@ async function handleClearReactions(params: { nodeIds: string[]; indices?: numbe
   return { results };
 }
 
-async function handleSetFrameScroll(params: {
-  frames: Array<{
-    frameId: string;
-    direction?: OverflowDirection;
-    fixedChildren?: number;
-  }>;
-}) {
+async function handleSetFrameScroll(params: SetFrameScrollInput) {
   await figma.loadAllPagesAsync();
   const results: Array<{
     frameId: string;
