@@ -226,25 +226,45 @@ async function resolveVariableByName(name: string): Promise<{
     return { variable: picked, warning };
   }
 
-  // Step 2: import a matching PUBLISHED library variable.
+  // Step 2: find a matching PUBLISHED library variable. Enumeration is best-effort:
+  // a failure here degrades to the candidate-listing error below. The IMPORT itself
+  // is deliberately performed outside this catch (Step 2b) so that an import failure
+  // on a name that WAS found surfaces as a distinct error, not a misleading "not found".
   const libraryNames: string[] = [];
+  let matchedKey: string | undefined;
+  let matchedLibrary: string | undefined;
   try {
     const collections = await figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync();
     for (const col of collections) {
+      if (matchedKey) break;
       const vars = await figma.teamLibrary.getVariablesInLibraryCollectionAsync(col.key);
       for (const v of vars) {
         libraryNames.push(v.name);
         if (v.name === name) {
-          const imported = await figma.variables.importVariableByKeyAsync(v.key);
-          return {
-            variable: imported,
-            warning: `Imported library variable "${name}" from "${col.libraryName}".`,
-          };
+          matchedKey = v.key;
+          matchedLibrary = col.libraryName;
+          break;
         }
       }
     }
   } catch {
     // Library enumeration unavailable — fall through to the candidate-listing error.
+  }
+
+  // Step 2b: import the matched library variable. A failure here is reported distinctly
+  // (the name WAS found; only the import step failed) instead of as "not found".
+  if (matchedKey) {
+    try {
+      const imported = await figma.variables.importVariableByKeyAsync(matchedKey);
+      return {
+        variable: imported,
+        warning: `Imported library variable "${name}" from "${matchedLibrary}".`,
+      };
+    } catch (err: any) {
+      throw new Error(
+        `Found library variable "${name}" in "${matchedLibrary}" but failed to import it: ${err?.message ?? String(err)}`,
+      );
+    }
   }
 
   // Step 3: not found — list candidates.
