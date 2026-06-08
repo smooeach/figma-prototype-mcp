@@ -20,6 +20,7 @@ import { CommandQueue } from "./command-queue.js";
 import { validateVariableLiteralCompat } from "./variable-literal.js";
 import {
   filterVariables,
+  formatVariableNotFoundError,
   type LocalVarDescriptor,
   type LibraryVarDescriptor,
 } from "./variable-catalog.js";
@@ -213,16 +214,41 @@ async function resolveVariableByName(name: string): Promise<{
   variable: Variable;
   warning?: string;
 }> {
+  // Step 1: local exact match (existing behavior, including the multi-match warning).
   const all = await figma.variables.getLocalVariablesAsync();
   const matches = all.filter((v) => v.name === name);
-  if (matches.length === 0) {
-    throw new Error(`Variable not found: ${name}`);
+  if (matches.length > 0) {
+    const picked = matches[0]!;
+    const warning =
+      matches.length > 1
+        ? `Multiple local variables named "${name}" (${matches.length}); using the first (id ${picked.id})`
+        : undefined;
+    return { variable: picked, warning };
   }
-  const picked = matches[0]!;
-  const warning = matches.length > 1
-    ? `Multiple local variables named "${name}" (${matches.length}); using the first (id ${picked.id})`
-    : undefined;
-  return { variable: picked, warning };
+
+  // Step 2: import a matching PUBLISHED library variable.
+  const libraryNames: string[] = [];
+  try {
+    const collections = await figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync();
+    for (const col of collections) {
+      const vars = await figma.teamLibrary.getVariablesInLibraryCollectionAsync(col.key);
+      for (const v of vars) {
+        libraryNames.push(v.name);
+        if (v.name === name) {
+          const imported = await figma.variables.importVariableByKeyAsync(v.key);
+          return {
+            variable: imported,
+            warning: `Imported library variable "${name}" from "${col.libraryName}".`,
+          };
+        }
+      }
+    }
+  } catch {
+    // Library enumeration unavailable — fall through to the candidate-listing error.
+  }
+
+  // Step 3: not found — list candidates.
+  throw new Error(formatVariableNotFoundError(name, all.map((v) => v.name), libraryNames));
 }
 
 /**
