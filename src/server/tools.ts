@@ -8,6 +8,7 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import {
   GetCanvasOverviewInput,
   FindNodesInput,
+  ListVariablesInput,
   CreateReactionsInput,
   ListReactionsInput,
   ClearReactionsInput,
@@ -80,6 +81,16 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "Search nodes on the current page (or document) by name substring, with optional type filter.",
       schema: FindNodesInput,
       command: "FIND_NODES" as CommandName,
+    },
+    {
+      name: "list_variables",
+      description:
+        "List Figma variables usable by name in set/toggle/conditional tools. Returns `local` variables " +
+        "(in this file) and `library` variables (from connected libraries, importable on use). " +
+        "Call this BEFORE proto_set_variable / proto_toggle_variable / proto_conditional instead of guessing " +
+        "a variable name. `remoteEnumerated:false` means library enumeration was unavailable (local list still valid).",
+      schema: ListVariablesInput,
+      command: "LIST_VARIABLES" as CommandName,
     },
     {
       name: "create_reactions",

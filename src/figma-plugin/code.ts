@@ -18,6 +18,11 @@ import {
 } from "./reaction-builder.js";
 import { CommandQueue } from "./command-queue.js";
 import { validateVariableLiteralCompat } from "./variable-literal.js";
+import {
+  filterVariables,
+  type LocalVarDescriptor,
+  type LibraryVarDescriptor,
+} from "./variable-catalog.js";
 import { findEnclosingFrameId, hasReactions, findScrollableAncestor, pathOf } from "./node-tree.js";
 import { encodeActionForListEcho, type EchoResolvers } from "./action-echo.js";
 import {
@@ -27,6 +32,7 @@ import {
 import type {
   GetCanvasOverviewInput,
   FindNodesInput,
+  ListVariablesInput,
   CreateReactionsInput,
   ListReactionsInput,
   ClearReactionsInput,
@@ -41,6 +47,7 @@ const commandQueue = new CommandQueue();
 type Command =
   | { type: "GET_CANVAS_OVERVIEW"; params: GetCanvasOverviewInput }
   | { type: "FIND_NODES"; params: FindNodesInput }
+  | { type: "LIST_VARIABLES"; params: ListVariablesInput }
   | { type: "CREATE_REACTIONS"; params: CreateReactionsInput }
   | { type: "LIST_REACTIONS"; params: ListReactionsInput }
   | { type: "CLEAR_REACTIONS"; params: ClearReactionsInput }
@@ -85,6 +92,7 @@ async function dispatch(command: Command["type"], params: any): Promise<
     switch (command) {
       case "GET_CANVAS_OVERVIEW": return { status: "ok", result: await handleGetCanvasOverview(params) };
       case "FIND_NODES":          return { status: "ok", result: await handleFindNodes(params) };
+      case "LIST_VARIABLES":      return { status: "ok", result: await handleListVariables(params) };
       case "CREATE_REACTIONS": return { status: "ok", result: await handleCreateReactions(params) };
       case "LIST_REACTIONS":      return { status: "ok", result: await handleListReactions(params) };
       case "CLEAR_REACTIONS":     return { status: "ok", result: await handleClearReactions(params) };
@@ -307,6 +315,56 @@ async function handleFindNodes(params: FindNodesInput) {
     })),
     truncated,
   };
+}
+
+async function handleListVariables(params: ListVariablesInput) {
+  const includeRemote = params.includeRemote ?? true;
+  const filters = { resolvedType: params.resolvedType, nameQuery: params.nameQuery };
+
+  const localVars = await figma.variables.getLocalVariablesAsync();
+  const localDescriptors: LocalVarDescriptor[] = await Promise.all(
+    localVars.map(async (v) => {
+      const col = await figma.variables.getVariableCollectionByIdAsync(v.variableCollectionId);
+      return {
+        name: v.name,
+        id: v.id,
+        resolvedType: v.resolvedType,
+        collection: col?.name ?? "",
+      };
+    }),
+  );
+  const local = filterVariables(localDescriptors, filters);
+
+  let library: LibraryVarDescriptor[] = [];
+  let remoteEnumerated = false;
+  if (includeRemote) {
+    try {
+      const collections = await figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync();
+      const all: LibraryVarDescriptor[] = [];
+      for (const col of collections) {
+        const vars = await figma.teamLibrary.getVariablesInLibraryCollectionAsync(col.key);
+        for (const v of vars) {
+          all.push({
+            name: v.name,
+            key: v.key,
+            resolvedType: v.resolvedType,
+            collection: col.name,
+            libraryName: col.libraryName,
+          });
+        }
+      }
+      library = filterVariables(all, filters);
+      remoteEnumerated = true;
+    } catch {
+      // Library enumeration is best-effort: any failure (no library access,
+      // permissions, runtime gaps) degrades to an empty list + remoteEnumerated:false
+      // rather than failing the whole call. The local list above still stands.
+      library = [];
+      remoteEnumerated = false;
+    }
+  }
+
+  return { local, library, remoteEnumerated };
 }
 
 async function handleCreateReactions(params: CreateReactionsInput) {
