@@ -17,11 +17,11 @@ import {
   type TransitionInput,
 } from "./reaction-builder.js";
 import { CommandQueue } from "./command-queue.js";
-import { validateVariableLiteralCompat, rgbToHex } from "./variable-literal.js";
+import { validateVariableLiteralCompat } from "./variable-literal.js";
+import { findEnclosingFrameId, hasReactions, findScrollableAncestor, pathOf } from "./node-tree.js";
+import { encodeActionForListEcho, type EchoResolvers } from "./action-echo.js";
 import {
   buildConditionExpression,
-  decodeConditionExpression,
-  detectTogglePattern,
   type ComparisonOperator,
 } from "./condition-codec.js";
 import type {
@@ -105,33 +105,6 @@ async function loadPage(pageId?: string): Promise<PageNode> {
   const page = figma.getNodeById(pageId);
   if (!page || page.type !== "PAGE") throw new Error(`Page not found: ${pageId}`);
   return page as PageNode;
-}
-
-function findEnclosingFrameId(node: SceneNode | BaseNode): string | null {
-  let cur: BaseNode | null = node.parent ?? null;
-  while (cur) {
-    if (cur.type === "FRAME") return cur.id;
-    cur = (cur as any).parent ?? null;
-  }
-  return null;
-}
-
-function hasReactions(node: BaseNode): boolean {
-  return "reactions" in node && Array.isArray((node as any).reactions) && (node as any).reactions.length > 0;
-}
-
-function findScrollableAncestor(node: BaseNode): BaseNode | null {
-  let cur: BaseNode | null = node.parent ?? null;
-  while (cur) {
-    if (
-      "overflowDirection" in cur &&
-      (cur as any).overflowDirection !== "NONE"
-    ) {
-      return cur;
-    }
-    cur = (cur as any).parent ?? null;
-  }
-  return null;
 }
 
 /**
@@ -336,16 +309,6 @@ async function handleFindNodes(params: FindNodesInput) {
   };
 }
 
-function pathOf(node: BaseNode): string {
-  const parts: string[] = [];
-  let cur: BaseNode | null = node;
-  while (cur && cur.type !== "DOCUMENT") {
-    parts.unshift(cur.name);
-    cur = (cur as any).parent ?? null;
-  }
-  return parts.join(" > ");
-}
-
 async function handleCreateReactions(params: CreateReactionsInput) {
   await figma.loadAllPagesAsync();
   const results: Array<{
@@ -493,123 +456,18 @@ async function handleCreateReactions(params: CreateReactionsInput) {
 }
 
 
-async function encodeActionForListEcho(action: any): Promise<unknown> {
-  if (!action || typeof action !== "object") return { type: "UNKNOWN" };
-
-  if (action.type === "CONDITIONAL") {
-    const blocks = Array.isArray(action.conditionalBlocks) ? action.conditionalBlocks : [];
-
-    // 1) Try toggle_variable pattern first
-    const toggleVarId = detectTogglePattern(blocks);
-    if (toggleVarId) {
-      let varName: string | undefined;
-      try {
-        const v = await figma.variables.getVariableByIdAsync(toggleVarId);
-        varName = v?.name;
-      } catch { /* deleted variable */ }
-      return {
-        type: "toggle_variable",
-        variable: varName ?? `<id:${toggleVarId}>`,
-      };
-    }
-
-    // 2) Fall back to existing conditional decoder
-    const standardPattern = blocks.length >= 1 && blocks.length <= 2 &&
-      blocks[0].condition !== undefined &&
-      (blocks.length === 1 || blocks[1].condition === undefined);
-
-    if (!standardPattern) {
-      // Non-standard shape — return raw so caller can still inspect
-      return { type: "CONDITIONAL", raw: blocks };
-    }
-
-    const decodedCondition = await decodeConditionForEcho(blocks[0].condition);
-    const thenActions = await Promise.all(
-      (blocks[0].actions ?? []).map((a: any) => encodeActionForListEcho(a))
-    );
-    const elseActions = blocks.length === 2
-      ? await Promise.all((blocks[1].actions ?? []).map((a: any) => encodeActionForListEcho(a)))
-      : undefined;
-
-    return {
-      type: "CONDITIONAL",
-      condition: decodedCondition,
-      then: thenActions,
-      else: elseActions,
-    };
-  }
-
-  if (action.type === "SET_VARIABLE") {
-    let varName: string | undefined;
-    if (action.variableId) {
-      try {
-        const v = await figma.variables.getVariableByIdAsync(action.variableId);
-        varName = v?.name;
-      } catch { /* deleted variable */ }
-    }
-    const vd = action.variableValue;
-    let value: unknown;
-    if (
-      vd?.type === "COLOR" &&
-      vd?.value &&
-      typeof vd.value === "object" &&
-      "r" in vd.value &&
-      "g" in vd.value &&
-      "b" in vd.value
-    ) {
-      value = rgbToHex(vd.value as { r: number; g: number; b: number; a?: number });
-    } else {
-      value = vd?.value;
-    }
-    return {
-      type: "set_variable",
-      variable: varName ?? `<id:${action.variableId}>`,
-      value,
-    };
-  }
-
-  // Existing NODE / CLOSE / BACK / URL passthrough — keep identical shape as before
-  const destId = action.destinationId;
-  const destNode = destId ? figma.getNodeById(destId) : null;
-  return {
-    type: action.type ?? "UNKNOWN",
-    navigation: action.navigation,
-    url: action.url,
-    openInNewTab: action.openInNewTab,
-    destinationId: destId,
-    destinationName: destNode?.name,
-    transition: action.transition,
-    resetScrollPosition: action.resetScrollPosition,
-  };
-}
-
-/**
- * Decode an Expression VariableData (our standard condition shape) back to
- * { variable, operator, value }. Returns the raw VariableData if the shape
- * doesn't match our expected EQUALS/comparison pattern.
- */
-async function decodeConditionForEcho(condition: any): Promise<unknown> {
-  const decoded = decodeConditionExpression(condition);
-  if ("raw" in decoded) return { raw: decoded.raw };
-
-  // Resolve the variable name from its id (the only impure step).
-  let variableName: string | undefined;
-  if (decoded.variableId) {
+// Figma-backed implementations of the echo id->name lookups; the deleted-id
+// try/catch lives here (the pure encoder in action-echo.ts stays figma-free).
+const echoResolvers: EchoResolvers = {
+  variableName: async (id) => {
     try {
-      const v = await figma.variables.getVariableByIdAsync(decoded.variableId);
-      variableName = v?.name;
+      return (await figma.variables.getVariableByIdAsync(id))?.name;
     } catch {
-      // Variable may have been deleted; leave name undefined
+      return undefined; // variable was deleted
     }
-  }
-
-  return {
-    variable: variableName ?? `<id:${decoded.variableId}>`,
-    operator: decoded.operator,
-    value: decoded.value,
-    raw: variableName === undefined ? condition : undefined, // keep raw if we lost the name
-  };
-}
+  },
+  nodeName: (id) => figma.getNodeById(id)?.name ?? undefined,
+};
 
 async function handleListReactions(params: ListReactionsInput) {
   await figma.loadAllPagesAsync();
@@ -625,7 +483,7 @@ async function handleListReactions(params: ListReactionsInput) {
       return {
         index: i,
         trigger: r.trigger ?? { type: "UNKNOWN" },
-        action: await encodeActionForListEcho(firstAction),
+        action: await encodeActionForListEcho(firstAction, echoResolvers),
       };
     })),
   };

@@ -8,6 +8,7 @@ A shared glossary so code, specs, and reviews use the same words. Add a term whe
 - **Action** — what a reaction does: Navigate / Scroll / Open Overlay / Close / Back / Open URL / Swap Overlay / Set Variable / Toggle Variable / Conditional. Modeled as zod input on the server (`src/mcp-server/`) and built into Figma's `Action` shape in the plugin (`reaction-builder.ts` / `code.ts`).
 - **Conditional** — a single-level if/else action: one **comparison** condition, a `then` action list, an optional `else` list. Figma's prototype has no else-if and no AND/OR condition combinator (platform limit — see memory `v0.24.0-blocked-by-figma`).
 - **Condition expression** — Figma's EXPRESSION VariableData wrapping one `variable <op> literal` comparison (`expressionFunction` + `[VARIABLE_ALIAS, literal]`). Built/decoded by the pure `condition-codec` module (`src/figma-plugin/condition-codec.ts`), which also detects the `toggle_variable` desugar shape. The variable-name lookup is the caller's (impure) step; the codec works on ids.
+- **Echo (list echo)** — re-encoding a built reaction back into the wire format returned by `list_reactions` (the inverse of the build path; see `action-echo.ts`). The structural transform + recursion is pure; the two id→name lookups are injected as `EchoResolvers` (figma-backed in `code.ts`, fakes in tests).
 - **Motion preset** — a named transition tone (M3 / HIG family) resolved to a Figma `Transition` (`src/shared/motionPresets.ts`).
 
 ## Variables
