@@ -25,6 +25,26 @@ export const FindNodesInput = z.object({
   limit: z.number().int().positive().max(500).default(50),
 });
 
+export const ListVariablesInput = z
+  .object({
+    resolvedType: z
+      .enum(["BOOLEAN", "FLOAT", "STRING", "COLOR"])
+      .optional()
+      .describe("Filter to one variable type (BOOLEAN, FLOAT, STRING, or COLOR)."),
+    includeRemote: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Enumerate library (remote) variables in addition to local ones. " +
+          "Can be slow on files with large connected libraries; set false to list local only.",
+      ),
+    nameQuery: z
+      .string()
+      .optional()
+      .describe("Case-insensitive substring filter on the variable name."),
+  })
+  .strict();
+
 const TriggerEnum = z.enum(TRIGGER_SHORTCUTS);
 
 const KeyboardDeviceEnum = z.enum(KEYBOARD_DEVICES);
@@ -261,6 +281,7 @@ export const SetFrameScrollInput = z.object({
 
 export type GetCanvasOverviewInput = z.infer<typeof GetCanvasOverviewInput>;
 export type FindNodesInput = z.infer<typeof FindNodesInput>;
+export type ListVariablesInput = z.infer<typeof ListVariablesInput>;
 export type CreateReactionsInput = z.infer<typeof CreateReactionsInput>;
 export type ListReactionsInput = z.infer<typeof ListReactionsInput>;
 export type ClearReactionsInput = z.infer<typeof ClearReactionsInput>;

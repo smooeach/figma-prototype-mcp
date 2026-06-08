@@ -3,6 +3,7 @@
 export type CommandName =
   | "GET_CANVAS_OVERVIEW"
   | "FIND_NODES"
+  | "LIST_VARIABLES"
   | "CREATE_REACTIONS"
   | "LIST_REACTIONS"
   | "CLEAR_REACTIONS"

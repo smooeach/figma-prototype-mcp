@@ -5,6 +5,7 @@
   "main": "code.js",
   "ui": "ui.html",
   "editorType": ["figma"],
+  "permissions": ["teamlibrary"],
   "networkAccess": {
     "allowedDomains": ["ws://localhost:3000"],
     "reasoning": "Local WebSocket bridge to the figma-prototype-mcp unified server (Phase A v1.19+)"

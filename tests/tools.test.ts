@@ -6,6 +6,7 @@ import {
   ListReactionsInput,
   ClearReactionsInput,
   SetFrameScrollInput,
+  ListVariablesInput,
 } from "../src/mcp-server/tools.js";
 
 describe("GetCanvasOverviewInput", () => {
@@ -919,5 +920,26 @@ describe("ProtoGetLastHistoryInput", () => {
 
   it("rejects count: 11 (above max 10)", () => {
     expect(() => ProtoGetLastHistoryInput.parse({ count: 11 })).toThrow();
+  });
+});
+
+describe("ListVariablesInput", () => {
+  it("accepts empty input with includeRemote defaulting to true", () => {
+    const r = ListVariablesInput.parse({});
+    expect(r.includeRemote).toBe(true);
+  });
+  it("accepts a resolvedType filter and nameQuery", () => {
+    const r = ListVariablesInput.parse({ resolvedType: "FLOAT", nameQuery: "corner" });
+    expect(r.resolvedType).toBe("FLOAT");
+    expect(r.nameQuery).toBe("corner");
+  });
+  it("allows includeRemote to be disabled", () => {
+    expect(ListVariablesInput.parse({ includeRemote: false }).includeRemote).toBe(false);
+  });
+  it("rejects an unknown resolvedType", () => {
+    expect(() => ListVariablesInput.parse({ resolvedType: "VECTOR" })).toThrow();
+  });
+  it("rejects unknown keys (strict)", () => {
+    expect(() => ListVariablesInput.parse({ bogus: 1 })).toThrow();
   });
 });
