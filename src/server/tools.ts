@@ -119,6 +119,8 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
       description:
         "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
         "Wire one or more source nodes to destination frames with Navigate To. " +
+        "Use when the WHOLE screen changes to the destination. For a modal/popup/dialog/toast/sheet " +
+        "that appears ON TOP of the current screen ('떠/팝업/모달'), use proto_overlay (open) instead. " +
         "Accepts a `motion` preset name (e.g. \"M3_EMPHASIZED\") or a full TransitionInput. " +
         "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally.",
       schema: ProtoWireInput,
@@ -135,6 +137,9 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
         "Create overlay reactions in batch. Each entry has mode = \"open\" | \"swap\" | \"close\". " +
         "open/swap require an `overlay` frameId; close has none. " +
+        "'open' = content floating above the current screen (modal/popup/dialog/toast/bottom-sheet); " +
+        "for a full screen change use proto_wire. 'close' = dismiss an open overlay; to return to a " +
+        "previous full screen use proto_back. " +
         "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally. " +
         "Note: Figma's runtime rejects SMART_ANIMATE on overlay/swap/close navigation, so any SMART_ANIMATE-based " +
         "motion (including all M3/HIG presets) is silently rewritten to DISSOLVE while preserving duration + easing.",
@@ -169,6 +174,8 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
       description:
         "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
         "Wire source nodes to the Back navigation action (pops the prototype history stack — no destination). " +
+        "Use for 'go back / 뒤로' = return to whatever screen the user came from (dynamic, no fixed destination). " +
+        "To navigate to a SPECIFIC previous frame, use proto_wire instead. " +
         "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally.",
       schema: ProtoBackInput,
       handler: async (input, session) => {
@@ -201,6 +208,8 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "Figma variable (resolved by NAME). Input `{ sets: [{ from, variable, value }] }`. " +
         "`value` is boolean / number / string and must match the variable's resolvedType; for COLOR variables, " +
         "pass `value` as a hex string (\"#RRGGBB\" or \"#RRGGBBAA\"). " +
+        "To flip a BOOLEAN without naming the target value ('토글/켜고 끄기'), use proto_toggle_variable — " +
+        "this tool assigns a SPECIFIC value. " +
         "Defaults: trigger=ON_CLICK. No `motion` field — variable changes are instant (transition defaults to INSTANT). " +
         "Compiles to create_reactions internally.",
       schema: ProtoSetVariableInput,
@@ -218,6 +227,8 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "Wire source nodes to the Toggle Variable action — clicking the source flips a local BOOLEAN variable " +
         "(resolved by NAME). Input `{ toggles: [{ from, variable }] }`. The variable's resolvedType MUST be BOOLEAN " +
         "(plugin rejects otherwise). " +
+        "Use to flip/switch a boolean ('토글') with no named target value; to assign a specific value " +
+        "(true/false/number/string/color) use proto_set_variable instead. " +
         "Defaults: trigger=ON_CLICK. No `motion` field — variable changes are instant. " +
         "Compiles to create_reactions internally (desugars to CONDITIONAL + 2 SET_VARIABLE under the hood; " +
         "list_reactions round-trips to toggle_variable shape).",
@@ -234,6 +245,7 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
       description:
         "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
         "Wire a conditional reaction (if/then/else) on a source node based on a variable comparison. " +
+        "Use for '~면 ~하고 아니면 ~' / '조건에 따라' branching interactions. " +
         "The variable is referenced by NAME; the plugin resolves it to the local variable id at runtime. " +
         "Input `{ conditions: [{ from, if: { variable, operator?, value }, then, else? }] }`. " +
         "`if.operator` defaults to \"==\" if omitted (most common case); other operators: !=, <, <=, >, >=. " +
