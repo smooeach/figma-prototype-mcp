@@ -65,7 +65,21 @@ export const TriggerInput = z.union([
   TriggerObjectMouseHover,
   TriggerObjectKeyDown,
   TriggerObjectMediaHit,
-]);
+]).describe(
+  "When the interaction fires. Default ON_CLICK. Natural-language cues (KO/EN): " +
+    "ON_CLICK=클릭/탭/누르면/click,tap; " +
+    "ON_HOVER=호버/마우스 올리면/'~하는 동안'/while hovering (round-trip: auto-reverts when cursor leaves); " +
+    "ON_PRESS=꾹/길게 누르면/누르고 있으면/long-press (round-trip: reverts on release); " +
+    "ON_DRAG=드래그/스와이프/끌면/밀면/swipe; " +
+    "MOUSE_ENTER=마우스 들어오면/'한번 호버하면 유지'/permanent hover (one-way, stays — distinct from ON_HOVER); " +
+    "MOUSE_LEAVE=마우스 나가면/커서 빠지면; MOUSE_DOWN=누르는 순간; MOUSE_UP=떼면; " +
+    "AFTER_TIMEOUT=N초 후/잠시 후/자동으로 (requires timeout in seconds; 잠깐≈0.5, 잠시≈1, 몇 초≈3); " +
+    "ON_KEY_DOWN=엔터/단축키/Cmd+K (requires device + keyCodes, e.g. Cmd+K=[91,75]); " +
+    "ON_MEDIA_END=영상 끝나면; ON_MEDIA_HIT=영상 N초 시점 (requires mediaHitTime in seconds). " +
+    "Decision rules: '누르면/press' alone → ON_CLICK, with '꾹/길게/hold' → ON_PRESS; " +
+    "'호버/hover' alone → ON_HOVER, with '유지/계속/stays' → MOUSE_ENTER. " +
+    "Full vocabulary: docs/dictionaries/trigger-dictionary.",
+);
 
 const TransitionEnum = z.enum(TRANSITION_SHORTCUTS);
 

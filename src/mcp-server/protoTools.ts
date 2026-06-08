@@ -6,7 +6,17 @@ import { COMPARISON_OPERATORS } from "../shared/wire-vocabulary.js";
 import type { CreateReactionsInput as CreateReactionsInputType } from "./tools.js";
 
 const PresetNameEnum = z.enum(PRESET_NAMES);
-const MotionInputSchema = z.union([PresetNameEnum, TransitionInput]);
+const MotionInputSchema = z.union([PresetNameEnum, TransitionInput]).describe(
+  "How it animates: a preset name OR a full TransitionInput. Natural-language → preset (KO/EN): " +
+    "부드럽게/자연스럽게/smooth → M3_STANDARD; 강조/묵직/emphasized → M3_EMPHASIZED (default); " +
+    "튀는/통통/스프링/bouncy → HIG_BOUNCY; 빠르게/스냅/snappy → HIG_SNAPPY; 느리게/여유/slow → HIG_SMOOTH; " +
+    "iOS/애플 → HIG_DEFAULT; Material/안드로이드 → M3_*. " +
+    "All 10 presets are SMART_ANIMATE (morph). A directional feel (옆으로/슬라이드/다음으로/넘기듯/push,slide) " +
+    "or a fade (서서히/흐려지며/fade) is NOT a preset — pass a TransitionInput instead: " +
+    "{type:'PUSH'|'SLIDE_IN'|'SLIDE_OUT', direction} or {type:'DISSOLVE'}. " +
+    "Duration cues: 빠르게≈0.1–0.15s, 보통≈0.15s, 부드럽게≈0.25s, 느리게≈0.4s. " +
+    "Full vocabulary: docs/dictionaries/.",
+);
 
 const ProtoWireEntry = z.object({
   from: z.string().min(1),
