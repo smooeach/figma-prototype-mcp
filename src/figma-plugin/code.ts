@@ -18,6 +18,7 @@ import {
 } from "./reaction-builder.js";
 import { CommandQueue } from "./command-queue.js";
 import { validateVariableLiteralCompat, rgbToHex } from "./variable-literal.js";
+import { findEnclosingFrameId, hasReactions, findScrollableAncestor, pathOf } from "./node-tree.js";
 import {
   buildConditionExpression,
   decodeConditionExpression,
@@ -105,33 +106,6 @@ async function loadPage(pageId?: string): Promise<PageNode> {
   const page = figma.getNodeById(pageId);
   if (!page || page.type !== "PAGE") throw new Error(`Page not found: ${pageId}`);
   return page as PageNode;
-}
-
-function findEnclosingFrameId(node: SceneNode | BaseNode): string | null {
-  let cur: BaseNode | null = node.parent ?? null;
-  while (cur) {
-    if (cur.type === "FRAME") return cur.id;
-    cur = (cur as any).parent ?? null;
-  }
-  return null;
-}
-
-function hasReactions(node: BaseNode): boolean {
-  return "reactions" in node && Array.isArray((node as any).reactions) && (node as any).reactions.length > 0;
-}
-
-function findScrollableAncestor(node: BaseNode): BaseNode | null {
-  let cur: BaseNode | null = node.parent ?? null;
-  while (cur) {
-    if (
-      "overflowDirection" in cur &&
-      (cur as any).overflowDirection !== "NONE"
-    ) {
-      return cur;
-    }
-    cur = (cur as any).parent ?? null;
-  }
-  return null;
 }
 
 /**
@@ -334,16 +308,6 @@ async function handleFindNodes(params: FindNodesInput) {
     })),
     truncated,
   };
-}
-
-function pathOf(node: BaseNode): string {
-  const parts: string[] = [];
-  let cur: BaseNode | null = node;
-  while (cur && cur.type !== "DOCUMENT") {
-    parts.unshift(cur.name);
-    cur = (cur as any).parent ?? null;
-  }
-  return parts.join(" > ");
 }
 
 async function handleCreateReactions(params: CreateReactionsInput) {
