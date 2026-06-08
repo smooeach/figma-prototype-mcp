@@ -14,7 +14,7 @@ const MotionInputSchema = z.union([PresetNameEnum, TransitionInput]).describe(
     "All 10 presets are SMART_ANIMATE (morph). A directional feel (옆으로/슬라이드/다음으로/넘기듯/push,slide) " +
     "or a fade (서서히/흐려지며/fade) is NOT a preset — pass a TransitionInput instead: " +
     "{type:'PUSH'|'SLIDE_IN'|'SLIDE_OUT', direction} or {type:'DISSOLVE'}. " +
-    "Duration cues: 빠르게≈0.1–0.15s, 보통≈0.15s, 부드럽게≈0.25s, 느리게≈0.4s. " +
+    "Duration cues (for a custom TransitionInput, not presets): 빠르게≈0.1–0.15s, 보통≈0.15s, 부드럽게≈0.25s, 느리게≈0.4s. " +
     "Full vocabulary: docs/dictionaries/.",
 );
 
