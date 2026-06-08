@@ -86,7 +86,8 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
       name: "list_variables",
       description:
         "List Figma variables usable by name in set/toggle/conditional tools. Returns `local` variables " +
-        "(in this file) and `library` variables (from connected libraries, importable on use). " +
+        "(in this file) and `library` variables (from connected libraries) — library variables are usable " +
+        "directly in set/toggle/conditional and are auto-imported on first use. " +
         "Call this BEFORE proto_set_variable / proto_toggle_variable / proto_conditional instead of guessing " +
         "a variable name. `remoteEnumerated:false` means library enumeration was unavailable (local list still valid).",
       schema: ListVariablesInput,
@@ -215,8 +216,9 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
       name: "proto_set_variable",
       description:
         "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
-        "Wire source nodes to the Set Variable action — clicking the source assigns a literal value to a local " +
-        "Figma variable (resolved by NAME). Input `{ sets: [{ from, variable, value }] }`. " +
+        "Wire source nodes to the Set Variable action — clicking the source assigns a literal value to a " +
+        "Figma variable (resolved by NAME — local or library/remote; library variables are auto-imported on use). " +
+        "Input `{ sets: [{ from, variable, value }] }`. " +
         "`value` is boolean / number / string and must match the variable's resolvedType; for COLOR variables, " +
         "pass `value` as a hex string (\"#RRGGBB\" or \"#RRGGBBAA\"). " +
         "To flip a BOOLEAN without naming the target value ('토글/켜고 끄기'), use proto_toggle_variable — " +
@@ -235,8 +237,9 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
       name: "proto_toggle_variable",
       description:
         "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
-        "Wire source nodes to the Toggle Variable action — clicking the source flips a local BOOLEAN variable " +
-        "(resolved by NAME). Input `{ toggles: [{ from, variable }] }`. The variable's resolvedType MUST be BOOLEAN " +
+        "Wire source nodes to the Toggle Variable action — clicking the source flips a BOOLEAN variable " +
+        "(resolved by NAME — local or library/remote, auto-imported on use). " +
+        "Input `{ toggles: [{ from, variable }] }`. The variable's resolvedType MUST be BOOLEAN " +
         "(plugin rejects otherwise). " +
         "Use to flip/switch a boolean ('토글') with no named target value; to assign a specific value " +
         "(true/false/number/string/color) use proto_set_variable instead. " +
@@ -257,7 +260,8 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
         "Wire a conditional reaction (if/then/else) on a source node based on a variable comparison. " +
         "Use for '~면 ~하고 아니면 ~' / '조건에 따라' branching interactions. " +
-        "The variable is referenced by NAME; the plugin resolves it to the local variable id at runtime. " +
+        "The variable is referenced by NAME; the plugin resolves it at runtime — local variables match directly, " +
+        "library/remote variables are auto-imported on use. Use list_variables to find exact names. " +
         "Input `{ conditions: [{ from, if: { variable, operator?, value }, then, else? }] }`. " +
         "`if.operator` defaults to \"==\" if omitted (most common case); other operators: !=, <, <=, >, >=. " +
         "`then` / `else` each take exactly ONE branch action (single sugar entry). Branch sugar keys: " +
