@@ -103,9 +103,20 @@ export const ProtoUrlInput = z.object({
   replaceExisting: z.boolean().default(false),
 });
 
+const COLLECTION_FIELD = z
+  .string()
+  .min(1)
+  .optional()
+  .describe(
+    "Only needed when the same variable name exists in multiple collections. " +
+      "Use list_variables to find the collection name and pass it here. " +
+      "Omitting it on a collision returns an error.",
+  );
+
 const ProtoSetVariableEntry = z.object({
   from: z.string().min(1),
   variable: z.string().min(1),
+  collection: COLLECTION_FIELD,
   value: z.union([z.boolean(), z.number(), z.string()]),
   trigger: TriggerInput.optional(),
 }).strict();
@@ -118,6 +129,7 @@ export const ProtoSetVariableInput = z.object({
 const ProtoToggleVariableEntry = z.object({
   from: z.string().min(1),
   variable: z.string().min(1),
+  collection: COLLECTION_FIELD,
   trigger: TriggerInput.optional(),
 }).strict();
 
@@ -130,6 +142,7 @@ const ComparisonOperator = z.enum(COMPARISON_OPERATORS);
 
 const ProtoConditionIf = z.object({
   variable: z.string().min(1),
+  collection: COLLECTION_FIELD,
   operator: ComparisonOperator.default("=="),
   value: z.union([z.boolean(), z.number(), z.string()]),
 }).strict();
@@ -168,6 +181,7 @@ const BranchUrl = z.object({
 const BranchSet = z.object({
   set: z.object({
     variable: z.string().min(1),
+    collection: COLLECTION_FIELD,
     value: z.union([z.boolean(), z.number(), z.string()]),
   }).strict(),
 }).strict();
