@@ -655,3 +655,42 @@ describe("compileProtoConditional — batch", () => {
     expect(out.connections).toHaveLength(2);
   });
 });
+
+describe("collection disambiguation threading", () => {
+  it("forwards collection on proto_set_variable", () => {
+    const out = compileProtoSetVariable(
+      ProtoSetVariableInput.parse({ sets: [{ from: "1:1", variable: "count", collection: "mcp_test", value: 3 }] }),
+    );
+    expect(out.connections[0]!.action).toEqual({ type: "set_variable", variable: "count", collection: "mcp_test", value: 3 });
+  });
+
+  it("omits the collection key when not provided (set_variable)", () => {
+    const out = compileProtoSetVariable(
+      ProtoSetVariableInput.parse({ sets: [{ from: "1:1", variable: "count", value: 3 }] }),
+    );
+    expect(out.connections[0]!.action).toEqual({ type: "set_variable", variable: "count", value: 3 });
+    expect("collection" in (out.connections[0]!.action as object)).toBe(false);
+  });
+
+  it("forwards collection on proto_toggle_variable", () => {
+    const out = compileProtoToggleVariable(
+      ProtoToggleVariableInput.parse({ toggles: [{ from: "1:1", variable: "isOpen", collection: "modes" }] }),
+    );
+    expect(out.connections[0]!.action).toEqual({ type: "toggle_variable", variable: "isOpen", collection: "modes" });
+  });
+
+  it("forwards collection on conditional if + set branch", () => {
+    const out = compileProtoConditional(
+      ProtoConditionalInput.parse({
+        conditions: [{
+          from: "1:1",
+          if: { variable: "count", collection: "mcp_test", value: 1 },
+          then: { set: { variable: "flag", collection: "DuMat", value: true } },
+        }],
+      }),
+    );
+    const action = out.connections[0]!.action as any;
+    expect(action.condition).toEqual({ variable: "count", collection: "mcp_test", operator: "==", value: 1 });
+    expect(action.then[0]).toEqual({ type: "set_variable", variable: "flag", collection: "DuMat", value: true });
+  });
+});
