@@ -220,6 +220,10 @@ async function resolveVariableByName(
   warning?: string;
 }> {
   // Step 1: local. Build descriptors so collection-aware selection can run.
+  // This fans out one getVariableCollectionByIdAsync per local variable on every
+  // resolve. Acceptable at the current call frequency; if profiling ever shows
+  // contention (many reaction writes × many variables), cache collection names
+  // by id for the duration of a create_reactions call.
   const all = await figma.variables.getLocalVariablesAsync();
   const localDescriptors: Array<LocalVarDescriptor & { ref: Variable }> = await Promise.all(
     all.map(async (v) => {
@@ -241,8 +245,13 @@ async function resolveVariableByName(
     throw new Error(formatAmbiguousVariableError(name, localPick.collections, "local"));
   }
 
-  // Step 2: library. Enumerate ALL collections (no early break) so collisions are
-  // detectable. Best-effort: a failure degrades to the candidate-listing error.
+  // Step 2: library. Reached when there's no usable local match — either the name
+  // isn't local at all, OR a `collection` was given that no local variable of this
+  // name belongs to. In the latter case falling through to library search is
+  // intentional (local-wins: a local same-name+same-collection always short-circuits
+  // above; otherwise we keep looking by name across library collections).
+  // Enumerate ALL collections (no early break) so collisions are detectable.
+  // Best-effort: a failure degrades to the candidate-listing error.
   const libraryDescriptors: Array<LibraryVarDescriptor> = [];
   try {
     const collections = await figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync();
@@ -493,7 +502,10 @@ async function handleCreateReactions(params: CreateReactionsInput) {
         //   { condition: x == true, actions: [SET_VARIABLE x = false] },
         //   { actions: [SET_VARIABLE x = true] }   // else
         // ]}
-        const { variable, warning: resolveWarning } = await resolveVariableByName(conn.action.variable, conn.action.collection);
+        const { variable, warning: resolveWarning } = await resolveVariableByName(
+          conn.action.variable,
+          conn.action.collection,
+        );
         if (variable.resolvedType !== "BOOLEAN") {
           throw new Error(`Cannot toggle non-BOOLEAN variable "${conn.action.variable}" (type: ${variable.resolvedType}); toggle_variable requires BOOLEAN`);
         }
