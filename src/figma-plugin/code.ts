@@ -21,6 +21,8 @@ import { validateVariableLiteralCompat } from "./variable-literal.js";
 import {
   filterVariables,
   formatVariableNotFoundError,
+  selectVariableMatch,
+  formatAmbiguousVariableError,
   type LocalVarDescriptor,
   type LibraryVarDescriptor,
 } from "./variable-catalog.js";
@@ -187,7 +189,7 @@ async function buildNonConditionalAction(
     return { built: reaction.actions[0]! };
   }
   if (action.type === "set_variable") {
-    const { variable, warning } = await resolveVariableByName(action.variable);
+    const { variable, warning } = await resolveVariableByName(action.variable, action.collection);
     const variableValue = buildSetVariableData(variable, action.value);
     const built: BuiltAction = {
       type: "SET_VARIABLE",
@@ -210,65 +212,89 @@ async function buildNonConditionalAction(
   return { built: reaction.actions[0]! };
 }
 
-async function resolveVariableByName(name: string): Promise<{
+async function resolveVariableByName(
+  name: string,
+  collection?: string,
+): Promise<{
   variable: Variable;
   warning?: string;
 }> {
-  // Step 1: local exact match (existing behavior, including the multi-match warning).
+  // Step 1: local. Build descriptors so collection-aware selection can run.
+  // This fans out one getVariableCollectionByIdAsync per local variable on every
+  // resolve. Acceptable at the current call frequency; if profiling ever shows
+  // contention (many reaction writes × many variables), cache collection names
+  // by id for the duration of a create_reactions call.
   const all = await figma.variables.getLocalVariablesAsync();
-  const matches = all.filter((v) => v.name === name);
-  if (matches.length > 0) {
-    const picked = matches[0]!;
-    const warning =
-      matches.length > 1
-        ? `Multiple local variables named "${name}" (${matches.length}); using the first (id ${picked.id})`
-        : undefined;
-    return { variable: picked, warning };
+  const localDescriptors: Array<LocalVarDescriptor & { ref: Variable }> = await Promise.all(
+    all.map(async (v) => {
+      const col = await figma.variables.getVariableCollectionByIdAsync(v.variableCollectionId);
+      return {
+        name: v.name,
+        id: v.id,
+        resolvedType: v.resolvedType,
+        collection: col?.name ?? "",
+        ref: v,
+      };
+    }),
+  );
+  const localPick = selectVariableMatch(name, collection, localDescriptors);
+  if (localPick.kind === "match") {
+    return { variable: localPick.item.ref };
+  }
+  if (localPick.kind === "ambiguous") {
+    throw new Error(formatAmbiguousVariableError(name, localPick.collections, "local"));
   }
 
-  // Step 2: find a matching PUBLISHED library variable. Enumeration is best-effort:
-  // a failure here degrades to the candidate-listing error below. The IMPORT itself
-  // is deliberately performed outside this catch (Step 2b) so that an import failure
-  // on a name that WAS found surfaces as a distinct error, not a misleading "not found".
-  const libraryNames: string[] = [];
-  let matchedKey: string | undefined;
-  let matchedLibrary: string | undefined;
+  // Step 2: library. Reached when there's no usable local match — either the name
+  // isn't local at all, OR a `collection` was given that no local variable of this
+  // name belongs to. In the latter case falling through to library search is
+  // intentional (local-wins: a local same-name+same-collection always short-circuits
+  // above; otherwise we keep looking by name across library collections).
+  // Enumerate ALL collections (no early break) so collisions are detectable.
+  // Best-effort: a failure degrades to the candidate-listing error.
+  const libraryDescriptors: Array<LibraryVarDescriptor> = [];
   try {
     const collections = await figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync();
     for (const col of collections) {
-      if (matchedKey) break;
       const vars = await figma.teamLibrary.getVariablesInLibraryCollectionAsync(col.key);
       for (const v of vars) {
-        libraryNames.push(v.name);
-        if (v.name === name) {
-          matchedKey = v.key;
-          matchedLibrary = col.libraryName;
-          break;
-        }
+        libraryDescriptors.push({
+          name: v.name,
+          key: v.key,
+          resolvedType: v.resolvedType,
+          collection: col.name,
+          libraryName: col.libraryName,
+        });
       }
     }
   } catch {
     // Library enumeration unavailable — fall through to the candidate-listing error.
   }
 
-  // Step 2b: import the matched library variable. A failure here is reported distinctly
-  // (the name WAS found; only the import step failed) instead of as "not found".
-  if (matchedKey) {
+  const libPick = selectVariableMatch(name, collection, libraryDescriptors);
+  if (libPick.kind === "ambiguous") {
+    throw new Error(formatAmbiguousVariableError(name, libPick.collections, "library"));
+  }
+  if (libPick.kind === "match") {
+    // Import the matched library variable. A failure here is reported distinctly
+    // (the name WAS found; only the import step failed) instead of as "not found".
     try {
-      const imported = await figma.variables.importVariableByKeyAsync(matchedKey);
+      const imported = await figma.variables.importVariableByKeyAsync(libPick.item.key);
       return {
         variable: imported,
-        warning: `Imported library variable "${name}" from "${matchedLibrary}".`,
+        warning: `Imported library variable "${name}" from "${libPick.item.libraryName}".`,
       };
     } catch (err: any) {
       throw new Error(
-        `Found library variable "${name}" in "${matchedLibrary}" but failed to import it: ${err?.message ?? String(err)}`,
+        `Found library variable "${name}" in "${libPick.item.libraryName}" but failed to import it: ${err?.message ?? String(err)}`,
       );
     }
   }
 
   // Step 3: not found — list candidates.
-  throw new Error(formatVariableNotFoundError(name, all.map((v) => v.name), libraryNames));
+  throw new Error(
+    formatVariableNotFoundError(name, all.map((v) => v.name), libraryDescriptors.map((v) => v.name)),
+  );
 }
 
 /**
@@ -279,8 +305,9 @@ async function buildCondition(input: {
   variable: string;
   operator: ComparisonOperator;
   value: boolean | number | string;
+  collection?: string;
 }): Promise<{ condition: unknown; warning?: string }> {
-  const { variable, warning } = await resolveVariableByName(input.variable);
+  const { variable, warning } = await resolveVariableByName(input.variable, input.collection);
   const literalVD = validateVariableLiteralCompat(
     { name: variable.name, resolvedType: variable.resolvedType },
     input.value,
@@ -442,6 +469,7 @@ async function handleCreateReactions(params: CreateReactionsInput) {
           variable: conn.action.condition.variable,
           operator: conn.action.condition.operator,
           value: conn.action.condition.value,
+          collection: conn.action.condition.collection,
         });
         if (condWarning) warning = condWarning;
 
@@ -474,7 +502,10 @@ async function handleCreateReactions(params: CreateReactionsInput) {
         //   { condition: x == true, actions: [SET_VARIABLE x = false] },
         //   { actions: [SET_VARIABLE x = true] }   // else
         // ]}
-        const { variable, warning: resolveWarning } = await resolveVariableByName(conn.action.variable);
+        const { variable, warning: resolveWarning } = await resolveVariableByName(
+          conn.action.variable,
+          conn.action.collection,
+        );
         if (variable.resolvedType !== "BOOLEAN") {
           throw new Error(`Cannot toggle non-BOOLEAN variable "${conn.action.variable}" (type: ${variable.resolvedType}); toggle_variable requires BOOLEAN`);
         }

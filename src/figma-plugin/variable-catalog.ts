@@ -51,3 +51,43 @@ export function formatVariableNotFoundError(
     `Use list_variables to inspect.`
   );
 }
+
+export type VarSelection<T> =
+  | { kind: "match"; item: T }
+  | { kind: "ambiguous"; collections: string[] }
+  | { kind: "none" };
+
+/**
+ * Select a variable from candidate descriptors by exact name, optionally
+ * narrowed by collection. Pure — callers fetch descriptors.
+ *
+ * - 0 name matches → { none } (caller proceeds to the next resolution step)
+ * - collection given → re-filter by collection: 1 → match, 0 → none, 2+ → ambiguous
+ * - collection omitted → 1 → match, 2+ → ambiguous
+ */
+export function selectVariableMatch<T extends { name: string; collection: string }>(
+  name: string,
+  collection: string | undefined,
+  candidates: T[],
+): VarSelection<T> {
+  const byName = candidates.filter((c) => c.name === name);
+  if (byName.length === 0) return { kind: "none" };
+
+  const pool = collection === undefined ? byName : byName.filter((c) => c.collection === collection);
+  if (pool.length === 0) return { kind: "none" };
+  if (pool.length === 1) return { kind: "match", item: pool[0]! };
+  return { kind: "ambiguous", collections: pool.map((c) => c.collection) };
+}
+
+/** Build the "ambiguous variable" error listing the colliding collections. Pure. */
+export function formatAmbiguousVariableError(
+  name: string,
+  collections: string[],
+  scope: "local" | "library",
+): string {
+  return (
+    `Variable "${name}" is ambiguous — it exists in multiple ${scope} collections: ` +
+    `[${collections.join(", ")}]. Specify the \`collection\` field to disambiguate ` +
+    `(use list_variables to see collection names).`
+  );
+}

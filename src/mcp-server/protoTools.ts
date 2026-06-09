@@ -103,9 +103,20 @@ export const ProtoUrlInput = z.object({
   replaceExisting: z.boolean().default(false),
 });
 
+const COLLECTION_FIELD = z
+  .string()
+  .min(1)
+  .optional()
+  .describe(
+    "Only needed when the same variable name exists in multiple collections. " +
+      "Use list_variables to find the collection name and pass it here. " +
+      "Omitting it on a collision returns an error.",
+  );
+
 const ProtoSetVariableEntry = z.object({
   from: z.string().min(1),
   variable: z.string().min(1),
+  collection: COLLECTION_FIELD,
   value: z.union([z.boolean(), z.number(), z.string()]),
   trigger: TriggerInput.optional(),
 }).strict();
@@ -118,6 +129,7 @@ export const ProtoSetVariableInput = z.object({
 const ProtoToggleVariableEntry = z.object({
   from: z.string().min(1),
   variable: z.string().min(1),
+  collection: COLLECTION_FIELD,
   trigger: TriggerInput.optional(),
 }).strict();
 
@@ -130,6 +142,7 @@ const ComparisonOperator = z.enum(COMPARISON_OPERATORS);
 
 const ProtoConditionIf = z.object({
   variable: z.string().min(1),
+  collection: COLLECTION_FIELD,
   operator: ComparisonOperator.default("=="),
   value: z.union([z.boolean(), z.number(), z.string()]),
 }).strict();
@@ -168,6 +181,7 @@ const BranchUrl = z.object({
 const BranchSet = z.object({
   set: z.object({
     variable: z.string().min(1),
+    collection: COLLECTION_FIELD,
     value: z.union([z.boolean(), z.number(), z.string()]),
   }).strict(),
 }).strict();
@@ -305,6 +319,7 @@ export function compileProtoSetVariable(input: ProtoSetVariableInput): CreateRea
     const action: Connection["action"] = {
       type: "set_variable",
       variable: s.variable,
+      ...(s.collection !== undefined && { collection: s.collection }),
       value: s.value,
     };
     // No `transition` — create_reactions zod schema defaults it to "INSTANT".
@@ -322,6 +337,7 @@ export function compileProtoToggleVariable(input: ProtoToggleVariableInput): Cre
     const action: Connection["action"] = {
       type: "toggle_variable",
       variable: t.variable,
+      ...(t.collection !== undefined && { collection: t.collection }),
     };
     return {
       sourceNodeId: t.from,
@@ -353,7 +369,12 @@ function compileBranchAction(b: z.infer<typeof BranchAction>): NonConditionalAct
   if ("close" in b)   return { type: "close" };
   if ("back" in b)    return { type: "back" };
   if ("url" in b)     return { type: "url", url: b.url, openInNewTab: b.openInNewTab ?? false };
-  if ("set" in b)     return { type: "set_variable", variable: b.set.variable, value: b.set.value };
+  if ("set" in b)     return {
+    type: "set_variable",
+    variable: b.set.variable,
+    ...(b.set.collection !== undefined && { collection: b.set.collection }),
+    value: b.set.value,
+  };
   throw new Error("unreachable: zod parse guarantees BranchAction coverage");
 }
 
@@ -373,6 +394,7 @@ export function compileProtoConditional(input: ProtoConditionalInput): CreateRea
       type: "conditional",
       condition: {
         variable: c.if.variable,
+        ...(c.if.collection !== undefined && { collection: c.if.collection }),
         operator: c.if.operator,        // zod already applied default "=="
         value: c.if.value,
       },
