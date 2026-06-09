@@ -172,7 +172,7 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "Wire source nodes to scroll targets — Figma's SCROLL_TO action: clicking the source jumps the prototype " +
         "view to a target NODE inside the same scrollable frame (the target frame must have overflowDirection set, " +
         "e.g. via set_frame_scroll). " +
-        "NOT for the general 'scroll feel' between pages — for that effect, use a directional transition " +
+        "NOT for the general 'scroll feel' between pages ('스크롤 느낌으로 화면이 부드럽게 넘어가게') — for that effect, use a directional transition " +
         "(PUSH or SLIDE_*) via proto_wire instead. " +
         "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally.",
       schema: ProtoScrollInput,
