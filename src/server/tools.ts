@@ -150,8 +150,10 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "Create overlay reactions in batch. Each entry has mode = \"open\" | \"swap\" | \"close\". " +
         "open/swap require an `overlay` frameId; close has none. " +
         "'open' = content floating above the current screen (modal/popup/dialog/toast/bottom-sheet); " +
-        "for a full screen change use proto_wire. 'close' = dismiss an open overlay; to return to the " +
-        "previous screen use proto_back. " +
+        "for a full screen change use proto_wire. 'close' = dismiss an open overlay, revealing the screen " +
+        "underneath it. If the user says 'go back / 돌아가 / 뒤로' while on an overlay, that is AMBIGUOUS " +
+        "between close (reveal the underlying screen) and proto_back (history pop) — ask the user which " +
+        "they mean rather than guessing. " +
         "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally. " +
         "Note: Figma's runtime rejects SMART_ANIMATE on overlay/swap/close navigation, so any SMART_ANIMATE-based " +
         "motion (including all M3/HIG presets) is silently rewritten to DISSOLVE while preserving duration + easing.",
@@ -170,7 +172,7 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "Wire source nodes to scroll targets — Figma's SCROLL_TO action: clicking the source jumps the prototype " +
         "view to a target NODE inside the same scrollable frame (the target frame must have overflowDirection set, " +
         "e.g. via set_frame_scroll). " +
-        "NOT for the general 'scroll feel' between pages — for that effect, use a directional transition " +
+        "NOT for the general 'scroll feel' between pages ('스크롤 느낌으로 화면이 부드럽게 넘어가게') — for that effect, use a directional transition " +
         "(PUSH or SLIDE_*) via proto_wire instead. " +
         "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally.",
       schema: ProtoScrollInput,
@@ -188,6 +190,10 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "Wire source nodes to the Back navigation action (pops the prototype history stack — no destination). " +
         "Use for 'go back / 뒤로' = return to whatever screen the user came from (dynamic, no fixed destination). " +
         "To navigate to a SPECIFIC previous frame, use proto_wire instead. " +
+        "⚠️ If the source is on an OVERLAY (popup/modal/dialog/sheet shown on top of another screen), " +
+        "'go back / 돌아가 / 뒤로' is AMBIGUOUS — it may mean dismiss the overlay to reveal the screen " +
+        "underneath (= proto_overlay close) or pop the navigation history (= Back, which on an overlay " +
+        "often lands on an unexpected earlier frame). Ask the user which they mean before wiring. " +
         "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally.",
       schema: ProtoBackInput,
       handler: async (input, session) => {
