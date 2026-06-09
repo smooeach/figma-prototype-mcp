@@ -183,6 +183,7 @@ const ComparisonOperator = z.enum(COMPARISON_OPERATORS);
 
 const ConditionInput = z.object({
   variable: z.string().min(1),
+  collection: z.string().min(1).optional(),
   operator: ComparisonOperator,
   value: z.union([z.boolean(), z.number(), z.string()]),
 });
@@ -190,12 +191,14 @@ const ConditionInput = z.object({
 const SetVariableActionInput = z.object({
   type: z.literal("set_variable"),
   variable: z.string().min(1),
+  collection: z.string().min(1).optional(),
   value: z.union([z.boolean(), z.number(), z.string()]),
 });
 
 const ToggleVariableActionInput = z.object({
   type: z.literal("toggle_variable"),
   variable: z.string().min(1),
+  collection: z.string().min(1).optional(),
 });
 
 // The set of action types that may appear inside a conditional then/else branch.
