@@ -54,6 +54,10 @@ Full set: `natural-language-mapping-dictionary-v2.3.md`, `animation-dictionary-v
 | 느리게/여유 · slow | HIG_SMOOTH |
 | iOS/애플 | HIG_DEFAULT |
 | Material/안드로이드 | M3_* |
+| 밀고 들어오는 / 들어와 | `{type:'MOVE_IN', direction}` (spatial entry, not a preset) |
+| 밀어내며 / 나가며 | `{type:'MOVE_OUT', direction}` (spatial exit) |
+| 올라오는 / 올라와 | `{type:'MOVE_IN', direction:'BOTTOM'}` (bottom-sheet-like rise) |
+| (default, distinct screens) | SMART_ANIMATE → degrades to DISSOLVE (no shared layer names → nothing to morph) |
 
 All 10 presets are SMART_ANIMATE (morph). Directional feel (옆으로/슬라이드/다음으로/넘기듯) or fade (서서히/흐려지며) is NOT a preset — pass a `TransitionInput` (`{type:"PUSH"|"SLIDE_IN"|"SLIDE_OUT", direction}` / `{type:"DISSOLVE"}`). Duration: 빠르게≈0.1–0.15s, 보통≈0.15s, 부드럽게≈0.25s, 느리게≈0.4s.
 

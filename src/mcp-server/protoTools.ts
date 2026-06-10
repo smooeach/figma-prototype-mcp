@@ -15,6 +15,9 @@ const MotionInputSchema = z.union([PresetNameEnum, TransitionInput]).describe(
     "or a fade (서서히/흐려지며/fade) is NOT a preset — pass a TransitionInput instead: " +
     "{type:'PUSH'|'SLIDE_IN'|'SLIDE_OUT', direction} or {type:'DISSOLVE'}. " +
     "Duration cues (for a custom TransitionInput, not presets): 빠르게≈0.1–0.15s, 보통≈0.15s, 부드럽게≈0.25s, 느리게≈0.4s. " +
+    "Spatial cues map to a directional TransitionInput, not a preset: 밀고 들어오는/들어와 → {type:'MOVE_IN', direction}; " +
+    "밀어내며/나가며/내보내며 → {type:'MOVE_OUT', direction}; 올라오는/올라와 → {type:'MOVE_IN', direction:'BOTTOM'}; " +
+    "내려오는 → {type:'MOVE_IN', direction:'TOP'}. " +
     "Full vocabulary: docs/dictionaries/.",
 );
 

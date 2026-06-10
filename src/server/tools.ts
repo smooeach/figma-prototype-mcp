@@ -134,7 +134,11 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "Use when the WHOLE screen changes to the destination. For a modal/popup/dialog/toast/sheet " +
         "that appears ON TOP of the current screen ('떠/팝업/모달'), use proto_overlay (open) instead. " +
         "Accepts a `motion` preset name (e.g. \"M3_EMPHASIZED\") or a full TransitionInput. " +
-        "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally.",
+        "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED (a SMART_ANIMATE preset). " +
+        "SMART_ANIMATE only morphs layers shared by name between the two frames; when they share none " +
+        "it auto-degrades to the connection's `degradeTo` (DISSOLVE by default). For a spatial 'slides/pushes in' " +
+        "feel between distinct screens, pass a directional TransitionInput (PUSH/MOVE_IN/MOVE_OUT) as `motion`. " +
+        "Compiles to create_reactions internally.",
       schema: ProtoWireInput,
       handler: async (input, session) => {
         const parsedInput = input as ProtoWireInput;
