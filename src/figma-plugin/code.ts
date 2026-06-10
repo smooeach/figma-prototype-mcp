@@ -26,7 +26,7 @@ import {
   type LocalVarDescriptor,
   type LibraryVarDescriptor,
 } from "./variable-catalog.js";
-import { findEnclosingFrameId, hasReactions, findScrollableAncestor, pathOf, findTopLevelFrameNode } from "./node-tree.js";
+import { findEnclosingFrameId, hasReactions, findScrollableAncestor, pathOf } from "./node-tree.js";
 import { encodeActionForListEcho, type EchoResolvers } from "./action-echo.js";
 import { resolveNavigateTransition } from "./motion-degrade.js";
 import {
