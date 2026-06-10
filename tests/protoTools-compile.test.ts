@@ -732,3 +732,26 @@ describe("collection disambiguation threading", () => {
     expect(action.else[0]).toEqual({ type: "set_variable", variable: "flag", collection: "DuMat", value: false });
   });
 });
+
+describe("degradeTo threading", () => {
+  it("compileProtoWire carries degradeTo onto the connection", () => {
+    const out = compileProtoWire(ProtoWireInput.parse({
+      wires: [{ from: "a", to: "b", degradeTo: "INSTANT" }],
+    }));
+    expect(out.connections[0]!.degradeTo).toBe("INSTANT");
+  });
+  it("compileProtoWire omits degradeTo when not given", () => {
+    const out = compileProtoWire(ProtoWireInput.parse({ wires: [{ from: "a", to: "b" }] }));
+    expect(out.connections[0]!.degradeTo).toBeUndefined();
+  });
+  it("compileProtoConditional carries degradeTo onto the connection", () => {
+    const out = compileProtoConditional(ProtoConditionalInput.parse({
+      conditions: [{
+        from: "a", degradeTo: "DISSOLVE",
+        if: { variable: "v", value: true },
+        then: { navigate: "b" },
+      }],
+    }));
+    expect(out.connections[0]!.degradeTo).toBe("DISSOLVE");
+  });
+});

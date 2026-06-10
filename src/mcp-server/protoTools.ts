@@ -18,12 +18,23 @@ const MotionInputSchema = z.union([PresetNameEnum, TransitionInput]).describe(
     "Full vocabulary: docs/dictionaries/.",
 );
 
+const DEGRADE_TO_FIELD = z
+  .enum(["DISSOLVE", "INSTANT"])
+  .optional()
+  .describe(
+    "Fallback transition used ONLY when a SMART_ANIMATE motion (the default, and " +
+      "every M3/HIG preset) connects two frames that share no matching layer names — " +
+      "there is nothing to morph, so it degrades. DISSOLVE (default) keeps a soft fade; " +
+      "INSTANT cuts immediately. Ignored for non-SMART_ANIMATE motion.",
+  );
+
 const ProtoWireEntry = z.object({
   from: z.string().min(1),
   to: z.string().min(1),
   trigger: TriggerInput.optional(),
   motion: MotionInputSchema.optional(),
   resetScrollPosition: z.boolean().optional(),
+  degradeTo: DEGRADE_TO_FIELD,
 });
 
 export const ProtoWireInput = z.object({
@@ -195,6 +206,7 @@ const ProtoConditionalEntry = z.object({
   from: z.string().min(1),
   trigger: TriggerInput.optional(),
   motion: MotionInputSchema.optional(),
+  degradeTo: DEGRADE_TO_FIELD,
   if: ProtoConditionIf,
   then: BranchAction,
   else: BranchAction.optional(),
@@ -257,7 +269,10 @@ export function compileProtoWire(input: ProtoWireInput): CreateReactionsInputTyp
     const action: Connection["action"] = w.resetScrollPosition === undefined
       ? { type: "navigate", targetFrameId: w.to }
       : { type: "navigate", targetFrameId: w.to, resetScrollPosition: w.resetScrollPosition };
-    return buildConnection(w.from, w.trigger, w.motion, action);
+    return {
+      ...buildConnection(w.from, w.trigger, w.motion, action),
+      ...(w.degradeTo !== undefined && { degradeTo: w.degradeTo }),
+    };
   });
   return { connections, replaceExisting: input.replaceExisting };
 }
@@ -406,6 +421,7 @@ export function compileProtoConditional(input: ProtoConditionalInput): CreateRea
       sourceNodeId: c.from,
       trigger: c.trigger ?? DEFAULT_TRIGGER,
       transition,
+      ...(c.degradeTo !== undefined && { degradeTo: c.degradeTo }),
       action,
     } as Connection;
   });
