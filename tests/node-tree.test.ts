@@ -4,6 +4,9 @@ import {
   hasReactions,
   findScrollableAncestor,
   pathOf,
+  findTopLevelFrameNode,
+  collectDescendantLayerNames,
+  framesShareLayer,
   type NodeLike,
 } from "../src/figma-plugin/node-tree.js";
 
@@ -49,5 +52,57 @@ describe("findScrollableAncestor", () => {
 describe("pathOf", () => {
   it("joins names from the node up to (but excluding) the DOCUMENT", () => {
     expect(pathOf(child)).toBe("Frame > Child");
+  });
+});
+
+describe("findTopLevelFrameNode", () => {
+  const page: NodeLike = { id: "p", name: "Page", type: "PAGE", parent: null };
+  const screen: NodeLike = { id: "s", name: "Screen", type: "FRAME", parent: page };
+  const inner: NodeLike = { id: "i", name: "Inner", type: "FRAME", parent: screen };
+  const btn: NodeLike = { id: "b", name: "Btn", type: "INSTANCE", parent: inner };
+
+  it("returns the frame whose parent is a PAGE", () => {
+    expect(findTopLevelFrameNode(btn)).toBe(screen);
+  });
+  it("treats a SECTION parent as top-level too", () => {
+    const section: NodeLike = { id: "sec", name: "Sec", type: "SECTION", parent: page };
+    const f: NodeLike = { id: "f", name: "F", type: "FRAME", parent: section };
+    const leaf: NodeLike = { id: "l", name: "L", type: "TEXT", parent: f };
+    expect(findTopLevelFrameNode(leaf)).toBe(f);
+  });
+  it("returns null when no frame has a PAGE/SECTION parent", () => {
+    const orphan: NodeLike = { id: "o", name: "O", type: "TEXT", parent: null };
+    expect(findTopLevelFrameNode(orphan)).toBe(null);
+  });
+});
+
+describe("collectDescendantLayerNames", () => {
+  it("gathers all descendant names, excluding the node itself", () => {
+    const leafA: NodeLike = { id: "a", name: "Title", type: "TEXT", parent: null };
+    const leafB: NodeLike = { id: "b", name: "CTA", type: "TEXT", parent: null };
+    const frame: NodeLike = { id: "f", name: "Frame", type: "FRAME", parent: null, children: [leafA, leafB] };
+    expect(collectDescendantLayerNames(frame)).toEqual(new Set(["Title", "CTA"]));
+  });
+  it("recurses into nested children", () => {
+    const deep: NodeLike = { id: "d", name: "Deep", type: "TEXT", parent: null };
+    const mid: NodeLike = { id: "m", name: "Mid", type: "GROUP", parent: null, children: [deep] };
+    const frame: NodeLike = { id: "f", name: "Frame", type: "FRAME", parent: null, children: [mid] };
+    expect(collectDescendantLayerNames(frame)).toEqual(new Set(["Mid", "Deep"]));
+  });
+  it("returns an empty set for a childless node", () => {
+    expect(collectDescendantLayerNames({ id: "x", name: "X", type: "FRAME", parent: null })).toEqual(new Set());
+  });
+});
+
+describe("framesShareLayer", () => {
+  const mk = (names: string[]): NodeLike => ({
+    id: "f", name: "F", type: "FRAME", parent: null,
+    children: names.map((n, i) => ({ id: `c${i}`, name: n, type: "TEXT", parent: null })),
+  });
+  it("is true when a descendant name is shared", () => {
+    expect(framesShareLayer(mk(["Header", "Body"]), mk(["Header", "Footer"]))).toBe(true);
+  });
+  it("is false when no descendant name is shared", () => {
+    expect(framesShareLayer(mk(["A", "B"]), mk(["C", "D"]))).toBe(false);
   });
 });

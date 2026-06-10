@@ -8,6 +8,7 @@ export interface NodeLike {
   name: string;
   type: string;
   parent: NodeLike | null;
+  children?: readonly NodeLike[];
   reactions?: readonly unknown[];
   overflowDirection?: string;
 }
@@ -48,4 +49,44 @@ export function pathOf(node: NodeLike): string {
     cur = cur.parent;
   }
   return parts.join(" > ");
+}
+
+/**
+ * The top-level frame containing `node`: the FRAME ancestor (or `node` itself)
+ * whose parent is a PAGE or SECTION (or null). This is the screen Figma uses as
+ * the SMART_ANIMATE source. Null when no such frame exists in the chain.
+ */
+export function findTopLevelFrameNode(node: NodeLike): NodeLike | null {
+  let cur: NodeLike | null = node;
+  let top: NodeLike | null = null;
+  while (cur) {
+    if (cur.type === "FRAME") {
+      const p = cur.parent;
+      if (!p || p.type === "PAGE" || p.type === "SECTION") top = cur;
+    }
+    cur = cur.parent;
+  }
+  return top;
+}
+
+/** Names of every descendant of `node` (recursive; excludes `node` itself). */
+export function collectDescendantLayerNames(node: NodeLike): Set<string> {
+  const names = new Set<string>();
+  const visit = (n: NodeLike): void => {
+    for (const child of n.children ?? []) {
+      names.add(child.name);
+      visit(child);
+    }
+  };
+  visit(node);
+  return names;
+}
+
+/** True if `a` and `b` share at least one descendant layer name. */
+export function framesShareLayer(a: NodeLike, b: NodeLike): boolean {
+  const namesA = collectDescendantLayerNames(a);
+  for (const name of collectDescendantLayerNames(b)) {
+    if (namesA.has(name)) return true;
+  }
+  return false;
 }
