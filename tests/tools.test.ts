@@ -943,3 +943,23 @@ describe("ListVariablesInput", () => {
     expect(() => ListVariablesInput.parse({ bogus: 1 })).toThrow();
   });
 });
+
+describe("ConnectionInput.degradeTo", () => {
+  it("accepts DISSOLVE and INSTANT", () => {
+    const parsed = CreateReactionsInput.parse({
+      connections: [{ sourceNodeId: "a", action: { type: "navigate", targetFrameId: "f" }, degradeTo: "INSTANT" }],
+    });
+    expect(parsed.connections[0]!.degradeTo).toBe("INSTANT");
+  });
+  it("rejects an unknown degradeTo value", () => {
+    expect(() => CreateReactionsInput.parse({
+      connections: [{ sourceNodeId: "a", action: { type: "navigate", targetFrameId: "f" }, degradeTo: "FADE" }],
+    })).toThrow();
+  });
+  it("leaves degradeTo undefined when omitted", () => {
+    const parsed = CreateReactionsInput.parse({
+      connections: [{ sourceNodeId: "a", action: { type: "navigate", targetFrameId: "f" } }],
+    });
+    expect(parsed.connections[0]!.degradeTo).toBeUndefined();
+  });
+});
