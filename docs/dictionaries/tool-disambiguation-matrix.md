@@ -18,6 +18,7 @@ Records the natural-language → tool/trigger/motion steering baked into the MCP
 | "스크롤 타깃 노드로 점프" (SCROLL_TO) | proto_scroll | jump to a target NODE | proto_wire (PUSH/SLIDE for "scroll feel" / "스크롤 느낌") |
 | "돌아가/뒤로/back" on an OVERLAY (close vs history) | ASK USER | overlay 'back' is ambiguous: close (reveal underlying screen) vs proto_back (history pop) — clarify before wiring | — |
 | "조건에 따라 / ~면 ~하고 아니면 ~" | proto_conditional | variable-comparison branching | — |
+| "뒤로가기 달아줘" (abstract, no element named) | proto_back on a discovered back-affordance node (ON_CLICK) | search for top-left back icon first; swipe (ON_DRAG) only on explicit gesture cue; ask if none found | proto_wire (specific frame) |
 
 Untouched (correct as-is): proto_scroll (exemplar), proto_url, create_reactions (low-level escape hatch), the read/utility low-level tools.
 

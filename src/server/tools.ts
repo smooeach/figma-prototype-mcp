@@ -194,6 +194,11 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "Wire source nodes to the Back navigation action (pops the prototype history stack — no destination). " +
         "Use for 'go back / 뒤로' = return to whatever screen the user came from (dynamic, no fixed destination). " +
         "To navigate to a SPECIFIC previous frame, use proto_wire instead. " +
+        "Choosing the source node: for an abstract request ('뒤로가기 달아줘/add back to each screen') FIRST look for a " +
+        "visible back affordance in the frame — a small top-left icon, or a node whose name contains back/arrow/chevron/prev, " +
+        "or a '<'/'‹' glyph — and wire THAT with ON_CLICK. Only use a frame-level ON_DRAG swipe-back when the request names a " +
+        "gesture ('스와이프/밀어서 뒤로'). If the intent is abstract AND no back-affordance node exists, ASK the user " +
+        "('백버튼이 안 보이는데 스와이프 제스처로 할까요?') rather than silently wiring a swipe — do not create a node (this tool only wires). " +
         "⚠️ If the source is on an OVERLAY (popup/modal/dialog/sheet shown on top of another screen), " +
         "'go back / 돌아가 / 뒤로' is AMBIGUOUS — it may mean dismiss the overlay to reveal the screen " +
         "underneath (= proto_overlay close) or pop the navigation history (= Back, which on an overlay " +
