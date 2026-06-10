@@ -12,6 +12,8 @@ import {
   buildConditionalReaction,
   buildSetVariableReaction,
   resolveEasing,
+  isSmartAnimate,
+  degradeTransition,
   type BuiltAction,
 } from "../src/figma-plugin/reaction-builder.js";
 
@@ -700,5 +702,39 @@ describe("buildSetVariableReaction", () => {
     const action = r.actions[0]!;
     if (action.type !== "SET_VARIABLE") throw new Error("expected SET_VARIABLE");
     expect(action.variableValue).toEqual({ type: "STRING", resolvedType: "STRING", value: "gold" });
+  });
+});
+
+describe("isSmartAnimate", () => {
+  it("is true for the string form", () => {
+    expect(isSmartAnimate("SMART_ANIMATE")).toBe(true);
+  });
+  it("is true for the object form", () => {
+    expect(isSmartAnimate({ type: "SMART_ANIMATE", duration: 0.5 })).toBe(true);
+  });
+  it("is false for other transitions", () => {
+    expect(isSmartAnimate("DISSOLVE")).toBe(false);
+    expect(isSmartAnimate({ type: "PUSH", direction: "LEFT" })).toBe(false);
+  });
+});
+
+describe("degradeTransition", () => {
+  it("leaves non-SMART_ANIMATE input unchanged", () => {
+    expect(degradeTransition("DISSOLVE", "INSTANT")).toBe("DISSOLVE");
+  });
+  it("degrades the string form to DISSOLVE", () => {
+    expect(degradeTransition("SMART_ANIMATE", "DISSOLVE")).toBe("DISSOLVE");
+  });
+  it("degrades the string form to INSTANT", () => {
+    expect(degradeTransition("SMART_ANIMATE", "INSTANT")).toBe("INSTANT");
+  });
+  it("preserves duration/easing when degrading the object form to DISSOLVE", () => {
+    const easing = { type: "CUSTOM_CUBIC_BEZIER", x1: 0.2, y1: 0, x2: 0, y2: 1 } as const;
+    expect(degradeTransition({ type: "SMART_ANIMATE", duration: 0.5, easing }, "DISSOLVE")).toEqual({
+      type: "DISSOLVE", duration: 0.5, easing,
+    });
+  });
+  it("drops duration/easing when degrading to INSTANT", () => {
+    expect(degradeTransition({ type: "SMART_ANIMATE", duration: 0.5 }, "INSTANT")).toBe("INSTANT");
   });
 });
