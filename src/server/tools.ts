@@ -24,6 +24,7 @@ import {
   ProtoToggleVariableInput,
   ProtoConditionalInput,
   ProtoGetLastHistoryInput,
+  ProtoChangeToInput,
   compileProtoWire,
   compileProtoOverlay,
   compileProtoScroll,
@@ -32,6 +33,7 @@ import {
   compileProtoSetVariable,
   compileProtoToggleVariable,
   compileProtoConditional,
+  compileProtoChangeTo,
 } from "../mcp-server/protoTools.js";
 import type { CommandName } from "../mcp-server/types.js";
 import type { PluginSession } from "./sessions.js";
@@ -146,6 +148,26 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         const parsedInput = input as ProtoWireInput;
         return recordedHandler(historyStore, "proto_wire", parsedInput, () =>
           session.sendCommand("CREATE_REACTIONS" as CommandName, compileProtoWire(parsedInput)),
+        );
+      },
+    },
+    {
+      name: "proto_change_to",
+      description:
+        "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
+        "Switch a component INSTANCE to a sibling VARIANT on interaction (Figma's 'Change to'). " +
+        "Use for toggles, tabs, segmented controls, and on/off or selected/unselected state changes " +
+        "driven by variants of one component — KO cues: 'highlight 상태로 바꿔', '토글', 'variant 바꿔', " +
+        "'선택 상태로'. `from` = a component instance node ID (or a node inside one); `to` = the target " +
+        "variant node ID (a COMPONENT inside the same component set) — both are node IDs, NOT names; " +
+        "resolve names via find_nodes first. For a whole-screen change use proto_wire; for a data value use " +
+        "proto_set_variable. Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED (SMART_ANIMATE morph between variants). " +
+        "Compiles to create_reactions internally.",
+      schema: ProtoChangeToInput,
+      handler: async (input, session) => {
+        const parsedInput = input as ProtoChangeToInput;
+        return recordedHandler(historyStore, "proto_change_to", parsedInput, () =>
+          session.sendCommand("CREATE_REACTIONS" as CommandName, compileProtoChangeTo(parsedInput)),
         );
       },
     },

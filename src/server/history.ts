@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 export type ProtoToolName =
   | "proto_wire"
+  | "proto_change_to"
   | "proto_overlay"
   | "proto_scroll"
   | "proto_back"
