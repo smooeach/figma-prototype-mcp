@@ -18,6 +18,8 @@ const MotionInputSchema = z.union([PresetNameEnum, TransitionInput]).describe(
     "Spatial cues map to a directional TransitionInput, not a preset: 밀고 들어오는/들어와 → {type:'MOVE_IN', direction}; " +
     "밀어내며/나가며/내보내며 → {type:'MOVE_OUT', direction}; 올라오는/올라와 → {type:'MOVE_IN', direction:'BOTTOM'}; " +
     "내려오는 → {type:'MOVE_IN', direction:'TOP'}. " +
+    "(A DISSOLVE cannot carry matching layers — Figma runtime rejects matchLayers on DISSOLVE. " +
+    "For a fade that also morphs shared layers, use a directional transition with matchLayers, e.g. {type:'PUSH', direction, matchLayers:true}.) " +
     "Full vocabulary: docs/dictionaries/.",
 );
 

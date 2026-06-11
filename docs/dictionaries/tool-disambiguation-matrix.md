@@ -60,7 +60,7 @@ Full set: `natural-language-mapping-dictionary-v2.3.md`, `animation-dictionary-v
 | 올라오는 / 올라와 | `{type:'MOVE_IN', direction:'BOTTOM'}` (bottom-sheet-like rise) |
 | 내려오는 | `{type:'MOVE_IN', direction:'TOP'}` (slides down from top) |
 
-All 10 presets are SMART_ANIMATE (morph). Directional feel (옆으로/슬라이드/다음으로/넘기듯) or fade (서서히/흐려지며) is NOT a preset — pass a `TransitionInput` (`{type:"PUSH"|"SLIDE_IN"|"SLIDE_OUT", direction}` / `{type:"DISSOLVE"}`). Duration: 빠르게≈0.1–0.15s, 보통≈0.15s, 부드럽게≈0.25s, 느리게≈0.4s. Default motion is M3_EMPHASIZED (SMART_ANIMATE); between distinct screens that share no matching layer names it auto-degrades to DISSOLVE (or the connection's `degradeTo`, e.g. INSTANT).
+All 10 presets are SMART_ANIMATE (morph). Directional feel (옆으로/슬라이드/다음으로/넘기듯) or fade (서서히/흐려지며) is NOT a preset — pass a `TransitionInput` (`{type:"PUSH"|"SLIDE_IN"|"SLIDE_OUT", direction}` / `{type:"DISSOLVE"}`). Duration: 빠르게≈0.1–0.15s, 보통≈0.15s, 부드럽게≈0.25s, 느리게≈0.4s. Default motion is M3_EMPHASIZED (SMART_ANIMATE); between distinct screens that share no matching layer it auto-degrades to DISSOLVE (or the connection's `degradeTo`, e.g. INSTANT). **Layer matching is hierarchy-aware** (relative path, not bare name): a same-named layer under a differently-named parent does NOT count as shared. A DISSOLVE cannot carry `matchLayers` (Figma runtime rejects it — see R2 below); for a fade that also morphs shared layers, use a directional transition with `matchLayers:true`.
 
 ## Deferred validation checklist
 
@@ -82,3 +82,17 @@ First non-modify-existing validation: build the whole interaction layer on a fra
 **Findings (steering candidates, not blockers):**
 - **G2-F1** — abstract intent ("뒤로가기 *달아줘*") → LLM defaults to **gesture fallback (ON_DRAG swipe-back)** instead of scanning for a back-affordance node; explicit element naming ("좌상단 백버튼") fixes it. Contrast G3 where the prompt *named* "메뉴 버튼" and discovery succeeded first-pass. So: not a discovery-capability gap — it's that abstract verbs don't trigger active element search.
 - **G6-F1** — proto_wire motion-default **inconsistency**: G1 forward nav → M3_EMPHASIZED, but G6 auto-applied **SMART_ANIMATE (silently) to all 3 checkout wires**. cart→payment→complete are non-matching layouts where SMART_ANIMATE looks broken. No stable default rule across contexts; SMART_ANIMATE should be reserved for matching-layer cases. → describe()/default-motion steering candidate.
+
+### NL steering hardening R2 — live-validated 2026-06-11 (branch `feat/nl-steering-r2`)
+
+Fixes G2-F1 (proto_back affordance discovery) + G6-F1 (silent SMART_ANIMATE on non-matching screens). Live round driven directly via an MCP SSE client against the running server with the dev plugin connected (file `MCP_test_14`).
+
+| Check | Result |
+|---|---|
+| **A2 probe** — `matchLayers` on DISSOLVE accepted by Figma runtime? | ❌ **REJECTED** — `setReactionsAsync` → `Unrecognized key(s) in object: 'matchLayers'`. Same class as `initialVelocity`/`deprecatedVersion`. Took plan path 1b (document + directional fallback). |
+| **Degrade fires** (non-matching) — screen01(`button01/label`) → MCP_Test_02/screen01(`button02`), default SMART_ANIMATE | ✅ stored transition = **DISSOLVE**, warning `SMART_ANIMATE has no matching layers … degraded to DISSOLVE`, M3 easing/duration preserved |
+| **Keeps SMART_ANIMATE** (matching) — screen01 → screen02 (both `button01 > label`, identical relative paths) | ✅ kept SMART_ANIMATE (correct: Smart Animate morphs `button01`/`label`) |
+| **Directional** — `{type:'PUSH', direction:'LEFT'}` | ✅ stored PUSH LEFT |
+| **Hierarchy-aware matching refinement** | flat-name `framesShareLayer` → relative-path matching (a shared leaf name under differently-named parents no longer counts). Unit-tested; `collectDescendantLayerNames` (flat) dropped as dead. |
+
+Not live-run this round: **G2-F1 proto_back affordance discovery** is pure `.describe()` LLM-steering — needs an LLM client bound to our MCP (the test client kept routing to the official `use_figma`); low risk, validated by reasoning + schema text.
