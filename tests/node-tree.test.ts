@@ -5,7 +5,7 @@ import {
   findScrollableAncestor,
   pathOf,
   findTopLevelFrameNode,
-  collectDescendantLayerNames,
+  collectDescendantLayerPaths,
   framesShareLayer,
   type NodeLike,
 } from "../src/figma-plugin/node-tree.js";
@@ -76,24 +76,6 @@ describe("findTopLevelFrameNode", () => {
   });
 });
 
-describe("collectDescendantLayerNames", () => {
-  it("gathers all descendant names, excluding the node itself", () => {
-    const leafA: NodeLike = { id: "a", name: "Title", type: "TEXT", parent: null };
-    const leafB: NodeLike = { id: "b", name: "CTA", type: "TEXT", parent: null };
-    const frame: NodeLike = { id: "f", name: "Frame", type: "FRAME", parent: null, children: [leafA, leafB] };
-    expect(collectDescendantLayerNames(frame)).toEqual(new Set(["Title", "CTA"]));
-  });
-  it("recurses into nested children", () => {
-    const deep: NodeLike = { id: "d", name: "Deep", type: "TEXT", parent: null };
-    const mid: NodeLike = { id: "m", name: "Mid", type: "GROUP", parent: null, children: [deep] };
-    const frame: NodeLike = { id: "f", name: "Frame", type: "FRAME", parent: null, children: [mid] };
-    expect(collectDescendantLayerNames(frame)).toEqual(new Set(["Mid", "Deep"]));
-  });
-  it("returns an empty set for a childless node", () => {
-    expect(collectDescendantLayerNames({ id: "x", name: "X", type: "FRAME", parent: null })).toEqual(new Set());
-  });
-});
-
 describe("framesShareLayer", () => {
   const mk = (names: string[]): NodeLike => ({
     id: "f", name: "F", type: "FRAME", parent: null,
@@ -104,5 +86,39 @@ describe("framesShareLayer", () => {
   });
   it("is false when no descendant name is shared", () => {
     expect(framesShareLayer(mk(["A", "B"]), mk(["C", "D"]))).toBe(false);
+  });
+
+  // Hierarchy-aware matching: a shared name only counts when its ancestor path
+  // (relative to the frame, excluding the frame's own name) also matches —
+  // mirroring how Smart Animate has nothing meaningful to morph between two
+  // same-named layers nested under differently-named parents.
+  const nest = (parent: string, leaf: string): NodeLike => {
+    const frame: NodeLike = { id: "f", name: "F", type: "FRAME", parent: null };
+    const inner: NodeLike = { id: "in", name: parent, type: "FRAME", parent: frame };
+    (inner as unknown as { children: NodeLike[] }).children = [{ id: "lf", name: leaf, type: "TEXT", parent: inner }];
+    (frame as unknown as { children: NodeLike[] }).children = [inner];
+    return frame;
+  };
+  it("is false when a shared leaf name sits under differently-named parents", () => {
+    expect(framesShareLayer(nest("innerA", "label"), nest("innerB", "label"))).toBe(false);
+  });
+  it("is true when a shared leaf name sits under the same-named parent path", () => {
+    expect(framesShareLayer(nest("content", "label"), nest("content", "label"))).toBe(true);
+  });
+  it("is true when an intermediate container name matches (Smart Animate morphs it)", () => {
+    expect(framesShareLayer(nest("shared", "leafA"), nest("shared", "leafB"))).toBe(true);
+  });
+});
+
+describe("collectDescendantLayerPaths", () => {
+  it("returns each descendant's path relative to the node (frame name excluded)", () => {
+    const frame: NodeLike = { id: "f", name: "Screen", type: "FRAME", parent: null };
+    const inner: NodeLike = { id: "in", name: "Card", type: "FRAME", parent: frame };
+    (inner as unknown as { children: NodeLike[] }).children = [{ id: "t", name: "Title", type: "TEXT", parent: inner }];
+    (frame as unknown as { children: NodeLike[] }).children = [inner];
+    expect(collectDescendantLayerPaths(frame)).toEqual(new Set(["Card", "Card/Title"]));
+  });
+  it("returns an empty set for a childless node", () => {
+    expect(collectDescendantLayerPaths({ id: "x", name: "X", type: "FRAME", parent: null })).toEqual(new Set());
   });
 });

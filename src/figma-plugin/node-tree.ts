@@ -69,24 +69,36 @@ export function findTopLevelFrameNode(node: NodeLike): NodeLike | null {
   return top;
 }
 
-/** Names of every descendant of `node` (recursive; excludes `node` itself). */
-export function collectDescendantLayerNames(node: NodeLike): Set<string> {
-  const names = new Set<string>();
-  const visit = (n: NodeLike): void => {
+/**
+ * Paths of every descendant of `node`, relative to `node` (the frame's own name
+ * excluded). Each path is the "/"-joined chain of names from a direct child down
+ * to that descendant — e.g. a "Title" inside a "Card" yields "Card" and
+ * "Card/Title". A shared path means a same-named layer sits at the same place in
+ * both trees, which is what Smart Animate can meaningfully morph; a same name
+ * under a differently-named parent produces different paths and does not match.
+ */
+export function collectDescendantLayerPaths(node: NodeLike): Set<string> {
+  const paths = new Set<string>();
+  const visit = (n: NodeLike, prefix: string): void => {
     for (const child of n.children ?? []) {
-      names.add(child.name);
-      visit(child);
+      const path = prefix ? `${prefix}/${child.name}` : child.name;
+      paths.add(path);
+      visit(child, path);
     }
   };
-  visit(node);
-  return names;
+  visit(node, "");
+  return paths;
 }
 
-/** True if `a` and `b` share at least one descendant layer name. */
+/**
+ * True if `a` and `b` share at least one descendant layer at the same relative
+ * path (hierarchy-aware). A bare name match under differing ancestors does not
+ * count — Smart Animate would have nothing to morph there.
+ */
 export function framesShareLayer(a: NodeLike, b: NodeLike): boolean {
-  const namesA = collectDescendantLayerNames(a);
-  for (const name of collectDescendantLayerNames(b)) {
-    if (namesA.has(name)) return true;
+  const pathsA = collectDescendantLayerPaths(a);
+  for (const path of collectDescendantLayerPaths(b)) {
+    if (pathsA.has(path)) return true;
   }
   return false;
 }
