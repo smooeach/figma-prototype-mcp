@@ -8,6 +8,7 @@ export interface NodeLike {
   name: string;
   type: string;
   parent: NodeLike | null;
+  children?: readonly NodeLike[];
   reactions?: readonly unknown[];
   overflowDirection?: string;
 }
@@ -48,4 +49,56 @@ export function pathOf(node: NodeLike): string {
     cur = cur.parent;
   }
   return parts.join(" > ");
+}
+
+/**
+ * The top-level frame containing `node`: the FRAME ancestor (or `node` itself)
+ * whose parent is a PAGE or SECTION (or null). This is the screen Figma uses as
+ * the SMART_ANIMATE source. Null when no such frame exists in the chain.
+ */
+export function findTopLevelFrameNode(node: NodeLike): NodeLike | null {
+  let cur: NodeLike | null = node;
+  let top: NodeLike | null = null;
+  while (cur) {
+    if (cur.type === "FRAME") {
+      const p = cur.parent;
+      if (!p || p.type === "PAGE" || p.type === "SECTION") top = cur;
+    }
+    cur = cur.parent;
+  }
+  return top;
+}
+
+/**
+ * Paths of every descendant of `node`, relative to `node` (the frame's own name
+ * excluded). Each path is the "/"-joined chain of names from a direct child down
+ * to that descendant — e.g. a "Title" inside a "Card" yields "Card" and
+ * "Card/Title". A shared path means a same-named layer sits at the same place in
+ * both trees, which is what Smart Animate can meaningfully morph; a same name
+ * under a differently-named parent produces different paths and does not match.
+ */
+export function collectDescendantLayerPaths(node: NodeLike): Set<string> {
+  const paths = new Set<string>();
+  const visit = (n: NodeLike, prefix: string): void => {
+    for (const child of n.children ?? []) {
+      const path = prefix ? `${prefix}/${child.name}` : child.name;
+      paths.add(path);
+      visit(child, path);
+    }
+  };
+  visit(node, "");
+  return paths;
+}
+
+/**
+ * True if `a` and `b` share at least one descendant layer at the same relative
+ * path (hierarchy-aware). A bare name match under differing ancestors does not
+ * count — Smart Animate would have nothing to morph there.
+ */
+export function framesShareLayer(a: NodeLike, b: NodeLike): boolean {
+  const pathsA = collectDescendantLayerPaths(a);
+  for (const path of collectDescendantLayerPaths(b)) {
+    if (pathsA.has(path)) return true;
+  }
+  return false;
 }

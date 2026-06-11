@@ -238,6 +238,31 @@ export function buildTransition(input: TransitionInput): TransitionShape {
   };
 }
 
+/** Whether a transition resolves to SMART_ANIMATE (string or object form). */
+export function isSmartAnimate(input: TransitionInput): boolean {
+  if (input === "SMART_ANIMATE") return true;
+  return typeof input !== "string" && input.type === "SMART_ANIMATE";
+}
+
+/**
+ * Degrade a SMART_ANIMATE transition to a fallback. Used when the source and
+ * destination frames share no matching layers, so SMART_ANIMATE has nothing to
+ * morph. Non-SMART_ANIMATE input is returned unchanged.
+ * - "INSTANT": a hard cut (no duration/easing).
+ * - "DISSOLVE": a soft fade, preserving the SMART_ANIMATE duration/easing.
+ */
+export function degradeTransition(
+  input: TransitionInput,
+  degradeTo: "DISSOLVE" | "INSTANT",
+): TransitionInput {
+  if (!isSmartAnimate(input)) return input;
+  if (degradeTo === "INSTANT") return "INSTANT";
+  if (typeof input === "string") return "DISSOLVE";
+  // input is SimpleTransitionInput with type === "SMART_ANIMATE" at this point.
+  const obj = input as SimpleTransitionInput;
+  return { type: "DISSOLVE", duration: obj.duration, easing: obj.easing };
+}
+
 export function buildTrigger(
   input: TriggerInput,
   legacyAfterTimeoutSeconds?: number

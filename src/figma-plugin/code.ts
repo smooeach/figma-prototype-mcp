@@ -28,6 +28,7 @@ import {
 } from "./variable-catalog.js";
 import { findEnclosingFrameId, hasReactions, findScrollableAncestor, pathOf } from "./node-tree.js";
 import { encodeActionForListEcho, type EchoResolvers } from "./action-echo.js";
+import { resolveNavigateTransition } from "./motion-degrade.js";
 import {
   buildConditionExpression,
   type ComparisonOperator,
@@ -131,6 +132,8 @@ async function buildNonConditionalAction(
   trigger: TriggerInput,
   afterTimeoutSeconds: number | undefined,
   transition: TransitionInput,
+  sourceNode: BaseNode,
+  degradeTo: "DISSOLVE" | "INSTANT" | undefined,
 ): Promise<{ built: BuiltAction; warning?: string }> {
   if (action.type === "navigate") {
     const target = figma.getNodeById(action.targetFrameId);
@@ -138,12 +141,18 @@ async function buildNonConditionalAction(
     if (target.type !== "FRAME") {
       throw new Error(`Target must be a frame: ${action.targetFrameId} (got ${target.type})`);
     }
+    const { transition: effectiveTransition, warning } = resolveNavigateTransition({
+      source: sourceNode,
+      destFrame: target,
+      transition,
+      degradeTo,
+    });
     const reaction = buildNavigateReaction({
       targetFrameId: action.targetFrameId,
-      trigger, afterTimeoutSeconds, transition,
+      trigger, afterTimeoutSeconds, transition: effectiveTransition,
       resetScrollPosition: action.resetScrollPosition,
     });
-    return { built: reaction.actions[0]! };
+    return { built: reaction.actions[0]!, warning };
   }
   if (action.type === "scroll") {
     const target = figma.getNodeById(action.targetNodeId);
@@ -475,7 +484,7 @@ async function handleCreateReactions(params: CreateReactionsInput) {
 
         const thenBuilt: BuiltAction[] = [];
         for (const a of conn.action.then) {
-          const r = await buildNonConditionalAction(a, conn.trigger, conn.afterTimeoutSeconds, conn.transition);
+          const r = await buildNonConditionalAction(a, conn.trigger, conn.afterTimeoutSeconds, conn.transition, source, conn.degradeTo);
           thenBuilt.push(r.built);
           // Inner-branch scroll warnings: surface the first one upward
           if (r.warning && !warning) warning = r.warning;
@@ -484,7 +493,7 @@ async function handleCreateReactions(params: CreateReactionsInput) {
         if (conn.action.else) {
           elseBuilt = [];
           for (const a of conn.action.else) {
-            const r = await buildNonConditionalAction(a, conn.trigger, conn.afterTimeoutSeconds, conn.transition);
+            const r = await buildNonConditionalAction(a, conn.trigger, conn.afterTimeoutSeconds, conn.transition, source, conn.degradeTo);
             elseBuilt.push(r.built);
             if (r.warning && !warning) warning = r.warning;
           }
@@ -549,6 +558,8 @@ async function handleCreateReactions(params: CreateReactionsInput) {
           conn.trigger,
           conn.afterTimeoutSeconds,
           conn.transition,
+          source,
+          conn.degradeTo,
         );
         if (branchWarning) warning = branchWarning;
         newReaction = {

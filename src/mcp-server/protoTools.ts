@@ -15,8 +15,23 @@ const MotionInputSchema = z.union([PresetNameEnum, TransitionInput]).describe(
     "or a fade (서서히/흐려지며/fade) is NOT a preset — pass a TransitionInput instead: " +
     "{type:'PUSH'|'SLIDE_IN'|'SLIDE_OUT', direction} or {type:'DISSOLVE'}. " +
     "Duration cues (for a custom TransitionInput, not presets): 빠르게≈0.1–0.15s, 보통≈0.15s, 부드럽게≈0.25s, 느리게≈0.4s. " +
+    "Spatial cues map to a directional TransitionInput, not a preset: 밀고 들어오는/들어와 → {type:'MOVE_IN', direction}; " +
+    "밀어내며/나가며/내보내며 → {type:'MOVE_OUT', direction}; 올라오는/올라와 → {type:'MOVE_IN', direction:'BOTTOM'}; " +
+    "내려오는 → {type:'MOVE_IN', direction:'TOP'}. " +
+    "(A DISSOLVE cannot carry matching layers — Figma runtime rejects matchLayers on DISSOLVE. " +
+    "For a fade that also morphs shared layers, use a directional transition with matchLayers, e.g. {type:'PUSH', direction, matchLayers:true}.) " +
     "Full vocabulary: docs/dictionaries/.",
 );
+
+const DEGRADE_TO_FIELD = z
+  .enum(["DISSOLVE", "INSTANT"])
+  .optional()
+  .describe(
+    "Fallback transition used ONLY when a SMART_ANIMATE motion (the default, and " +
+      "every M3/HIG preset) connects two frames that share no matching layer names — " +
+      "there is nothing to morph, so it degrades. DISSOLVE (default) keeps a soft fade; " +
+      "INSTANT cuts immediately. Ignored for non-SMART_ANIMATE motion.",
+  );
 
 const ProtoWireEntry = z.object({
   from: z.string().min(1),
@@ -24,6 +39,7 @@ const ProtoWireEntry = z.object({
   trigger: TriggerInput.optional(),
   motion: MotionInputSchema.optional(),
   resetScrollPosition: z.boolean().optional(),
+  degradeTo: DEGRADE_TO_FIELD,
 });
 
 export const ProtoWireInput = z.object({
@@ -195,6 +211,7 @@ const ProtoConditionalEntry = z.object({
   from: z.string().min(1),
   trigger: TriggerInput.optional(),
   motion: MotionInputSchema.optional(),
+  degradeTo: DEGRADE_TO_FIELD,
   if: ProtoConditionIf,
   then: BranchAction,
   else: BranchAction.optional(),
@@ -257,7 +274,10 @@ export function compileProtoWire(input: ProtoWireInput): CreateReactionsInputTyp
     const action: Connection["action"] = w.resetScrollPosition === undefined
       ? { type: "navigate", targetFrameId: w.to }
       : { type: "navigate", targetFrameId: w.to, resetScrollPosition: w.resetScrollPosition };
-    return buildConnection(w.from, w.trigger, w.motion, action);
+    return {
+      ...buildConnection(w.from, w.trigger, w.motion, action),
+      ...(w.degradeTo !== undefined && { degradeTo: w.degradeTo }),
+    };
   });
   return { connections, replaceExisting: input.replaceExisting };
 }
@@ -406,6 +426,7 @@ export function compileProtoConditional(input: ProtoConditionalInput): CreateRea
       sourceNodeId: c.from,
       trigger: c.trigger ?? DEFAULT_TRIGGER,
       transition,
+      ...(c.degradeTo !== undefined && { degradeTo: c.degradeTo }),
       action,
     } as Connection;
   });

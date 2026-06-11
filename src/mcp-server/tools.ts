@@ -240,6 +240,7 @@ const ConnectionInput = z.object({
   trigger: TriggerInput.default("ON_CLICK"),
   afterTimeoutSeconds: z.number().positive().optional(),
   transition: TransitionInput.default("INSTANT"),
+  degradeTo: z.enum(["DISSOLVE", "INSTANT"]).optional(),
   action: ActionInput,
 }).refine(
   (v) => v.trigger !== "AFTER_TIMEOUT" || typeof v.afterTimeoutSeconds === "number",
