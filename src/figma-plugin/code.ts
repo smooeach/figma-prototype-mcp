@@ -207,18 +207,21 @@ async function buildNonConditionalAction(
     };
     return { built, warning };
   }
-  // swap_overlay
-  const target = figma.getNodeById(action.targetFrameId);
-  if (!target) throw new Error(`Swap overlay target frame not found: ${action.targetFrameId}`);
-  if (target.type !== "FRAME") {
-    throw new Error(`Swap overlay target must be a frame: ${action.targetFrameId} (got ${target.type})`);
+  if (action.type === "swap_overlay") {
+    const target = figma.getNodeById(action.targetFrameId);
+    if (!target) throw new Error(`Swap overlay target frame not found: ${action.targetFrameId}`);
+    if (target.type !== "FRAME") {
+      throw new Error(`Swap overlay target must be a frame: ${action.targetFrameId} (got ${target.type})`);
+    }
+    const reaction = buildSwapOverlayReaction({
+      trigger, afterTimeoutSeconds, transition,
+      targetFrameId: action.targetFrameId,
+      resetScrollPosition: action.resetScrollPosition,
+    });
+    return { built: reaction.actions[0]! };
   }
-  const reaction = buildSwapOverlayReaction({
-    trigger, afterTimeoutSeconds, transition,
-    targetFrameId: action.targetFrameId,
-    resetScrollPosition: action.resetScrollPosition,
-  });
-  return { built: reaction.actions[0]! };
+  // change_to — plugin handler not yet implemented (schema-only in this task)
+  throw new Error(`change_to action is not yet implemented in the plugin`);
 }
 
 async function resolveVariableByName(

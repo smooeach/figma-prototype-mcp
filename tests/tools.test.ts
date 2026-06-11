@@ -963,3 +963,32 @@ describe("ConnectionInput.degradeTo", () => {
     expect(parsed.connections[0]!.degradeTo).toBeUndefined();
   });
 });
+
+describe("change_to action", () => {
+  it("accepts a change_to action with targetVariantId", () => {
+    const parsed = CreateReactionsInput.parse({
+      connections: [{ sourceNodeId: "i1", action: { type: "change_to", targetVariantId: "v1" } }],
+    });
+    expect(parsed.connections[0]!.action).toEqual({ type: "change_to", targetVariantId: "v1" });
+  });
+  it("rejects change_to without targetVariantId", () => {
+    expect(() => CreateReactionsInput.parse({
+      connections: [{ sourceNodeId: "i1", action: { type: "change_to" } }],
+    })).toThrow();
+  });
+  it("allows change_to inside a conditional then-branch", () => {
+    const parsed = CreateReactionsInput.parse({
+      connections: [{
+        sourceNodeId: "i1",
+        action: {
+          type: "conditional",
+          condition: { variable: "v", operator: "==", value: true },
+          then: [{ type: "change_to", targetVariantId: "v1" }],
+        },
+      }],
+    });
+    expect((parsed.connections[0]!.action as { then: unknown[] }).then[0]).toEqual({
+      type: "change_to", targetVariantId: "v1",
+    });
+  });
+});
