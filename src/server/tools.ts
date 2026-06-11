@@ -131,6 +131,8 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
       description:
         "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
         "Wire one or more source nodes to destination frames with Navigate To. " +
+        "`from`/`to` are node IDs (e.g. \"1404:1947\"), NOT frame names — resolve names to IDs " +
+        "with find_nodes or get_canvas_overview first. " +
         "Use when the WHOLE screen changes to the destination. For a modal/popup/dialog/toast/sheet " +
         "that appears ON TOP of the current screen ('떠/팝업/모달'), use proto_overlay (open) instead. " +
         "Accepts a `motion` preset name (e.g. \"M3_EMPHASIZED\") or a full TransitionInput. " +

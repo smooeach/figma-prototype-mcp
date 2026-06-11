@@ -34,8 +34,8 @@ const DEGRADE_TO_FIELD = z
   );
 
 const ProtoWireEntry = z.object({
-  from: z.string().min(1),
-  to: z.string().min(1),
+  from: z.string().min(1).describe("Source node ID (e.g. \"1404:1947\"), NOT a frame name — resolve names via find_nodes/get_canvas_overview first."),
+  to: z.string().min(1).describe("Destination frame node ID (e.g. \"1404:1950\"), NOT a frame name."),
   trigger: TriggerInput.optional(),
   motion: MotionInputSchema.optional(),
   resetScrollPosition: z.boolean().optional(),
