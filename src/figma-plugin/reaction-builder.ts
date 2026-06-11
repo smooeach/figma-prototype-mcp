@@ -112,7 +112,7 @@ export type BuiltAction =
   | {
       type: "NODE";
       destinationId: string;
-      navigation: "NAVIGATE" | "SCROLL_TO" | "OVERLAY" | "SWAP";
+      navigation: "NAVIGATE" | "SCROLL_TO" | "OVERLAY" | "SWAP" | "CHANGE_TO";
       transition: TransitionShape;
       resetScrollPosition?: boolean;
     }
@@ -141,6 +141,13 @@ export interface NavigateBuildInput {
   transition: TransitionInput;
   afterTimeoutSeconds?: number;
   resetScrollPosition?: boolean;
+}
+
+export interface ChangeToBuildInput {
+  targetVariantId: string;
+  trigger: TriggerInput;
+  transition: TransitionInput;
+  afterTimeoutSeconds?: number;
 }
 
 export interface ScrollBuildInput {
@@ -312,6 +319,25 @@ export function buildNavigateReaction(input: NavigateBuildInput): BuiltReaction 
     navigation: "NAVIGATE",
     transition: buildTransition(input.transition),
     ...(input.resetScrollPosition !== undefined && { resetScrollPosition: input.resetScrollPosition }),
+  };
+  return {
+    trigger: buildTrigger(input.trigger, input.afterTimeoutSeconds),
+    actions: [action],
+  };
+}
+
+/**
+ * Build a "Change to" reaction: switch the triggering node's nearest component
+ * instance to the variant identified by `targetVariantId`. Emits a NODE action
+ * with CHANGE_TO navigation — the same action shape Figma uses for NAVIGATE,
+ * confirmed accepted by setReactionsAsync (probe 2026-06-11).
+ */
+export function buildChangeToReaction(input: ChangeToBuildInput): BuiltReaction {
+  const action: BuiltAction = {
+    type: "NODE",
+    destinationId: input.targetVariantId,
+    navigation: "CHANGE_TO",
+    transition: buildTransition(input.transition),
   };
   return {
     trigger: buildTrigger(input.trigger, input.afterTimeoutSeconds),

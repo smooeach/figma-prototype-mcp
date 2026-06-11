@@ -11,6 +11,7 @@ import {
   buildSwapOverlayReaction,
   buildConditionalReaction,
   buildSetVariableReaction,
+  buildChangeToReaction,
   resolveEasing,
   isSmartAnimate,
   degradeTransition,
@@ -736,5 +737,29 @@ describe("degradeTransition", () => {
   });
   it("drops duration/easing when degrading to INSTANT", () => {
     expect(degradeTransition({ type: "SMART_ANIMATE", duration: 0.5 }, "INSTANT")).toBe("INSTANT");
+  });
+});
+
+describe("buildChangeToReaction", () => {
+  it("emits a NODE action with CHANGE_TO navigation and the variant destination", () => {
+    const r = buildChangeToReaction({
+      targetVariantId: "v:highlight",
+      trigger: "ON_CLICK",
+      transition: "SMART_ANIMATE",
+    });
+    expect(r.actions[0]).toEqual({
+      type: "NODE",
+      destinationId: "v:highlight",
+      navigation: "CHANGE_TO",
+      transition: { type: "SMART_ANIMATE", duration: 0.3, easing: { type: "EASE_OUT" } },
+    });
+  });
+  it("supports INSTANT (null transition)", () => {
+    const r = buildChangeToReaction({ targetVariantId: "v1", trigger: "ON_CLICK", transition: "INSTANT" });
+    expect((r.actions[0] as { transition: unknown }).transition).toBe(null);
+  });
+  it("builds the trigger via buildTrigger", () => {
+    const r = buildChangeToReaction({ targetVariantId: "v1", trigger: "ON_CLICK", transition: "INSTANT" });
+    expect(r.trigger).toEqual({ type: "ON_CLICK" });
   });
 });
