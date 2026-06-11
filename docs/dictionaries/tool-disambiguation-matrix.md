@@ -95,4 +95,17 @@ Fixes G2-F1 (proto_back affordance discovery) + G6-F1 (silent SMART_ANIMATE on n
 | **Directional** — `{type:'PUSH', direction:'LEFT'}` | ✅ stored PUSH LEFT |
 | **Hierarchy-aware matching refinement** | flat-name `framesShareLayer` → relative-path matching (a shared leaf name under differently-named parents no longer counts). Unit-tested; `collectDescendantLayerNames` (flat) dropped as dead. |
 
-**G2-F1 proto_back affordance discovery — steering-validated 2026-06-11.** Fresh blind subagents (no task context) were given the real `proto_back`/`proto_wire`/`proto_overlay` descriptions + realistic frame node dumps + an abstract Korean request; all three decision branches passed: (A) affordance present (`ic_chevron_left` top-left) → wired that node with `proto_back` ON_CLICK; (B) no affordance (`button01`/`label` only) → asked the user instead of silently wiring a swipe; (C) explicit gesture cue ("스와이프로 뒤로") → frame-level ON_DRAG swipe-back even with an affordance present. Caveat: this is a decision test (find_nodes results supplied), so it validates the describe()'s decision logic but not the "actively remembers to call find_nodes" reflex — confirm that in a real Claude Desktop session.
+**G2-F1 proto_back affordance discovery — steering-validated 2026-06-11.** First with fresh blind subagents (real tool descriptions + frame dumps + abstract Korean request): all three decision branches passed — (A) affordance present → `proto_back` ON_CLICK on the back node; (B) none → asked the user instead of silently swiping; (C) explicit gesture cue → frame-level ON_DRAG.
+
+**Then confirmed live in real Claude Desktop (v0.26.0, fixture `MCP_test_15`, 6-scenario round) — full PASS:**
+
+| # | Prompt | Result |
+|---|---|---|
+| S0 routing | "screenS0_01 → screenS0_02 연결" | ✅ routed to **our `proto_wire`** (not the official `use_figma`). *S0-F1 (minor):* first call passed frame **names** as `from`/`to` (schema wants node IDs); on the soft per-node error it self-corrected via `find_nodes`. Did not recur in S1–S5. |
+| S1 degrade ⭐ | "screenS1_01 → screenS1_02" (button01 vs button02 — disjoint), no motion | ✅ stored **DISSOLVE** (degraded from default SMART_ANIMATE, M3 easing/duration kept); model surfaced the fallback reason to the user |
+| S2 keep | "screenS2_01 → screenS2_02" (both button01) | ✅ stored **SMART_ANIMATE** (matching paths) |
+| S3 spatial | "옆에서 밀고 들어오는 느낌" | ✅ `{type:PUSH, direction:LEFT}` stored |
+| S4 proto_back ⭐ | "screenS4_01에 뒤로가기 달아줘" (no node named back) | ✅ **actively searched first**, identified a **top-left 48×48 button by geometry** as the back affordance → `proto_back` ON_CLICK; no silent swipe. Closes the active-search-reflex sliver — stronger than the subagent test (discovery by position, not name). |
+| S5 overlay | "button01 누르면 menu 뜨고 닫기도" | ✅ single `proto_overlay` with batched open + close |
+
+Net: the active find_nodes-search reflex IS exercised by a real client, and discovery generalizes to geometry (small top-left node) beyond the name heuristics in the describe(). Only open item is the cosmetic **S0-F1** (proto_wire `from`/`to` could state "node ID, not frame name" in its describe).
