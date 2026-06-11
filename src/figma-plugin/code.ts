@@ -3,6 +3,7 @@
 
 import {
   buildNavigateReaction,
+  buildChangeToReaction,
   buildScrollReaction,
   buildOverlayReaction,
   buildCloseReaction,
@@ -220,8 +221,29 @@ async function buildNonConditionalAction(
     });
     return { built: reaction.actions[0]! };
   }
-  // change_to — plugin handler not yet implemented (schema-only in this task)
-  throw new Error(`change_to action is not yet implemented in the plugin`);
+  if (action.type === "change_to") {
+    const target = figma.getNodeById(action.targetVariantId);
+    if (!target) throw new Error(`Change-to target not found: ${action.targetVariantId}`);
+    if (target.type !== "COMPONENT") {
+      throw new Error(`Change-to target must be a component variant: ${action.targetVariantId} (got ${target.type})`);
+    }
+    // Figma applies CHANGE_TO to the nearest INSTANCE ancestor of the source node.
+    let cur: BaseNode | null = sourceNode;
+    let hasInstance = false;
+    while (cur) {
+      if (cur.type === "INSTANCE") { hasInstance = true; break; }
+      cur = cur.parent;
+    }
+    const reaction = buildChangeToReaction({
+      targetVariantId: action.targetVariantId,
+      trigger, afterTimeoutSeconds, transition,
+    });
+    const warning = hasInstance
+      ? undefined
+      : `Change-to source ${sourceNode.id} is not (and is not inside) a component instance; the reaction will not animate at runtime`;
+    return { built: reaction.actions[0]!, warning };
+  }
+  throw new Error(`Unhandled action type: ${(action as { type: string }).type}`);
 }
 
 async function resolveVariableByName(
