@@ -47,6 +47,19 @@ export const ProtoWireInput = z.object({
   replaceExisting: z.boolean().default(false),
 });
 
+const ProtoChangeToEntry = z.object({
+  from: z.string().min(1).describe("Source node ID — a component instance (or a node inside one), NOT a name. Resolve via find_nodes."),
+  to: z.string().min(1).describe("Target variant node ID — a COMPONENT inside the same component set, NOT a name. Resolve via find_nodes."),
+  trigger: TriggerInput.optional(),
+  motion: MotionInputSchema.optional(),
+});
+
+export const ProtoChangeToInput = z.object({
+  changes: z.array(ProtoChangeToEntry).min(1),
+  replaceExisting: z.boolean().default(false),
+});
+export type ProtoChangeToInput = z.infer<typeof ProtoChangeToInput>;
+
 const ProtoOverlayOpenEntry = z.object({
   mode: z.literal("open"),
   from: z.string().min(1),
@@ -279,6 +292,13 @@ export function compileProtoWire(input: ProtoWireInput): CreateReactionsInputTyp
       ...(w.degradeTo !== undefined && { degradeTo: w.degradeTo }),
     };
   });
+  return { connections, replaceExisting: input.replaceExisting };
+}
+
+export function compileProtoChangeTo(input: ProtoChangeToInput): CreateReactionsInputType {
+  const connections: Connection[] = input.changes.map((w) =>
+    buildConnection(w.from, w.trigger, w.motion, { type: "change_to", targetVariantId: w.to }),
+  );
   return { connections, replaceExisting: input.replaceExisting };
 }
 

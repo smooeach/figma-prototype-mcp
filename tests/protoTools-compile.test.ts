@@ -8,6 +8,7 @@ import {
   ProtoSetVariableInput,
   ProtoToggleVariableInput,
   ProtoConditionalInput,
+  ProtoChangeToInput,
   compileProtoWire,
   compileProtoOverlay,
   compileProtoScroll,
@@ -16,6 +17,7 @@ import {
   compileProtoSetVariable,
   compileProtoToggleVariable,
   compileProtoConditional,
+  compileProtoChangeTo,
 } from "../src/mcp-server/protoTools.js";
 import { CreateReactionsInput } from "../src/mcp-server/tools.js";
 
@@ -730,6 +732,29 @@ describe("collection disambiguation threading", () => {
     );
     const action = out.connections[0]!.action as any;
     expect(action.else[0]).toEqual({ type: "set_variable", variable: "flag", collection: "DuMat", value: false });
+  });
+});
+
+describe("compileProtoChangeTo", () => {
+  it("maps a change entry to a change_to connection with defaults", () => {
+    const out = compileProtoChangeTo(ProtoChangeToInput.parse({
+      changes: [{ from: "i1", to: "v1" }],
+    }));
+    expect(out.connections[0]!.sourceNodeId).toBe("i1");
+    expect(out.connections[0]!.trigger).toBe("ON_CLICK");
+    expect(out.connections[0]!.action).toEqual({ type: "change_to", targetVariantId: "v1" });
+  });
+  it("threads replaceExisting", () => {
+    const out = compileProtoChangeTo(ProtoChangeToInput.parse({
+      changes: [{ from: "i1", to: "v1" }], replaceExisting: true,
+    }));
+    expect(out.replaceExisting).toBe(true);
+  });
+  it("defaults motion to a SMART_ANIMATE transition", () => {
+    const out = compileProtoChangeTo(ProtoChangeToInput.parse({ changes: [{ from: "i1", to: "v1" }] }));
+    const t = out.connections[0]!.transition;
+    const type = typeof t === "string" ? t : (t as { type: string }).type;
+    expect(type).toBe("SMART_ANIMATE");
   });
 });
 
