@@ -372,7 +372,7 @@ After install + all three components running, verify these scenarios in Figma. E
 
 ## Known limitations (v1)
 
-- Reaction actions: **Navigate To**, **Scroll To**, **Open Overlay**, **Close Overlay**, **Back**, **Open URL**, **Swap Overlay**, **Set Variable** (boolean / number / string / COLOR-via-hex), **Toggle Variable** (BOOLEAN), **Conditional** (single comparison, IF/ELSE). Not supported: set-variant (component swap), AND/OR/NOT compound conditions, nested conditionals, media-runtime triggers.
+- Reaction actions: **Navigate To**, **Scroll To**, **Open Overlay**, **Close Overlay**, **Back**, **Open URL**, **Swap Overlay**, **Change To** (component variant switch), **Set Variable** (boolean / number / string / COLOR-via-hex), **Toggle Variable** (BOOLEAN), **Conditional** (single comparison, or a one-level AND/OR compound over ≥2 comparisons, IF/ELSE). Not supported: NOT/negation, mixing AND with OR, nested compound conditions, nested conditionals, else-if chains, media-runtime triggers.
 - **Conditional is single-level IF/ELSE only — no `else-if` chains.** Figma's prototype conditional has no "Else if" in the product UI, and the plugin API silently collapses a multi-block conditional to a single if/else on write (verified 2026-06-01). Express multi-way branching with separate reactions/variables instead.
 - Default transition is **Instant**. Smart Animate is available as an option but requires matching layer designs.
 - **Figma desktop/web app must be open and the plugin running** — no headless execution.
