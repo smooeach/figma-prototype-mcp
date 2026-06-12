@@ -12,6 +12,7 @@ import {
   buildConditionalReaction,
   buildSetVariableReaction,
   buildChangeToReaction,
+  changeToCurrentVariantError,
   resolveEasing,
   isSmartAnimate,
   degradeTransition,
@@ -761,5 +762,20 @@ describe("buildChangeToReaction", () => {
   it("builds the trigger via buildTrigger", () => {
     const r = buildChangeToReaction({ targetVariantId: "v1", trigger: "ON_CLICK", transition: "INSTANT" });
     expect(r.trigger).toEqual({ type: "ON_CLICK" });
+  });
+});
+
+describe("changeToCurrentVariantError", () => {
+  // Live probe 2026-06-12: Figma rejects CHANGE_TO to the instance's own current
+  // variant with an opaque "destination not reachable" runtime error. Detect it
+  // up front and return a clear message instead.
+  it("returns an error message when target equals the instance's current variant", () => {
+    expect(changeToCurrentVariantError("1404:34003", "1404:34003")).toMatch(/current variant/);
+  });
+  it("returns undefined when the target differs from the current variant", () => {
+    expect(changeToCurrentVariantError("1404:34003", "1404:34002")).toBeUndefined();
+  });
+  it("returns undefined when the current variant is unknown (null)", () => {
+    expect(changeToCurrentVariantError(null, "1404:34002")).toBeUndefined();
   });
 });

@@ -345,6 +345,24 @@ export function buildChangeToReaction(input: ChangeToBuildInput): BuiltReaction 
   };
 }
 
+/**
+ * Guard for CHANGE_TO targeting the instance's OWN current variant. Figma rejects
+ * such a reaction at runtime with an opaque "destination not reachable" error
+ * (live probe 2026-06-12), so we detect it up front and surface a clear message.
+ * `currentVariantId` is the nearest instance's `mainComponent.id`, or null when it
+ * cannot be determined (no instance ancestor, detached, or remote main component) —
+ * in which case we defer to Figma rather than guess.
+ */
+export function changeToCurrentVariantError(
+  currentVariantId: string | null,
+  targetVariantId: string,
+): string | undefined {
+  if (currentVariantId !== null && currentVariantId === targetVariantId) {
+    return `Change-to target ${targetVariantId} is already the instance's current variant; nothing would change`;
+  }
+  return undefined;
+}
+
 export function buildScrollReaction(input: ScrollBuildInput): BuiltReaction {
   const action: BuiltAction = {
     type: "NODE",

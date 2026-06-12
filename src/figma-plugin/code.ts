@@ -4,6 +4,7 @@
 import {
   buildNavigateReaction,
   buildChangeToReaction,
+  changeToCurrentVariantError,
   buildScrollReaction,
   buildOverlayReaction,
   buildCloseReaction,
@@ -229,10 +230,21 @@ async function buildNonConditionalAction(
     }
     // Figma applies CHANGE_TO to the nearest INSTANCE ancestor of the source node.
     let cur: BaseNode | null = sourceNode;
-    let hasInstance = false;
+    let instance: InstanceNode | null = null;
     while (cur) {
-      if (cur.type === "INSTANCE") { hasInstance = true; break; }
+      if (cur.type === "INSTANCE") { instance = cur as InstanceNode; break; }
       cur = cur.parent;
+    }
+    const hasInstance = instance !== null;
+    // Figma rejects CHANGE_TO to the instance's own current variant with an opaque
+    // runtime error (live probe 2026-06-12); catch it up front with a clear message.
+    if (instance) {
+      const mainComponent = await instance.getMainComponentAsync();
+      const sameVariantError = changeToCurrentVariantError(
+        mainComponent?.id ?? null,
+        action.targetVariantId,
+      );
+      if (sameVariantError) throw new Error(sameVariantError);
     }
     const reaction = buildChangeToReaction({
       targetVariantId: action.targetVariantId,
