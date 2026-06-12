@@ -9,3 +9,6 @@ dist/
 # Local Claude Code config
 .claude/
 .mcp.json
+
+# Internal brainstorming specs/plans — local-only, not part of the public repo
+docs/superpowers/
