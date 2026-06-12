@@ -24,13 +24,22 @@
   "engines": {
     "node": ">=18"
   },
-  "main": "src/server/index.ts",
+  "main": "dist/server/index.js",
+  "bin": {
+    "figma-prototype-mcp": "dist/server/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "start": "tsx src/server/index.ts",
-    "build:plugin": "tsup",
+    "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build && npm test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
