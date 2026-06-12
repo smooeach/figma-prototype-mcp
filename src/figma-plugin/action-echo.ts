@@ -10,7 +10,7 @@ export interface EchoResolvers {
   /** Variable id -> name; resolves undefined for a missing/deleted variable. */
   variableName(id: string): Promise<string | undefined>;
   /** Node id -> name; undefined for a missing node. */
-  nodeName(id: string): string | undefined;
+  nodeName(id: string): Promise<string | undefined>;
 }
 
 /** Re-encode a built reaction action into the list_reactions wire/echo shape. */
@@ -64,7 +64,7 @@ export async function encodeActionForListEcho(action: any, resolvers: EchoResolv
 
   // NODE / CLOSE / BACK / URL / unknown passthrough — identical shape as before.
   const destId = action.destinationId;
-  const destName = destId ? resolvers.nodeName(destId) : undefined;
+  const destName = destId ? await resolvers.nodeName(destId) : undefined;
   return {
     type: action.type ?? "UNKNOWN",
     navigation: action.navigation,

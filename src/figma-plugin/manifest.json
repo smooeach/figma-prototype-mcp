@@ -5,6 +5,7 @@
   "main": "code.js",
   "ui": "ui.html",
   "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
   "permissions": ["teamlibrary"],
   "networkAccess": {
     "allowedDomains": ["ws://localhost:3000"],

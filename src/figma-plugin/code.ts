@@ -121,7 +121,7 @@ async function loadPage(pageId?: string): Promise<PageNode> {
     return figma.currentPage;
   }
   await figma.loadAllPagesAsync();
-  const page = figma.getNodeById(pageId);
+  const page = await figma.getNodeByIdAsync(pageId);
   if (!page || page.type !== "PAGE") throw new Error(`Page not found: ${pageId}`);
   return page as PageNode;
 }
@@ -143,7 +143,7 @@ async function buildNonConditionalAction(
   degradeTo: "DISSOLVE" | "INSTANT" | undefined,
 ): Promise<{ built: BuiltAction; warning?: string }> {
   if (action.type === "navigate") {
-    const target = figma.getNodeById(action.targetFrameId);
+    const target = await figma.getNodeByIdAsync(action.targetFrameId);
     if (!target) throw new Error(`Target frame not found: ${action.targetFrameId}`);
     if (target.type !== "FRAME") {
       throw new Error(`Target must be a frame: ${action.targetFrameId} (got ${target.type})`);
@@ -162,7 +162,7 @@ async function buildNonConditionalAction(
     return { built: reaction.actions[0]!, warning };
   }
   if (action.type === "scroll") {
-    const target = figma.getNodeById(action.targetNodeId);
+    const target = await figma.getNodeByIdAsync(action.targetNodeId);
     if (!target) throw new Error(`Scroll target node not found: ${action.targetNodeId}`);
     const scrollable = findScrollableAncestor(target);
     let warning: string | undefined;
@@ -177,7 +177,7 @@ async function buildNonConditionalAction(
     return { built: reaction.actions[0]!, warning };
   }
   if (action.type === "overlay") {
-    const target = figma.getNodeById(action.targetFrameId);
+    const target = await figma.getNodeByIdAsync(action.targetFrameId);
     if (!target) throw new Error(`Overlay target frame not found: ${action.targetFrameId}`);
     if (target.type !== "FRAME") {
       throw new Error(`Overlay target must be a frame: ${action.targetFrameId} (got ${target.type})`);
@@ -215,7 +215,7 @@ async function buildNonConditionalAction(
     return { built, warning };
   }
   if (action.type === "swap_overlay") {
-    const target = figma.getNodeById(action.targetFrameId);
+    const target = await figma.getNodeByIdAsync(action.targetFrameId);
     if (!target) throw new Error(`Swap overlay target frame not found: ${action.targetFrameId}`);
     if (target.type !== "FRAME") {
       throw new Error(`Swap overlay target must be a frame: ${action.targetFrameId} (got ${target.type})`);
@@ -228,7 +228,7 @@ async function buildNonConditionalAction(
     return { built: reaction.actions[0]! };
   }
   if (action.type === "change_to") {
-    const target = figma.getNodeById(action.targetVariantId);
+    const target = await figma.getNodeByIdAsync(action.targetVariantId);
     if (!target) throw new Error(`Change-to target not found: ${action.targetVariantId}`);
     if (target.type !== "COMPONENT") {
       throw new Error(`Change-to target must be a component variant: ${action.targetVariantId} (got ${target.type})`);
@@ -557,7 +557,7 @@ async function handleCreateReactions(params: CreateReactionsInput) {
 
   for (const conn of params.connections) {
     try {
-      const source = figma.getNodeById(conn.sourceNodeId);
+      const source = await figma.getNodeByIdAsync(conn.sourceNodeId);
       if (!source) throw new Error(`Source node not found: ${conn.sourceNodeId}`);
       if (!("setReactionsAsync" in source) || typeof (source as any).setReactionsAsync !== "function") {
         throw new Error(`Node cannot have reactions: ${source.name} (type: ${source.type})`);
@@ -700,12 +700,12 @@ const echoResolvers: EchoResolvers = {
       return undefined; // variable was deleted
     }
   },
-  nodeName: (id) => figma.getNodeById(id)?.name ?? undefined,
+  nodeName: async (id) => (await figma.getNodeByIdAsync(id))?.name ?? undefined,
 };
 
 async function handleListReactions(params: ListReactionsInput) {
   await figma.loadAllPagesAsync();
-  const node = figma.getNodeById(params.nodeId);
+  const node = await figma.getNodeByIdAsync(params.nodeId);
   if (!node) throw new Error(`Node not found: ${params.nodeId}`);
   if (!("reactions" in node)) throw new Error(`Node has no reactions field: ${node.name}`);
   const reactions = ((node as any).reactions ?? []) as any[];
@@ -729,7 +729,7 @@ async function handleClearReactions(params: ClearReactionsInput) {
 
   for (const nodeId of params.nodeIds) {
     try {
-      const node = figma.getNodeById(nodeId);
+      const node = await figma.getNodeByIdAsync(nodeId);
       if (!node) throw new Error(`Node not found: ${nodeId}`);
       if (!("setReactionsAsync" in node)) throw new Error(`Node cannot have reactions: ${node.name}`);
 
@@ -771,7 +771,7 @@ async function handleSetFrameScroll(params: SetFrameScrollInput) {
     // were already mutated before the throw — caller-visible partial state.
     const applied: string[] = [];
     try {
-      const node = figma.getNodeById(frameId);
+      const node = await figma.getNodeByIdAsync(frameId);
       if (!node) throw new Error(`Frame not found: ${frameId}`);
       if (node.type !== "FRAME") {
         throw new Error(`Node is not a FRAME: ${node.name} (type: ${node.type})`);

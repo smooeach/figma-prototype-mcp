@@ -9,7 +9,7 @@ import { buildConditionExpression, buildCompoundConditionExpression } from "../s
 // Deterministic fake resolvers: undefined => "missing/deleted".
 const make = (vars: Record<string, string> = {}, nodes: Record<string, string> = {}): EchoResolvers => ({
   variableName: async (id) => vars[id],
-  nodeName: (id) => nodes[id],
+  nodeName: async (id) => nodes[id],
 });
 
 describe("encodeActionForListEcho — passthrough actions", () => {
