@@ -67,6 +67,19 @@ Connecting a new MCP client automatically replaces any previous one (single-acti
 
 > **Keep a single MCP client per server.** Newest-wins is built for *replacing* a dead/stale connection (e.g. a client reconnecting), not for running two clients at once. If a second live client connects, the first is evicted: its next call fast-fails with HTTP 400 "unknown session" and it should reconnect. A well-behaved client surfaces this immediately, but a stdio↔SSE bridge such as **supergateway** may not propagate the eviction to its stdio side, so the client appears to hang until its own timeout (then may silently fall back to another tool). The server logs `a second MCP client connected — evicted the prior SSE connection` when this happens. Practical rule: when driving live validation through Claude Desktop, don't point an ad-hoc SSE probe at the same server mid-session.
 
+## Your first wire
+
+A 60-second end-to-end check once the server is running, the plugin is connected ("Connected" in the plugin UI), and your MCP client points at `http://localhost:3000/sse`:
+
+1. **Open a Figma file with at least two frames** on the current page — say `Home` and `Detail` — and a button (or any node) inside `Home`.
+2. **Ask your MCP client** (Claude) in plain language:
+   > "Home의 버튼을 누르면 Detail 화면으로 가게 해줘"
+   > *(or "When the button on Home is clicked, navigate to the Detail screen")*
+3. Claude calls `get_canvas_overview` / `find_nodes` to resolve the nodes, then `proto_wire` to create the reaction. You'll get back a success count.
+4. **Verify in Figma**: select the button → **Prototype** tab shows **On click → Navigate to → Detail**. Hit **▶ Present** to try it.
+
+That's the loop: *describe the interaction → it's wired in Figma.* From here, "뒤로가기 달아줘", "이 토글 켜진 상태로 바꿔", "로그인하면 home, 아니면 login으로" all map to the tools below. To see what's already wired on a page, ask for the prototype flow (`get_prototype_flow`).
+
 ## High-level tools (recommended)
 
 Ten intent-oriented `proto_*` tools (9 writers + 1 history reader) that wrap `create_reactions` with named motion presets — covering navigate / change-to (component variant) / scroll / overlay / back / url / set & toggle variable / conditional (incl. one-level AND/OR compound). The lower-level tools below remain the escape hatch for multi-action conditional branches, directional transitions (`MOVE_IN` / `PUSH` / `SLIDE_*`), advanced triggers (`ON_DRAG`, `MOUSE_*`, `ON_KEY_DOWN`, media), reading the existing interaction graph, and any case the high-level surface doesn't cover.
@@ -121,6 +134,18 @@ To bypass the preset system (e.g. for `MOVE_IN`/`PUSH`/`SLIDE_*` directional tra
 | `get_prototype_flow` | **Read** the whole prototype interaction graph of a page in one call: frames (with `isStartFrame`) + every wired interaction (`frameId`, `sourceNodeId`, `trigger`, decoded `action` — same shape as `list_reactions`). Page-scoped (optional `pageId`); `limit` caps results. Use to see what is already wired before adding more. |
 | `clear_reactions` | Remove reactions from one or more nodes |
 | `set_frame_scroll` | **Write**: configure scroll-related properties on one or more FRAME nodes. Each entry accepts optional `direction` (`NONE` / `HORIZONTAL` / `VERTICAL` / `BOTH`) and/or optional `fixedChildren` (number of top-most children to fix when scrolling — Figma's sticky-header model fixes the first N children in z-order; layer panel order matters). At least one of `direction` or `fixedChildren` must be provided per entry. Each frame succeeds or fails independently; response includes `applied` array naming which fields were set. |
+
+## Troubleshooting
+
+| Symptom | Cause / fix |
+|---|---|
+| A tool returns `피그마 플러그인 연결을 확인해주세요` (check the plugin connection) | The plugin isn't connected. Make sure the server is running, the plugin is open in Figma, and its UI shows **Connected** (click **Connect** if not). The server waits ~3s for the plugin before returning this. |
+| Plugin UI won't connect / keeps retrying | The server must be running first (`npm start`) and reachable at `ws://localhost:3000`. The port is **hard-coded in the plugin manifest** — if you ran on a non-default `PORT`, update `src/figma-plugin/manifest.json` and `npm run build:plugin`, then reload the plugin. |
+| Server won't start: `EADDRINUSE :3000` | Another process holds port 3000. Stop it, or run on another port (`PORT=4000 npm start`) — and update the plugin manifest as above. |
+| MCP client shows no tools | Confirm the client is configured with `{"url": "http://localhost:3000/sse"}` and the server is up. Re-open the connection after starting the server. |
+| A tool call hangs, then the client falls back to another tool | A **second MCP client** connected and evicted the first (single-active, newest-wins). Keep one client per server; reconnect the one you want to use. A stdio↔SSE bridge (e.g. supergateway) may not surface the eviction — the server logs `a second MCP client connected — evicted the prior SSE connection`. |
+| `get_canvas_overview` shows `frames: []` but the page clearly has frames | `get_canvas_overview` lists only **top-level** frames, so frames nested inside a **Section** don't appear. `get_prototype_flow` lists frames recursively (Sections included) and is the better read for a populated page; pass `pageId` if you're not on the intended page. |
+| Cryptic crash on startup (syntax / module errors) | Check your Node version — this needs **Node ≥ 18** (`node -v`). |
 
 ## Known limitations
 
