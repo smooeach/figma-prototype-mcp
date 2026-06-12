@@ -1,6 +1,7 @@
 import express, { type Request, type Response } from "express";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { PluginSession } from "./sessions.js";
 import { attachPluginWebSocket } from "./plugin-ws.js";
 import { createMcpServer } from "./tools.js";
@@ -47,6 +48,9 @@ const httpServer = app.listen(PORT, () => {
   console.log(`[server] listening on http://localhost:${PORT}`);
   console.log(`[server]   MCP SSE endpoint: GET /sse`);
   console.log(`[server]   Plugin WebSocket:  ws://localhost:${PORT}/ws`);
+  console.log(
+    `[server]   Figma plugin manifest: ${fileURLToPath(new URL("../figma-plugin/manifest.json", import.meta.url))}`,
+  );
 });
 
 attachPluginWebSocket(httpServer, session);
