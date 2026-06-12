@@ -308,7 +308,12 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "Use for '~면 ~하고 아니면 ~' / '조건에 따라' branching interactions. " +
         "The variable is referenced by NAME; the plugin resolves it at runtime — local variables match directly, " +
         "library/remote variables are auto-imported on use. Use list_variables to find exact names. " +
-        "Input `{ conditions: [{ from, if: { variable, operator?, value }, then, else? }] }`. " +
+        "Input `{ conditions: [{ from, if, then, else? }] }`. " +
+        "`if` is a single comparison `{ variable, operator?, value }`, OR a one-level compound: " +
+        "`{ all: [<comparison>, …] }` (AND — 모두 참일 때; cues: '그리고 / 이고 / 둘 다 / 모두') or " +
+        "`{ any: [<comparison>, …] }` (OR — 하나라도 참일 때; cues: '또는 / 거나 / 하나라도'). " +
+        "Each array needs ≥2 comparisons; `all` and `any` cannot be mixed or nested (one level only) — " +
+        "for multi-way branching use separate reactions (Figma has no else-if). " +
         "`if.operator` defaults to \"==\" if omitted (most common case); other operators: !=, <, <=, >, >=. " +
         "`then` / `else` each take exactly ONE branch action (single sugar entry). Branch sugar keys: " +
         "`navigate` / `scroll` / `overlay` / `swap` / `close` / `back` / `url` / `set`. " +
