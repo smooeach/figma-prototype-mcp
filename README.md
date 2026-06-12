@@ -6,6 +6,33 @@ Why this exists: the official Figma MCP doesn't expose a write API for prototype
 
 > 🎨 Designers: see the plain-language **[prototype-wiring cheat-sheet](docs/prototype-wiring-for-designers.md)** ("say this → get that").
 
+## Quick start
+
+You connect three local pieces: a **server**, the **Figma plugin**, and your **AI client**. ~3 minutes.
+
+**Prerequisites:** [Node 18+](https://nodejs.org) · the Figma **desktop app** · an MCP client ([Claude Desktop](https://claude.ai/download) or Claude Code).
+
+**1. Start the server** (terminal — leave it running):
+```bash
+npx figma-prototype-mcp
+# → [server] listening on http://localhost:3000
+```
+
+**2. Install & run the plugin:**
+- Install from Figma Community: **[Prototype MCP — wire prototypes with LLM](https://www.figma.com/community/plugin/1647184714488719280/prototype-mcp-wire-prototypes-with-llm)**
+- Open a Figma **design file** → run the plugin (Plugins → Prototype MCP) → it should show **Connected** (needs step 1 running).
+
+**3. Point your AI client at the server** — add this to your MCP client config, then restart it:
+```json
+{ "mcpServers": { "figma-prototype": { "url": "http://localhost:3000/sse" } } }
+```
+
+**4. Wire it by talking.** In a file with ≥2 frames, ask Claude:
+> "Home의 버튼을 누르면 Detail 화면으로 가게 해줘"
+> *(or "when the button on Home is clicked, navigate to Detail")*
+
+The interaction appears in Figma's **Prototype** tab. That's the loop — describe it, it's wired. (Stuck? see [Troubleshooting](#troubleshooting).)
+
 ## Architecture
 
 ```
