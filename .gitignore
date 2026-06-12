@@ -5,3 +5,7 @@ dist/
 .env
 .env.local
 .claude/settings.local.json
+
+# Local Claude Code config
+.claude/
+.mcp.json

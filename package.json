@@ -3,8 +3,25 @@
   "version": "0.29.0",
   "description": "MCP server for creating Figma prototype interactions via natural language",
   "license": "MIT",
+  "author": "smooeach",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/smooeach/figma-prototype-mcp.git"
+  },
+  "homepage": "https://github.com/smooeach/figma-prototype-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/smooeach/figma-prototype-mcp/issues"
+  },
+  "keywords": [
+    "figma",
+    "figma-plugin",
+    "prototype",
+    "mcp",
+    "model-context-protocol",
+    "claude"
+  ],
   "type": "module",
-  "main": "src/mcp-server/index.ts",
+  "main": "src/server/index.ts",
   "scripts": {
     "start": "tsx src/server/index.ts",
     "build:plugin": "tsup",
