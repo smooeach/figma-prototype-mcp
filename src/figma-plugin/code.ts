@@ -33,6 +33,7 @@ import { encodeActionForListEcho, type EchoResolvers } from "./action-echo.js";
 import { resolveNavigateTransition } from "./motion-degrade.js";
 import {
   buildConditionExpression,
+  buildCompoundConditionExpression,
   type ComparisonOperator,
 } from "./condition-codec.js";
 import type {
@@ -346,26 +347,39 @@ async function resolveVariableByName(
 /**
  * Build the condition VariableData (Expression form) that wraps a variable
  * reference + literal comparison. Also validates literal type vs variable type.
+ * Accepts a single leaf comparison OR a compound { all: [...] } / { any: [...] }.
  */
-async function buildCondition(input: {
-  variable: string;
-  operator: ComparisonOperator;
-  value: boolean | number | string;
-  collection?: string;
-}): Promise<{ condition: unknown; warning?: string }> {
-  const { variable, warning } = await resolveVariableByName(input.variable, input.collection);
-  const literalVD = validateVariableLiteralCompat(
-    { name: variable.name, resolvedType: variable.resolvedType },
-    input.value,
-    "comparison",
-  );
-  const condition = buildConditionExpression({
-    variableId: variable.id,
-    resolvedType: variable.resolvedType,
-    operator: input.operator,
-    literal: literalVD,
-  });
-  return { condition, warning };
+type LeafComparison = { variable: string; operator: ComparisonOperator; value: boolean | number | string; collection?: string };
+type ConditionArg = LeafComparison | { all: LeafComparison[] } | { any: LeafComparison[] };
+
+async function buildCondition(input: ConditionArg): Promise<{ condition: unknown; warning?: string }> {
+  let firstWarning: string | undefined;
+
+  const buildLeaf = async (leaf: LeafComparison) => {
+    const { variable, warning } = await resolveVariableByName(leaf.variable, leaf.collection);
+    if (warning && !firstWarning) firstWarning = warning;
+    const literalVD = validateVariableLiteralCompat(
+      { name: variable.name, resolvedType: variable.resolvedType },
+      leaf.value,
+      "comparison",
+    );
+    return buildConditionExpression({
+      variableId: variable.id,
+      resolvedType: variable.resolvedType,
+      operator: leaf.operator,
+      literal: literalVD,
+    });
+  };
+
+  if ("all" in input || "any" in input) {
+    const join = "all" in input ? "AND" : "OR";
+    const leaves = "all" in input ? input.all : input.any;
+    const operands = await Promise.all(leaves.map(buildLeaf)); // ConditionExpression[]
+    return { condition: buildCompoundConditionExpression({ join, operands }), warning: firstWarning };
+  }
+
+  const condition = await buildLeaf(input);
+  return { condition, warning: firstWarning };
 }
 
 function buildSetVariableData(
@@ -511,12 +525,7 @@ async function handleCreateReactions(params: CreateReactionsInput) {
       let warning: string | undefined;
 
       if (conn.action.type === "conditional") {
-        const { condition, warning: condWarning } = await buildCondition({
-          variable: conn.action.condition.variable,
-          operator: conn.action.condition.operator,
-          value: conn.action.condition.value,
-          collection: conn.action.condition.collection,
-        });
+        const { condition, warning: condWarning } = await buildCondition(conn.action.condition);
         if (condWarning) warning = condWarning;
 
         const thenBuilt: BuiltAction[] = [];
