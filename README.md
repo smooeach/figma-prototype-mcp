@@ -44,7 +44,7 @@ npm start
 
 The server is designed to run 24/7. Wrap with PM2/systemd if you want it to auto-restart.
 
-`PORT` can be overridden: `PORT=4000 npm start`. **Note:** the Figma plugin connects to `ws://localhost:3000` (hard-coded in its manifest's `networkAccess.allowedDomains`), so if you change the port you must also update `src/figma-plugin/manifest.json` and rebuild (`npm run build:plugin`) for the plugin to reach the server.
+`PORT` can be overridden: `PORT=4000 npm start`. **Note:** the Figma plugin connects to `ws://localhost:3000` (hard-coded in its manifest's `networkAccess.allowedDomains`), so if you change the port you must also update `src/figma-plugin/manifest.json` and rebuild (`npm run build`) for the plugin to reach the server.
 
 Requires **Node ≥ 18**.
 
@@ -148,7 +148,7 @@ To bypass the preset system (e.g. for `MOVE_IN`/`PUSH`/`SLIDE_*` directional tra
 | Symptom | Cause / fix |
 |---|---|
 | A tool returns `피그마 플러그인 연결을 확인해주세요` (check the plugin connection) | The plugin isn't connected. Make sure the server is running, the plugin is open in Figma, and its UI shows **Connected** (click **Connect** if not). The server waits ~3s for the plugin before returning this. |
-| Plugin UI won't connect / keeps retrying | The server must be running first (`npm start`) and reachable at `ws://localhost:3000`. The port is **hard-coded in the plugin manifest** — if you ran on a non-default `PORT`, update `src/figma-plugin/manifest.json` and `npm run build:plugin`, then reload the plugin. |
+| Plugin UI won't connect / keeps retrying | The server must be running first (`npm start`) and reachable at `ws://localhost:3000`. The port is **hard-coded in the plugin manifest** — if you ran on a non-default `PORT`, update `src/figma-plugin/manifest.json` and `npm run build`, then reload the plugin. |
 | Server won't start: `EADDRINUSE :3000` | Another process holds port 3000. Stop it, or run on another port (`PORT=4000 npm start`) — and update the plugin manifest as above. |
 | MCP client shows no tools | Confirm the client is configured with `{"url": "http://localhost:3000/sse"}` and the server is up. Re-open the connection after starting the server. |
 | A tool call hangs, then the client falls back to another tool | A **second MCP client** connected and evicted the first (single-active, newest-wins). Keep one client per server; reconnect the one you want to use. A stdio↔SSE bridge (e.g. supergateway) may not surface the eviction — the server logs `a second MCP client connected — evicted the prior SSE connection`. |
