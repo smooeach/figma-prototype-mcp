@@ -424,8 +424,11 @@ async function handleGetPrototypeFlow(params: GetPrototypeFlowInput) {
   const page = await loadPage(params.pageId);
   const limit = params.limit ?? 500;
 
-  const frames = page.children
-    .filter((n) => n.type === "FRAME")
+  // findAll (recursive) — frames are commonly nested inside SECTIONs, so a
+  // page.children filter would miss them and leave every interaction's frameName
+  // null (live probe 2026-06-12, fixture MCP_test_13 section).
+  const frames = page
+    .findAll((n) => n.type === "FRAME")
     .map((f) => ({
       id: f.id,
       name: f.name,
