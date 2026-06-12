@@ -12,16 +12,28 @@ interface ActiveTransport {
 export class SseSession<T extends ActiveTransport = ActiveTransport> {
   private active: { server: unknown; transport: T } | null = null;
 
-  /** Adopt `transport` as the active connection; close + discard any prior one. */
-  activate(server: unknown, transport: T): void {
-    if (this.active && this.active.transport !== transport) {
+  /**
+   * Adopt `transport` as the active connection; close + discard any prior one.
+   * Returns `true` iff a *different* prior connection was evicted — the caller
+   * logs this so a silent takeover (a second MCP client displacing the first) is
+   * diagnosable. A well-behaved MCP client fast-fails its next call after eviction
+   * (the displaced POST gets HTTP 400 "unknown session"; verified 2026-06-12). A
+   * stdio↔SSE bridge such as supergateway may NOT propagate that failure to its
+   * stdio client, which then hangs to its own timeout — so keep ONE MCP client per
+   * server. Newest-wins is deliberate: it lets a fresh reconnect replace a dead
+   * prior stream (the zombie-SSE case) without manual cleanup.
+   */
+  activate(server: unknown, transport: T): boolean {
+    const evicted = this.active !== null && this.active.transport !== transport;
+    if (evicted) {
       try {
-        void this.active.transport.close();
+        void this.active!.transport.close();
       } catch {
         /* prior stream already dead — ignore */
       }
     }
     this.active = { server, transport };
+    return evicted;
   }
 
   /** The active transport iff its id matches `sessionId` (POST routing); else null. */

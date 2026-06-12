@@ -63,6 +63,8 @@ No `command` / `args` / env vars needed — the URL is enough.
 
 Connecting a new MCP client automatically replaces any previous one (single-active, newest-wins — symmetric with the plugin side). A stale/backgrounded client never blocks a fresh connection; no need to kill it first.
 
+> **Keep a single MCP client per server.** Newest-wins is built for *replacing* a dead/stale connection (e.g. a client reconnecting), not for running two clients at once. If a second live client connects, the first is evicted: its next call fast-fails with HTTP 400 "unknown session" and it should reconnect. A well-behaved client surfaces this immediately, but a stdio↔SSE bridge such as **supergateway** may not propagate the eviction to its stdio side, so the client appears to hang until its own timeout (then may silently fall back to another tool). The server logs `a second MCP client connected — evicted the prior SSE connection` when this happens. Practical rule: when driving live validation through Claude Desktop, don't point an ad-hoc SSE probe at the same server mid-session.
+
 ## High-level tools (recommended)
 
 Nine intent-oriented `proto_*` tools (8 writers + 1 history reader) that wrap `create_reactions` with named motion presets — together they cover the full v1.x action surface (navigate / scroll / overlay / back / url / set & toggle variable / conditional). The lower-level 6 tools below remain available as the escape hatch for multi-action conditional branches, directional transitions (`MOVE_IN` / `PUSH` / `SLIDE_*`), advanced triggers (`ON_DRAG`, `MOUSE_*`, `ON_KEY_DOWN`, media), and any case the high-level surface doesn't cover.

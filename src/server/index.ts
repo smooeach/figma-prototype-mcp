@@ -24,7 +24,14 @@ app.get("/sse", async (_req: Request, res: Response) => {
   const transport = new SSEServerTransport("/messages", res);
   res.on("close", () => sse.clear(transport));
   await server.connect(transport); // establish first (sends the SSE endpoint event); if this throws, the prior connection stays active
-  sse.activate(server, transport); // then evict any prior + mark this the active connection (newest-wins)
+  const evicted = sse.activate(server, transport); // then evict any prior + mark this the active connection (newest-wins)
+  if (evicted) {
+    console.warn(
+      "[server] a second MCP client connected — evicted the prior SSE connection (newest-wins). " +
+        "The displaced client's next call fails fast with HTTP 400 and it should reconnect; " +
+        "keep a single MCP client per server (a supergateway bridge may hang instead of surfacing the eviction).",
+    );
+  }
 });
 
 app.post("/messages", express.json(), async (req: Request, res: Response) => {

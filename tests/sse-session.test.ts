@@ -44,6 +44,21 @@ describe("SseSession", () => {
     expect(s.get("same")).toBe(t);
   });
 
+  it("activate returns false on a fresh session and true when it evicts a different prior", () => {
+    const s = new SseSession();
+    const t1 = makeTransport("one");
+    const t2 = makeTransport("two");
+    expect(s.activate(SERVER, t1)).toBe(false);
+    expect(s.activate(SERVER, t2)).toBe(true);
+  });
+
+  it("activate returns false when re-activating the SAME transport", () => {
+    const s = new SseSession();
+    const t = makeTransport("same");
+    s.activate(SERVER, t);
+    expect(s.activate(SERVER, t)).toBe(false);
+  });
+
   it("clear removes the active transport when it matches", () => {
     const s = new SseSession();
     const t = makeTransport("x");
