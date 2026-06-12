@@ -36,8 +36,10 @@ import {
   buildCompoundConditionExpression,
   type ComparisonOperator,
 } from "./condition-codec.js";
+import { assembleFlowGraph, type RawInteraction } from "./flow-graph.js";
 import type {
   GetCanvasOverviewInput,
+  GetPrototypeFlowInput,
   FindNodesInput,
   ListVariablesInput,
   CreateReactionsInput,
@@ -53,6 +55,7 @@ const commandQueue = new CommandQueue();
 
 type Command =
   | { type: "GET_CANVAS_OVERVIEW"; params: GetCanvasOverviewInput }
+  | { type: "GET_PROTOTYPE_FLOW"; params: GetPrototypeFlowInput }
   | { type: "FIND_NODES"; params: FindNodesInput }
   | { type: "LIST_VARIABLES"; params: ListVariablesInput }
   | { type: "CREATE_REACTIONS"; params: CreateReactionsInput }
@@ -98,6 +101,7 @@ async function dispatch(command: Command["type"], params: any): Promise<
   try {
     switch (command) {
       case "GET_CANVAS_OVERVIEW": return { status: "ok", result: await handleGetCanvasOverview(params) };
+      case "GET_PROTOTYPE_FLOW":   return { status: "ok", result: await handleGetPrototypeFlow(params) };
       case "FIND_NODES":          return { status: "ok", result: await handleFindNodes(params) };
       case "LIST_VARIABLES":      return { status: "ok", result: await handleListVariables(params) };
       case "CREATE_REACTIONS": return { status: "ok", result: await handleCreateReactions(params) };
@@ -414,6 +418,41 @@ async function handleGetCanvasOverview(params: GetCanvasOverviewInput) {
   }));
 
   return { page: { id: page.id, name: page.name }, frames, selection };
+}
+
+async function handleGetPrototypeFlow(params: GetPrototypeFlowInput) {
+  const page = await loadPage(params.pageId);
+  const limit = params.limit ?? 500;
+
+  const frames = page.children
+    .filter((n) => n.type === "FRAME")
+    .map((f) => ({
+      id: f.id,
+      name: f.name,
+      isStartFrame: page.flowStartingPoints?.some((p) => p.nodeId === f.id) ?? false,
+    }));
+
+  const reactiveNodes = page.findAll(
+    (n) => "reactions" in n && (((n as { reactions?: readonly unknown[] }).reactions?.length ?? 0) > 0),
+  );
+
+  const interactions: RawInteraction[] = [];
+  for (const node of reactiveNodes) {
+    const frameId = node.type === "FRAME" ? node.id : findEnclosingFrameId(node);
+    const reactions = ((node as { reactions?: readonly any[] }).reactions ?? []) as any[];
+    for (const r of reactions) {
+      const firstAction = r.actions?.[0] ?? r.action ?? {};
+      interactions.push({
+        frameId,
+        sourceNodeId: node.id,
+        sourceNodeName: node.name,
+        trigger: r.trigger ?? { type: "UNKNOWN" },
+        action: await encodeActionForListEcho(firstAction, echoResolvers),
+      });
+    }
+  }
+
+  return assembleFlowGraph({ page: { id: page.id, name: page.name }, frames, interactions, limit });
 }
 
 async function handleFindNodes(params: FindNodesInput) {
