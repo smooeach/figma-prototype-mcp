@@ -780,3 +780,39 @@ describe("degradeTo threading", () => {
     expect(out.connections[0]!.degradeTo).toBe("DISSOLVE");
   });
 });
+
+describe("compileProtoConditional — compound", () => {
+  it("maps an `all` if-condition to a compound condition on the connection", () => {
+    const out = compileProtoConditional(ProtoConditionalInput.parse({
+      conditions: [{
+        from: "1:1",
+        if: { all: [
+          { variable: "loggedIn", value: true },          // operator defaults to "=="
+          { variable: "step", operator: ">=", value: 2 },
+        ] },
+        then: { back: true },
+      }],
+    }));
+    const cond = (out.connections[0]!.action as any).condition;
+    expect(cond.all).toEqual([
+      { variable: "loggedIn", operator: "==", value: true },
+      { variable: "step", operator: ">=", value: 2 },
+    ]);
+  });
+
+  it("maps an `any` if-condition to a compound `any` condition", () => {
+    const out = compileProtoConditional(ProtoConditionalInput.parse({
+      conditions: [{ from: "1:1", if: { any: [
+        { variable: "a", value: true }, { variable: "b", value: false },
+      ] }, then: { back: true } }],
+    }));
+    expect((out.connections[0]!.action as any).condition.any).toHaveLength(2);
+  });
+
+  it("still maps a single if-condition (regression)", () => {
+    const out = compileProtoConditional(ProtoConditionalInput.parse({
+      conditions: [{ from: "1:1", if: { variable: "x", value: true }, then: { back: true } }],
+    }));
+    expect((out.connections[0]!.action as any).condition).toEqual({ variable: "x", operator: "==", value: true });
+  });
+});

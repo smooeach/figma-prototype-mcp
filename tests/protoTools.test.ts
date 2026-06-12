@@ -271,9 +271,9 @@ describe("ProtoConditionalInput — happy paths", () => {
         then: { close: true },
       }],
     });
-    expect(r.conditions[0]!.if.operator).toBe("==");
-    expect(r.conditions[0]!.if.variable).toBe("showMenu");
-    expect(r.conditions[0]!.if.value).toBe(true);
+    expect((r.conditions[0]!.if as any).operator).toBe("==");
+    expect((r.conditions[0]!.if as any).variable).toBe("showMenu");
+    expect((r.conditions[0]!.if as any).value).toBe(true);
     expect(r.conditions[0]!.then).toEqual({ close: true });
     expect(r.conditions[0]!.else).toBeUndefined();
     expect(r.replaceExisting).toBe(false);
@@ -287,7 +287,7 @@ describe("ProtoConditionalInput — happy paths", () => {
         then: { back: true },
       }],
     });
-    expect(r.conditions[0]!.if.operator).toBe("!=");
+    expect((r.conditions[0]!.if as any).operator).toBe("!=");
   });
 
   it("accepts each of the 6 comparison operators", () => {
@@ -299,7 +299,7 @@ describe("ProtoConditionalInput — happy paths", () => {
           then: { back: true },
         }],
       });
-      expect(r.conditions[0]!.if.operator).toBe(op);
+      expect((r.conditions[0]!.if as any).operator).toBe(op);
     }
   });
 

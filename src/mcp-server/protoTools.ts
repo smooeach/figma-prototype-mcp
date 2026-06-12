@@ -176,6 +176,12 @@ const ProtoConditionIf = z.object({
   value: z.union([z.boolean(), z.number(), z.string()]),
 }).strict();
 
+const ProtoConditionExpr = z.union([
+  ProtoConditionIf,
+  z.object({ all: z.array(ProtoConditionIf).min(2) }).strict(),
+  z.object({ any: z.array(ProtoConditionIf).min(2) }).strict(),
+]);
+
 const BranchNavigate = z.object({
   navigate: z.string().min(1),
   resetScrollPosition: z.boolean().optional(),
@@ -225,7 +231,7 @@ const ProtoConditionalEntry = z.object({
   trigger: TriggerInput.optional(),
   motion: MotionInputSchema.optional(),
   degradeTo: DEGRADE_TO_FIELD,
-  if: ProtoConditionIf,
+  if: ProtoConditionExpr,
   then: BranchAction,
   else: BranchAction.optional(),
 }).strict();
@@ -422,6 +428,21 @@ function branchUsesOverlayOrSwap(b: z.infer<typeof BranchAction>): boolean {
   return "overlay" in b || "swap" in b;
 }
 
+type LeafIf = z.infer<typeof ProtoConditionIf>;
+function compileLeaf(leaf: LeafIf) {
+  return {
+    variable: leaf.variable,
+    ...(leaf.collection !== undefined && { collection: leaf.collection }),
+    operator: leaf.operator,   // zod already applied default "=="
+    value: leaf.value,
+  };
+}
+function compileConditionExpr(cond: z.infer<typeof ProtoConditionExpr>) {
+  if ("all" in cond) return { all: cond.all.map(compileLeaf) };
+  if ("any" in cond) return { any: cond.any.map(compileLeaf) };
+  return compileLeaf(cond);
+}
+
 export function compileProtoConditional(input: ProtoConditionalInput): CreateReactionsInputType {
   const connections: Connection[] = input.conditions.map((c) => {
     const baseTransition = resolveMotion(c.motion);
@@ -432,12 +453,7 @@ export function compileProtoConditional(input: ProtoConditionalInput): CreateRea
 
     const action: Connection["action"] = {
       type: "conditional",
-      condition: {
-        variable: c.if.variable,
-        ...(c.if.collection !== undefined && { collection: c.if.collection }),
-        operator: c.if.operator,        // zod already applied default "=="
-        value: c.if.value,
-      },
+      condition: compileConditionExpr(c.if),
       then: [compileBranchAction(c.then)],
       ...(c.else !== undefined && { else: [compileBranchAction(c.else)] }),
     };
