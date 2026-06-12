@@ -140,3 +140,16 @@ Refined two descriptions: **proto_change_to** now frames itself as a ONE-SHOT sw
 | C7 (boolean-backed repeating toggle on a settings row) | ✅ HIGH proto_toggle_variable; excluded change_to as "one-shot, not alternating" |
 
 Boundary is now crisp both ways. `describe()`-only change; still pending **live Claude Desktop** confirmation.
+
+#### Live Claude Desktop confirmation — 2026-06-12 (fixture MCP_test_16) — PASS
+
+Real Claude Desktop (via supergateway) against the running server + dev plugin. Target: button INSTANCE `1404:34005` (current variant `state=normal` 1404:34003; sibling `state=highlight` 1404:34002).
+
+| # | Prompt | Result |
+|---|---|---|
+| L1 routing | "1404:34005 버튼을 누르면 하이라이트 상태로 바꿔줘" | ✅ routed to **our `proto_change_to`** → CHANGE_TO → state=highlight (1404:34002), ON_CLICK, M3_EMPHASIZED. `list_reactions` confirms the single stored reaction. **C5-F1 reconfirmed:** CD volunteered "단방향 전환이라 다시 normal로 복귀하진 않습니다 — 토글이 필요하면 boolean 변수 방식" unprompted, twice. |
+| L2 current-variant guard ⭐ | "1404:34005 버튼을 누르면 normal 상태로 바꿔줘" (normal = current) | ✅ **our guard surfaced through CD**: "이미 state=normal … 바뀔 게 없어 거부 (현재 variant와 동일)" — the clear message, NOT Figma's opaque "destination not reachable". `replaceExisting` not run → the L1 highlight reaction was preserved (verified). CD then offered smart next steps (boolean toggle / change default state / remove). |
+
+**Operational finding (test-harness + product sharp edge):** the server is **single-active newest-wins on the SSE side** ([[v0.23.1-sse-single-active]]). Running an ad-hoc SSE probe client *while* Claude Desktop is connected silently displaces CD's supergateway session; CD's next tool call then hangs to its own ~4-min timeout and **falls back to the official `use_figma`** (which is why the first L1 attempt bypassed our tool). Recurrence of the v0.22.0 zombie-SSE friction. Lesson for live rounds: CD must be the SOLE SSE client — do not probe the server mid-round; verify only after the round. Worth weighing whether a second-client connection should be rejected loudly rather than silently bumping the first.
+
+Net: `proto_change_to` routing, target selection, the current-variant guard, and the one-shot/alternating steering all confirmed in the real client. Round closed → eligible for a **v0.27.1** NL-polish tag.
