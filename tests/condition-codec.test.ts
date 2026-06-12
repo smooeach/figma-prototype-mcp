@@ -138,6 +138,34 @@ describe("detectTogglePattern", () => {
   });
 });
 
+describe("decodeConditionExpression — compound", () => {
+  const leafA = buildConditionExpression({ variableId: "Var:A", resolvedType: "BOOLEAN", operator: "==", literal: boolLiteral(true) });
+  const leafB = buildConditionExpression({ variableId: "Var:B", resolvedType: "FLOAT", operator: ">=", literal: floatLiteral(2) });
+
+  it("decodes an AND of two comparisons to { join: 'all', conditions }", () => {
+    const expr = buildCompoundConditionExpression({ join: "AND", operands: [leafA, leafB] });
+    expect(decodeConditionExpression(expr)).toEqual({
+      join: "all",
+      conditions: [
+        { variableId: "Var:A", operator: "==", value: true },
+        { variableId: "Var:B", operator: ">=", value: 2 },
+      ],
+    });
+  });
+  it("decodes an OR to { join: 'any', conditions }", () => {
+    const expr = buildCompoundConditionExpression({ join: "OR", operands: [leafA, leafB] });
+    expect((decodeConditionExpression(expr) as { join: string }).join).toBe("any");
+  });
+  it("returns { raw } when a compound operand is not a recognized comparison", () => {
+    const bad = buildCompoundConditionExpression({ join: "AND", operands: [leafA] });
+    (bad.value.expressionArguments as any) = [leafA, { type: "EXPRESSION", resolvedType: "BOOLEAN", value: { expressionFunction: "AND", expressionArguments: [] } }];
+    expect(decodeConditionExpression(bad)).toEqual({ raw: bad });
+  });
+  it("still decodes a single comparison (regression)", () => {
+    expect(decodeConditionExpression(leafA)).toEqual({ variableId: "Var:A", operator: "==", value: true });
+  });
+});
+
 describe("buildCompoundConditionExpression", () => {
   const leafA = buildConditionExpression({
     variableId: "Var:A", resolvedType: "BOOLEAN", operator: "==",

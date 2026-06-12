@@ -1,4 +1,4 @@
-import { detectTogglePattern, decodeConditionExpression } from "./condition-codec.js";
+import { detectTogglePattern, decodeConditionExpression, type DecodedComparison } from "./condition-codec.js";
 import { rgbToHex } from "./variable-literal.js";
 
 /**
@@ -78,21 +78,29 @@ export async function encodeActionForListEcho(action: any, resolvers: EchoResolv
 }
 
 /**
- * Decode an EXPRESSION condition back to { variable, operator, value }. Returns
- * { raw } if the shape isn't a recognized single comparison; keeps the raw
- * condition when the variable name can't be resolved.
+ * Decode an EXPRESSION condition back to { variable, operator, value }, or
+ * { all/any: [...] } for a compound AND/OR. Returns { raw } if the shape
+ * isn't recognized; keeps the raw condition when the variable name can't be
+ * resolved.
  */
 export async function decodeConditionForEcho(condition: any, resolvers: EchoResolvers): Promise<unknown> {
   const decoded = decodeConditionExpression(condition);
   if ("raw" in decoded) return { raw: decoded.raw };
 
-  let variableName: string | undefined;
-  if (decoded.variableId) variableName = await resolvers.variableName(decoded.variableId);
+  const echoLeaf = async (c: DecodedComparison) => {
+    const name = c.variableId ? await resolvers.variableName(c.variableId) : undefined;
+    return { variable: name ?? `<id:${c.variableId}>`, operator: c.operator, value: c.value };
+  };
 
+  if ("join" in decoded) {
+    const conditions = [];
+    for (const c of decoded.conditions) conditions.push(await echoLeaf(c));
+    return decoded.join === "all" ? { all: conditions } : { any: conditions };
+  }
+
+  const leaf = await echoLeaf(decoded);
   return {
-    variable: variableName ?? `<id:${decoded.variableId}>`,
-    operator: decoded.operator,
-    value: decoded.value,
-    raw: variableName === undefined ? condition : undefined, // keep raw if we lost the name
+    ...leaf,
+    raw: leaf.variable.startsWith("<id:") ? condition : undefined, // keep raw if we lost the name
   };
 }

@@ -4,7 +4,7 @@ import {
   decodeConditionForEcho,
   type EchoResolvers,
 } from "../src/figma-plugin/action-echo.js";
-import { buildConditionExpression } from "../src/figma-plugin/condition-codec.js";
+import { buildConditionExpression, buildCompoundConditionExpression } from "../src/figma-plugin/condition-codec.js";
 
 // Deterministic fake resolvers: undefined => "missing/deleted".
 const make = (vars: Record<string, string> = {}, nodes: Record<string, string> = {}): EchoResolvers => ({
@@ -133,5 +133,19 @@ describe("decodeConditionForEcho", () => {
     const out: any = await decodeConditionForEcho(condition, make({}));
     expect(out.variable).toBe("<id:deleted>");
     expect(out.raw).toEqual(condition);
+  });
+});
+
+describe("decodeConditionForEcho — compound", () => {
+  const resolvers = { variableName: async (id: string) => (({ "Var:A": "loggedIn", "Var:B": "step" } as Record<string,string>)[id]) };
+  const exprAnd = buildCompoundConditionExpression({ join: "AND", operands: [
+    buildConditionExpression({ variableId: "Var:A", resolvedType: "BOOLEAN", operator: "==", literal: { type: "BOOLEAN", resolvedType: "BOOLEAN", value: true } }),
+    buildConditionExpression({ variableId: "Var:B", resolvedType: "FLOAT", operator: ">=", literal: { type: "FLOAT", resolvedType: "FLOAT", value: 2 } }),
+  ] });
+  it("echoes an AND back as { all: [...] } with resolved names", async () => {
+    expect(await decodeConditionForEcho(exprAnd, resolvers as any)).toEqual({ all: [
+      { variable: "loggedIn", operator: "==", value: true },
+      { variable: "step", operator: ">=", value: 2 },
+    ] });
   });
 });

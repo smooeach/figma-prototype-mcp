@@ -83,40 +83,60 @@ export function buildCompoundConditionExpression(input: {
   };
 }
 
-/** Result of decoding a condition expression — either a parsed comparison or the raw shape. */
+/** One decoded `variable <op> literal` comparison. */
+export type DecodedComparison = {
+  variableId: string | undefined;
+  operator: string;
+  value: boolean | number | string | undefined;
+};
+
+/** Result of decoding a condition expression — a single comparison, a compound AND/OR, or the raw shape. */
 export type DecodedCondition =
-  | { variableId: string | undefined; operator: string; value: boolean | number | string | undefined }
+  | DecodedComparison
+  | { join: "all" | "any"; conditions: DecodedComparison[] }
   | { raw: unknown };
 
-/**
- * Decode a single `variable <op> literal` EXPRESSION into its parts WITHOUT
- * resolving the variable name (caller does the `figma.variables` lookup on the
- * returned `variableId`). Returns `{ raw }` for anything that isn't a
- * recognized single comparison (non-EXPRESSION, unknown function, wrong arity,
- * non-alias first argument).
- */
-export function decodeConditionExpression(condition: any): DecodedCondition {
-  if (!condition || condition.type !== "EXPRESSION" || !condition.value) {
-    return { raw: condition };
-  }
+/** Decode a single comparison EXPRESSION, or null if it isn't one. */
+function decodeComparison(condition: any): DecodedComparison | null {
+  if (!condition || condition.type !== "EXPRESSION" || !condition.value) return null;
   const expr = condition.value;
   const operator = OPERATOR_INVERSE[expr.expressionFunction as string];
-  if (!operator) return { raw: condition };
+  if (!operator) return null;
   const args = expr.expressionArguments ?? [];
-  if (args.length !== 2) return { raw: condition };
-
+  if (args.length !== 2) return null;
   const aliasArg = args[0];
   const literalArg = args[1];
-  if (aliasArg?.type !== "VARIABLE_ALIAS") return { raw: condition };
-
+  if (aliasArg?.type !== "VARIABLE_ALIAS") return null;
   const variableId: string | undefined = aliasArg.value?.id;
-
   let value: boolean | number | string | undefined;
   if (literalArg?.type === "BOOLEAN" || literalArg?.type === "FLOAT" || literalArg?.type === "STRING") {
     value = literalArg.value;
   }
-
   return { variableId, operator, value };
+}
+
+const JOIN_INVERSE: Record<string, "all" | "any"> = { AND: "all", OR: "any" };
+
+/**
+ * Decode a condition EXPRESSION. A single comparison returns a DecodedComparison.
+ * An AND/OR of comparisons returns { join, conditions }. Anything unrecognized
+ * (non-EXPRESSION, unknown function, a compound whose operand isn't a plain
+ * comparison) returns { raw } so the caller can echo it verbatim.
+ */
+export function decodeConditionExpression(condition: any): DecodedCondition {
+  const join = condition?.type === "EXPRESSION" ? JOIN_INVERSE[condition.value?.expressionFunction as string] : undefined;
+  if (join) {
+    const operands = condition.value.expressionArguments ?? [];
+    const conditions: DecodedComparison[] = [];
+    for (const op of operands) {
+      const c = decodeComparison(op);
+      if (!c) return { raw: condition };
+      conditions.push(c);
+    }
+    return { join, conditions };
+  }
+  const single = decodeComparison(condition);
+  return single ?? { raw: condition };
 }
 
 /**
