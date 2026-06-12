@@ -992,3 +992,55 @@ describe("change_to action", () => {
     });
   });
 });
+
+describe("ConditionInput compound", () => {
+  it("accepts an `all` compound condition inside a conditional action", () => {
+    const parsed = CreateReactionsInput.parse({
+      connections: [{
+        sourceNodeId: "1:1",
+        action: {
+          type: "conditional",
+          condition: { all: [
+            { variable: "loggedIn", operator: "==", value: true },
+            { variable: "step", operator: ">=", value: 2 },
+          ] },
+          then: [{ type: "back" }],
+        },
+      }],
+    });
+    const cond = (parsed.connections[0]!.action as any).condition;
+    expect(cond.all).toHaveLength(2);
+  });
+
+  it("accepts an `any` compound condition", () => {
+    const parsed = CreateReactionsInput.parse({
+      connections: [{
+        sourceNodeId: "1:1",
+        action: { type: "conditional", condition: { any: [
+          { variable: "a", operator: "==", value: true },
+          { variable: "b", operator: "==", value: false },
+        ] }, then: [{ type: "back" }] },
+      }],
+    });
+    expect(((parsed.connections[0]!.action as any).condition).any).toHaveLength(2);
+  });
+
+  it("rejects an `all` with fewer than 2 comparisons", () => {
+    expect(() => CreateReactionsInput.parse({
+      connections: [{
+        sourceNodeId: "1:1",
+        action: { type: "conditional", condition: { all: [{ variable: "x", operator: "==", value: true }] }, then: [{ type: "back" }] },
+      }],
+    })).toThrow();
+  });
+
+  it("still accepts a single comparison condition (regression)", () => {
+    const parsed = CreateReactionsInput.parse({
+      connections: [{
+        sourceNodeId: "1:1",
+        action: { type: "conditional", condition: { variable: "x", operator: "==", value: true }, then: [{ type: "back" }] },
+      }],
+    });
+    expect((parsed.connections[0]!.action as any).condition.variable).toBe("x");
+  });
+});

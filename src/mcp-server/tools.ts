@@ -181,12 +181,18 @@ const SwapOverlayActionInput = z.object({
 
 const ComparisonOperator = z.enum(COMPARISON_OPERATORS);
 
-const ConditionInput = z.object({
+const ConditionComparison = z.object({
   variable: z.string().min(1),
   collection: z.string().min(1).optional(),
   operator: ComparisonOperator,
   value: z.union([z.boolean(), z.number(), z.string()]),
 });
+
+const ConditionInput = z.union([
+  ConditionComparison,
+  z.object({ all: z.array(ConditionComparison).min(2) }).strict(),
+  z.object({ any: z.array(ConditionComparison).min(2) }).strict(),
+]);
 
 const SetVariableActionInput = z.object({
   type: z.literal("set_variable"),
