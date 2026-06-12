@@ -50,9 +50,8 @@ Requires **Node ≥ 18**.
 
 **2. Figma plugin**:
 
-- Open Figma desktop app.
-- Plugins → Development → Import plugin from manifest...
-- Choose `dist/figma-plugin/manifest.json`.
+- **Easiest — install from Figma Community:** [Prototype MCP — wire prototypes with LLM](https://www.figma.com/community/plugin/1647184714488719280/prototype-mcp-wire-prototypes-with-llm) → **Open in…** / **Run**.
+- **Or load locally (for development):** Figma desktop → Plugins → Development → Import plugin from manifest… → choose `dist/figma-plugin/manifest.json` (after `npm run build`).
 - Run the plugin. It auto-connects to `ws://localhost:3000/ws` (single-active session — only one plugin at a time, latest connection wins). Click **Connect** if it doesn't auto-connect on launch.
 
 **3. MCP client** (Claude Desktop or Claude Code):
