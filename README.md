@@ -18,8 +18,16 @@ Since v0.18.0 the MCP server, the WebSocket relay, and the HTTP layer are a **si
 
 ```bash
 npm install
-npm run build:plugin
+npm run build
 ```
+
+**Or from npm (no clone):**
+
+```bash
+npx figma-prototype-mcp        # starts the server on :3000
+```
+
+The server prints the path to the bundled Figma plugin manifest on startup (under `node_modules/figma-prototype-mcp/dist/figma-plugin/manifest.json`) — import it in Figma via **Plugins → Development → Import plugin from manifest…**.
 
 ## Run (one process)
 
