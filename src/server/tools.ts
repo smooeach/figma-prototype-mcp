@@ -156,12 +156,16 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
       description:
         "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
         "Switch a component INSTANCE to a sibling VARIANT on interaction (Figma's 'Change to'). " +
-        "Use for toggles, tabs, segmented controls, and on/off or selected/unselected state changes " +
-        "driven by variants of one component — KO cues: 'highlight 상태로 바꿔', '토글', 'variant 바꿔', " +
-        "'선택 상태로'. `from` = a component instance node ID (or a node inside one); `to` = the target " +
-        "variant node ID (a COMPONENT inside the same component set) — both are node IDs, NOT names; " +
-        "resolve names via find_nodes first. For a whole-screen change use proto_wire; for a data value use " +
-        "proto_set_variable. Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED (SMART_ANIMATE morph between variants). " +
+        "This is a ONE-SHOT switch to a SPECIFIC target variant (→ selected, → highlight, → on), NOT an " +
+        "alternating flip — for tabs, segmented controls, and 'set this to its <state> state' changes driven " +
+        "by variants of one component. KO cues: '선택 상태로', 'highlight 상태로 바꿔', 'variant 바꿔', '~상태로 바꿔'. " +
+        "`from` = a component instance node ID (or a node inside one); `to` = the target variant node ID " +
+        "(a COMPONENT inside the same component set, and NOT the instance's current variant) — both are node IDs, " +
+        "NOT names; resolve names via find_nodes first. " +
+        "Boundaries: a whole-screen change → proto_wire; a data value → proto_set_variable; an on/off that flips " +
+        "BACK on every tap ('켜고 끄기', a repeating toggle) must be driven by a BOOLEAN variable → use " +
+        "proto_toggle_variable (a single change_to only goes one direction, it cannot alternate). " +
+        "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED (SMART_ANIMATE morph between variants). " +
         "Compiles to create_reactions internally.",
       schema: ProtoChangeToInput,
       handler: async (input, session) => {
@@ -280,8 +284,11 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "(resolved by NAME — local or library/remote, auto-imported on use). " +
         "Input `{ toggles: [{ from, variable }] }`. The variable's resolvedType MUST be BOOLEAN " +
         "(plugin rejects otherwise). " +
-        "Use to flip/switch a boolean ('토글') with no named target value; to assign a specific value " +
+        "Use to flip/switch a boolean ('토글', '켜고 끄기') with no named target value; to assign a specific value " +
         "(true/false/number/string/color) use proto_set_variable instead. " +
+        "This is the right tool for a REPEATING on/off that flips back on every tap. If the on/off is a VISUAL " +
+        "component built from variants and NOT backed by a boolean variable, a one-directional switch to a " +
+        "specific state is proto_change_to instead; toggle_variable requires a BOOLEAN variable to flip. " +
         "Defaults: trigger=ON_CLICK. No `motion` field — variable changes are instant. " +
         "Compiles to create_reactions internally (desugars to CONDITIONAL + 2 SET_VARIABLE under the hood; " +
         "list_reactions round-trips to toggle_variable shape).",

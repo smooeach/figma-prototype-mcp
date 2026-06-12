@@ -128,3 +128,15 @@ First-pass routing check for the new `proto_change_to` (17th tool), before live 
 2. **Semantic gap (sharper):** "켜고 끄기"/alternating implies the state flips back on each tap. A single `proto_change_to` reaction is **one-directional** (False→True on click; it does not flip back). A true alternating toggle of a *visual variant* needs a backing boolean (proto_toggle_variable) with the variant bound to it — and note `proto_conditional`'s branch sugar does **not** expose `change_to` (keys: navigate/scroll/overlay/close/back/url/swap/set), and Figma conditionals compare *variables*, not an instance's current variant, so a variable-free alternating variant toggle isn't expressible. So the boundary is: **proto_change_to = switch to a SPECIFIC state once (tab/selected/highlight); alternating on/off = proto_toggle_variable on a boolean.** proto_change_to's `'토글'` cue is misleading for the alternating sense → describe() refinement candidate.
 
 **Caveat:** these are blind-subagent results, not live Claude Desktop. C1/C2/C6 routing is strong; C5-F1 is the item to carry into the live round and is the strongest steering-fix candidate for a v0.27.x NL polish.
+
+#### C5-F1 fix — describe() refinement re-validated (blind, 2026-06-12)
+
+Refined two descriptions: **proto_change_to** now frames itself as a ONE-SHOT switch to a SPECIFIC variant (→selected/→highlight/→on), drops the bare `'토글'` cue (kept '선택 상태로'/'~상태로 바꿔'), and routes a REPEATING on/off ('켜고 끄기') to a boolean-backed proto_toggle_variable; **proto_toggle_variable** gains the reverse pointer (a visual variant on/off with no backing boolean is a one-shot proto_change_to, not a toggle). Re-ran 3 blind subagents on the updated descriptions:
+
+| Check | Result |
+|---|---|
+| C5-redo (same ambiguous "켜고 끄기" prompt) | ✅ tool-vs-tool ambiguity now resolves cleanly: "repeating → toggle_variable, but the Switch isn't variable-bound → **data-model gap → ASK_USER** (wire Switch to the boolean, or accept a one-directional change_to)". No more toggle_variable mis-default; cited the new describe() text. |
+| C1-redo regression ("켜진 상태로 바꿔", one-shot) | ✅ HIGH proto_change_to → ON variant; dropping bare '토글' did NOT hurt the one-shot case |
+| C7 (boolean-backed repeating toggle on a settings row) | ✅ HIGH proto_toggle_variable; excluded change_to as "one-shot, not alternating" |
+
+Boundary is now crisp both ways. `describe()`-only change; still pending **live Claude Desktop** confirmation.
