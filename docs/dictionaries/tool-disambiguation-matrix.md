@@ -109,3 +109,22 @@ Fixes G2-F1 (proto_back affordance discovery) + G6-F1 (silent SMART_ANIMATE on n
 | S5 overlay | "button01 누르면 menu 뜨고 닫기도" | ✅ single `proto_overlay` with batched open + close |
 
 Net: the active find_nodes-search reflex IS exercised by a real client, and discovery generalizes to geometry (small top-left node) beyond the name heuristics in the describe(). Only open item is the cosmetic **S0-F1** (proto_wire `from`/`to` could state "node ID, not frame name" in its describe).
+
+### proto_change_to NL routing — blind-subagent first pass 2026-06-12 (pre-live, v0.27.0)
+
+First-pass routing check for the new `proto_change_to` (17th tool), before live Claude Desktop. Six fresh blind subagents, each given the real tool descriptions (proto_change_to + boundary tools proto_wire / proto_set_variable / proto_toggle_variable / proto_overlay / proto_conditional) + a realistic node dump (a component instance with sibling variants, a boolean variable, frames) + an abstract Korean request. **5/6 clean PASS; S5 surfaced the key finding.**
+
+| # | Prompt (intent) | Expected | Result |
+|---|---|---|---|
+| C1 | "이 스위치를 켜진 상태로 바꿔줘" (Switch instance, On/Off variants, NOT var-bound) | proto_change_to → On variant | ✅ `to`=On variant; ruled out toggle_variable because the Switch isn't bound to a variable |
+| C2 | "홈 탭을 선택된 상태로 만들어줘" (Tab instance, Selected variants) | proto_change_to → Selected=True | ✅ correct variant; ruled out variable path (named var absent) |
+| C3 | "카드 누르면 detail 화면으로 넘어가게" | proto_wire | ✅ whole-screen nav, not a variant switch *(mild context leak: dump said "about navigation" — re-test live without the hint)* |
+| C4 | "loggedIn 값을 true로 바꿔줘" | proto_set_variable | ✅ chose `set` (specific value named) over `toggle` |
+| C5 ⭐ | "이 토글 눌러서 켜고 끄게 해줘" — **both** a variant Switch (unbound) **and** a boolean var present | (ambiguous) | ⚠️ first instinct **proto_toggle_variable**, then self-corrected to **ASK_USER** — see C5-F1 |
+| C6 | "이 버튼을 하이라이트 상태로 바뀌게" (current=normal) | proto_change_to → highlight | ✅ `to`=highlight (avoided the current `normal` variant; cited the no-op rejection rule) |
+
+**C5-F1 — "토글" cue collision + CHANGE_TO is one-shot, not an alternating flip (steering candidate, HIGH).** Two layers:
+1. **Cue overlap:** `'토글'` is a cue in BOTH `proto_change_to` ('토글', '선택 상태로') and `proto_toggle_variable` ('토글/켜고 끄기'). When a tap target is a variant-based visual Switch AND a boolean variable also exists, the verbal cue ("토글") points at toggle_variable while the *pointed-at node* is a variant component (change_to). The subagent's eventual **ASK_USER** is arguably the right reflex, but the first instinct was toggle_variable — the describe()s don't currently steer this split. (Same shape as the v0.21.0 "scroll" ambiguity.)
+2. **Semantic gap (sharper):** "켜고 끄기"/alternating implies the state flips back on each tap. A single `proto_change_to` reaction is **one-directional** (False→True on click; it does not flip back). A true alternating toggle of a *visual variant* needs a backing boolean (proto_toggle_variable) with the variant bound to it — and note `proto_conditional`'s branch sugar does **not** expose `change_to` (keys: navigate/scroll/overlay/close/back/url/swap/set), and Figma conditionals compare *variables*, not an instance's current variant, so a variable-free alternating variant toggle isn't expressible. So the boundary is: **proto_change_to = switch to a SPECIFIC state once (tab/selected/highlight); alternating on/off = proto_toggle_variable on a boolean.** proto_change_to's `'토글'` cue is misleading for the alternating sense → describe() refinement candidate.
+
+**Caveat:** these are blind-subagent results, not live Claude Desktop. C1/C2/C6 routing is strong; C5-F1 is the item to carry into the live round and is the strongest steering-fix candidate for a v0.27.x NL polish.
