@@ -21,6 +21,9 @@
     "claude"
   ],
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "main": "src/server/index.ts",
   "scripts": {
     "start": "tsx src/server/index.ts",

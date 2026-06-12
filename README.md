@@ -36,7 +36,9 @@ npm start
 
 The server is designed to run 24/7. Wrap with PM2/systemd if you want it to auto-restart.
 
-`PORT` can be overridden: `PORT=4000 npm start`.
+`PORT` can be overridden: `PORT=4000 npm start`. **Note:** the Figma plugin connects to `ws://localhost:3000` (hard-coded in its manifest's `networkAccess.allowedDomains`), so if you change the port you must also update `src/figma-plugin/manifest.json` and rebuild (`npm run build:plugin`) for the plugin to reach the server.
+
+Requires **Node ≥ 18**.
 
 **2. Figma plugin**:
 
