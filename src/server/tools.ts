@@ -7,6 +7,7 @@ import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import {
   GetCanvasOverviewInput,
+  GetPrototypeFlowInput,
   FindNodesInput,
   ListVariablesInput,
   CreateReactionsInput,
@@ -76,6 +77,20 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "Use as the first call in any scenario to understand context.",
       schema: GetCanvasOverviewInput,
       command: "GET_CANVAS_OVERVIEW" as CommandName,
+    },
+    {
+      name: "get_prototype_flow",
+      description:
+        "Return the whole prototype interaction graph of a page in ONE call: its frames " +
+        "(each with `isStartFrame`) and every wired interaction — `{ frameId, frameName, sourceNodeId, " +
+        "sourceNodeName, trigger, action }`. `action` is decoded exactly as `list_reactions` returns it " +
+        "(navigate / scroll / overlay / swap / close / back / url / change_to / set_variable / " +
+        "toggle_variable / conditional incl. all/any compound). Use this to see what is ALREADY wired " +
+        "before adding more (avoid duplicates, check what a screen connects to); for a single node use " +
+        "list_reactions. Page-scoped — optional `pageId` (defaults to current page); `limit` caps " +
+        "interactions (default 500) and sets `truncated`.",
+      schema: GetPrototypeFlowInput,
+      command: "GET_PROTOTYPE_FLOW" as CommandName,
     },
     {
       name: "find_nodes",

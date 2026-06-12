@@ -2,6 +2,7 @@
 
 export type CommandName =
   | "GET_CANVAS_OVERVIEW"
+  | "GET_PROTOTYPE_FLOW"
   | "FIND_NODES"
   | "LIST_VARIABLES"
   | "CREATE_REACTIONS"

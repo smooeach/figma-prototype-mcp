@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   GetCanvasOverviewInput,
+  GetPrototypeFlowInput,
   FindNodesInput,
   CreateReactionsInput,
   ListReactionsInput,
@@ -1042,5 +1043,15 @@ describe("ConditionInput compound", () => {
       }],
     });
     expect((parsed.connections[0]!.action as any).condition.variable).toBe("x");
+  });
+});
+
+describe("GetPrototypeFlowInput", () => {
+  it("defaults limit to 500 and allows optional pageId", () => {
+    expect(GetPrototypeFlowInput.parse({})).toEqual({ limit: 500 });
+    expect(GetPrototypeFlowInput.parse({ pageId: "1:2" })).toEqual({ pageId: "1:2", limit: 500 });
+  });
+  it("rejects a non-positive limit", () => {
+    expect(() => GetPrototypeFlowInput.parse({ limit: 0 })).toThrow();
   });
 });
