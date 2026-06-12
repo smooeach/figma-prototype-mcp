@@ -64,6 +64,25 @@ export function buildConditionExpression(input: {
   };
 }
 
+/**
+ * Wrap ≥2 boolean operand expressions in a single AND/OR EXPRESSION — the nested
+ * shape Figma uses for compound prototype conditions (captured live 2026-06-12).
+ * Each operand is itself a ConditionExpression (e.g. from buildConditionExpression).
+ */
+export function buildCompoundConditionExpression(input: {
+  join: "AND" | "OR";
+  operands: ConditionExpression[];
+}): ConditionExpression {
+  return {
+    type: "EXPRESSION",
+    resolvedType: "BOOLEAN",
+    value: {
+      expressionFunction: input.join,
+      expressionArguments: input.operands,
+    },
+  };
+}
+
 /** Result of decoding a condition expression — either a parsed comparison or the raw shape. */
 export type DecodedCondition =
   | { variableId: string | undefined; operator: string; value: boolean | number | string | undefined }

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   COMPARISON_OPERATOR_MAP,
   buildConditionExpression,
+  buildCompoundConditionExpression,
   decodeConditionExpression,
   detectTogglePattern,
 } from "../src/figma-plugin/condition-codec.js";
@@ -134,5 +135,31 @@ describe("detectTogglePattern", () => {
 
   it("returns null for a non-array input", () => {
     expect(detectTogglePattern(undefined as unknown as any[])).toBeNull();
+  });
+});
+
+describe("buildCompoundConditionExpression", () => {
+  const leafA = buildConditionExpression({
+    variableId: "Var:A", resolvedType: "BOOLEAN", operator: "==",
+    literal: boolLiteral(true),
+  });
+  const leafB = buildConditionExpression({
+    variableId: "Var:B", resolvedType: "FLOAT", operator: ">=",
+    literal: floatLiteral(2),
+  });
+
+  it("wraps operands in an AND expression", () => {
+    const expr = buildCompoundConditionExpression({ join: "AND", operands: [leafA, leafB] });
+    expect(expr).toEqual({
+      type: "EXPRESSION",
+      resolvedType: "BOOLEAN",
+      value: { expressionFunction: "AND", expressionArguments: [leafA, leafB] },
+    });
+  });
+
+  it("wraps operands in an OR expression", () => {
+    const expr = buildCompoundConditionExpression({ join: "OR", operands: [leafA, leafB] });
+    expect(expr.value.expressionFunction).toBe("OR");
+    expect(expr.value.expressionArguments).toEqual([leafA, leafB]);
   });
 });
