@@ -1,5 +1,11 @@
 import { randomUUID } from "node:crypto";
 import type { WebSocket } from "ws";
+import {
+  PLUGIN_NOT_CONNECTED,
+  PLUGIN_DISCONNECTED,
+  PLUGIN_CONNECTION_REPLACED,
+  pluginCommandTimeout,
+} from "./messages.js";
 
 interface Pending {
   resolve: (v: unknown) => void;
@@ -34,7 +40,7 @@ export class PluginSession {
     if (this.active && this.active !== ws) {
       try { this.active.send(JSON.stringify({ type: "system", message: "Replaced by newer connection" })); } catch {}
       try { this.active.close(); } catch {}
-      this.failAllPending(new Error("Plugin connection replaced by newer connection"));
+      this.failAllPending(new Error(PLUGIN_CONNECTION_REPLACED));
     }
     this.active = ws;
     try { ws.send(JSON.stringify({ type: "ready" })); } catch {}
@@ -44,7 +50,7 @@ export class PluginSession {
   clearActive(ws: WebSocket): void {
     if (this.active === ws) {
       this.active = null;
-      this.failAllPending(new Error("Plugin disconnected"));
+      this.failAllPending(new Error(PLUGIN_DISCONNECTED));
     }
   }
 
@@ -61,14 +67,14 @@ export class PluginSession {
     if (!this.isConnected()) {
       await this.waitForConnection(this.connectWaitMs);
       if (!this.isConnected()) {
-        throw new Error("피그마 플러그인 연결을 확인해주세요");
+        throw new Error(PLUGIN_NOT_CONNECTED);
       }
     }
     const id = randomUUID();
     return new Promise<unknown>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
-        reject(new Error(`Command ${command} timed out after ${this.commandTimeoutMs}ms`));
+        reject(new Error(pluginCommandTimeout(command, this.commandTimeoutMs)));
       }, this.commandTimeoutMs);
       this.pending.set(id, { resolve, reject, timer });
       try {
