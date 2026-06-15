@@ -40,6 +40,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
+    "pack:dxt": "npm run build:dxt && rm -rf dxt/server && mkdir -p dxt/server && cp dist/dxt/index.js dxt/server/index.js && npx @anthropic-ai/dxt@0.2.6 pack dxt figma-prototype-mcp.mcpb",
     "prepublishOnly": "npm run build && npm test"
   },
   "dependencies": {
