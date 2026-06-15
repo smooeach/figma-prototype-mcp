@@ -4,6 +4,7 @@ import {
   PLUGIN_NOT_CONNECTED,
   PLUGIN_DISCONNECTED,
   PLUGIN_CONNECTION_REPLACED,
+  pluginCommandTimeout,
 } from "../src/server/messages.js";
 
 // Minimal mock that mirrors the bits PluginSession uses.
@@ -97,8 +98,7 @@ describe("PluginSession", () => {
     const promise = s.sendCommand("PING", {});
     promise.catch(() => {});
     await vi.advanceTimersByTimeAsync(30_100);
-    await expect(promise).rejects.toThrow("PING");
-    await expect(promise).rejects.toThrow("didn't respond");
+    await expect(promise).rejects.toThrow(pluginCommandTimeout("PING", 30000));
     vi.useRealTimers();
   });
 });
