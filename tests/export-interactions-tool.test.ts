@@ -31,4 +31,17 @@ describe("export_interactions tool", () => {
 
     expect(result).toEqual(buildInteractionSpec(fixtureFlow, ["F1"]));
   });
+
+  it("forwards pageId when provided", async () => {
+    const tools = makeTools(new HistoryStore());
+    const tool = tools.find((t) => t.name === "export_interactions");
+
+    const sendCommand = vi.fn(async (_cmd: string, _params?: unknown) => fixtureFlow);
+    const session = { sendCommand } as any;
+
+    await tool!.handler!({ screens: ["F1"], pageId: "0:2" }, session);
+
+    const [, params] = sendCommand.mock.calls[0]!;
+    expect(params).toMatchObject({ pageId: "0:2", limit: 5000 });
+  });
 });

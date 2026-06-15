@@ -20,7 +20,7 @@ export const GetCanvasOverviewInput = z.object({
 
 export const GetPrototypeFlowInput = z.object({
   pageId: z.string().optional(),
-  limit: z.number().int().positive().max(2000).default(500),
+  limit: z.number().int().positive().max(5000).default(500),
 });
 
 export const ExportInteractionsInput = z
