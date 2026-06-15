@@ -12,13 +12,13 @@ describe("assembleFlowGraph", () => {
     const out = assembleFlowGraph({
       page, frames, limit: 500,
       interactions: [
-        { frameId: "1:10", sourceNodeId: "1:11", sourceNodeName: "loginBtn", trigger: { type: "ON_CLICK" }, action: { type: "NODE", navigation: "NAVIGATE", destinationId: "1:20" } },
+        { frameId: "1:10", sourceNodeId: "1:11", sourceNodeName: "loginBtn", trigger: { type: "ON_CLICK" }, actions: [{ type: "NODE", navigation: "NAVIGATE", destinationId: "1:20" }] },
       ],
     });
     expect(out).toEqual({
       page, frames, truncated: false,
       interactions: [
-        { frameId: "1:10", frameName: "login", sourceNodeId: "1:11", sourceNodeName: "loginBtn", trigger: { type: "ON_CLICK" }, action: { type: "NODE", navigation: "NAVIGATE", destinationId: "1:20" } },
+        { frameId: "1:10", frameName: "login", sourceNodeId: "1:11", sourceNodeName: "loginBtn", trigger: { type: "ON_CLICK" }, actions: [{ type: "NODE", navigation: "NAVIGATE", destinationId: "1:20" }] },
       ],
     });
   });
@@ -27,8 +27,8 @@ describe("assembleFlowGraph", () => {
     const out = assembleFlowGraph({
       page, frames, limit: 500,
       interactions: [
-        { frameId: null, sourceNodeId: "1:99", sourceNodeName: "loose", trigger: {}, action: {} },
-        { frameId: "9:99", sourceNodeId: "1:98", sourceNodeName: "orphan", trigger: {}, action: {} },
+        { frameId: null, sourceNodeId: "1:99", sourceNodeName: "loose", trigger: {}, actions: [] },
+        { frameId: "9:99", sourceNodeId: "1:98", sourceNodeName: "orphan", trigger: {}, actions: [] },
       ],
     });
     expect(out.interactions[0]!.frameName).toBeNull();
@@ -36,7 +36,7 @@ describe("assembleFlowGraph", () => {
   });
 
   it("applies limit and sets truncated", () => {
-    const mk = (i: number) => ({ frameId: "1:10", sourceNodeId: `n${i}`, sourceNodeName: `n${i}`, trigger: {}, action: {} });
+    const mk = (i: number) => ({ frameId: "1:10", sourceNodeId: `n${i}`, sourceNodeName: `n${i}`, trigger: {}, actions: [] });
     const out = assembleFlowGraph({ page, frames, limit: 2, interactions: [mk(1), mk(2), mk(3)] });
     expect(out.interactions).toHaveLength(2);
     expect(out.truncated).toBe(true);

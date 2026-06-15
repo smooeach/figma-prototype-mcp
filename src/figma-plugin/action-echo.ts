@@ -77,6 +77,20 @@ export async function encodeActionForListEcho(action: any, resolvers: EchoResolv
   };
 }
 
+/** Echo-encode ALL actions of a reaction (legacy singular `action` fallback; empty -> []). */
+export async function encodeReactionActions(
+  reaction: any,
+  resolvers: EchoResolvers,
+): Promise<unknown[]> {
+  const raw =
+    Array.isArray(reaction?.actions) && reaction.actions.length > 0
+      ? reaction.actions
+      : reaction?.action
+        ? [reaction.action]
+        : [];
+  return Promise.all(raw.map((a: unknown) => encodeActionForListEcho(a, resolvers)));
+}
+
 /**
  * Decode an EXPRESSION condition back to { variable, operator, value }, or
  * { all/any: [...] } for a compound AND/OR. Returns { raw } if the shape

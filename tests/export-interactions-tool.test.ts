@@ -8,7 +8,7 @@ const fixtureFlow = {
   frames: [{ id: "F1", name: "screenS3_01", isStartFrame: true }],
   interactions: [
     { frameId: "F1", sourceNodeId: "b1", sourceNodeName: "button01", trigger: { type: "ON_CLICK" },
-      action: { type: "set_variable", variable: "bg", value: "#000000" } },
+      actions: [{ type: "set_variable", variable: "bg", value: "#000000" }] },
   ],
   truncated: false,
 };

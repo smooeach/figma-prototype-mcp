@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   encodeActionForListEcho,
+  encodeReactionActions,
   decodeConditionForEcho,
   type EchoResolvers,
 } from "../src/figma-plugin/action-echo.js";
@@ -147,5 +148,33 @@ describe("decodeConditionForEcho — compound", () => {
       { variable: "loggedIn", operator: "==", value: true },
       { variable: "step", operator: ">=", value: 2 },
     ] });
+  });
+});
+
+describe("encodeReactionActions", () => {
+  const resolvers = {
+    variableName: async () => undefined,
+    nodeName: async () => undefined,
+  };
+
+  it("encodes every action of a reaction, in order", async () => {
+    const out = await encodeReactionActions(
+      { actions: [{ type: "BACK" }, { type: "CLOSE" }] },
+      resolvers,
+    );
+    expect(out).toHaveLength(2);
+    expect((out[0] as any).type).toBe("BACK");
+    expect((out[1] as any).type).toBe("CLOSE");
+  });
+
+  it("falls back to the legacy singular `action`", async () => {
+    const out = await encodeReactionActions({ action: { type: "BACK" } }, resolvers);
+    expect(out).toHaveLength(1);
+    expect((out[0] as any).type).toBe("BACK");
+  });
+
+  it("returns [] for a reaction with no actions", async () => {
+    expect(await encodeReactionActions({}, resolvers)).toEqual([]);
+    expect(await encodeReactionActions({ actions: [] }, resolvers)).toEqual([]);
   });
 });
