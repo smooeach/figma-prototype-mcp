@@ -27,6 +27,10 @@ npx figma-prototype-mcp
 { "mcpServers": { "figma-prototype": { "url": "http://localhost:3000/sse" } } }
 ```
 
+**Claude Desktop (one-click install):** download `figma-prototype-mcp.mcpb` from the [latest GitHub release](https://github.com/smooeach/figma-prototype-mcp/releases/latest) and double-click it — Claude Desktop installs and auto-runs the server (no terminal, no JSON config). You still install the Figma plugin from Community and run it. (The manual `--stdio` command config below also works if you prefer.)
+
+> **Org-managed Claude Desktop?** If double-click / "Install Extension" does nothing (managed accounts often allow only registry-sourced extensions), use **Settings → Extensions → Extension Developer → Load unpacked** and point it at the **unzipped** `.mcpb` folder (a `.mcpb` is a zip containing `manifest.json` + `server/`). Or clone this repo, run `npm run build:dxt`, and load-unpacked the `dxt/` folder. This sideloads the extension without the registry.
+
 **Claude Desktop** has no native SSE support, so point it at the server over stdio — it launches the server for you (no separate `npx figma-prototype-mcp` needed):
 ```json
 { "mcpServers": { "figma-prototype": { "command": "npx", "args": ["-y", "figma-prototype-mcp", "--stdio"] } } }

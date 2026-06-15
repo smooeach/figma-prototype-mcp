@@ -1,5 +1,6 @@
 import { defineConfig } from "tsup";
-import { copyFileSync } from "node:fs";
+import { copyFileSync, readFileSync } from "node:fs";
+const PKG_VERSION = (JSON.parse(readFileSync("package.json", "utf8")) as { version: string }).version;
 
 export default defineConfig([
   {
@@ -34,5 +35,6 @@ export default defineConfig([
     clean: true,
     minify: false,
     banner: { js: "#!/usr/bin/env node" },
+    define: { __PKG_VERSION__: JSON.stringify(PKG_VERSION) },
   },
 ]);

@@ -12,3 +12,8 @@ dist/
 
 # Internal brainstorming specs/plans — local-only, not part of the public repo
 docs/superpowers/
+
+# DXT build artifacts
+dist/dxt/
+dxt/server/
+*.mcpb
