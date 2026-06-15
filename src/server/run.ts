@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import express, { type Request, type Response } from "express";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { PluginSession } from "./sessions.js";
 import { attachPluginWebSocket } from "./plugin-ws.js";
 import { HistoryStore } from "./history.js";
@@ -121,8 +122,7 @@ export async function runSse(
 export async function runStdio(
   deps: Deps,
   port = Number(process.env.PORT ?? 3000),
-  transport: Parameters<ReturnType<typeof createMcpServer>["connect"]>[0] =
-    new StdioServerTransport(),
+  transport: Transport = new StdioServerTransport(),
 ): Promise<{
   httpServer: http.Server;
   mcpServer: ReturnType<typeof createMcpServer>;
@@ -133,7 +133,10 @@ export async function runStdio(
   mcpServer.onclose = () => {
     try { httpServer.close(); } catch { /* already closing */ }
   };
-  await mcpServer.connect(transport);
+  await mcpServer.connect(transport).catch((err) => {
+    httpServer.close();
+    throw err;
+  });
   logStartup(port, "stdio");
   return { httpServer, mcpServer };
 }
