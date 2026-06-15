@@ -1,8 +1,12 @@
 import http from "node:http";
 import { readFileSync } from "node:fs";
+import express, { type Request, type Response } from "express";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { PluginSession } from "./sessions.js";
 import { attachPluginWebSocket } from "./plugin-ws.js";
 import { HistoryStore } from "./history.js";
+import { createMcpServer } from "./tools.js";
+import { SseSession } from "./sse-session.js";
 
 export interface Deps {
   session: PluginSession;
@@ -54,4 +58,47 @@ export function listenWithWs(
       resolve();
     });
   });
+}
+
+/** SSE mode (default): Express /sse + /messages, newest-wins single-active client. */
+export async function runSse(
+  deps: Deps,
+  port = Number(process.env.PORT ?? 3000),
+): Promise<http.Server> {
+  const sse = new SseSession<SSEServerTransport>();
+  const app = express();
+
+  app.get("/sse", async (_req: Request, res: Response) => {
+    const server = createMcpServer(deps.session, deps.historyStore, deps.version);
+    const transport = new SSEServerTransport("/messages", res);
+    res.on("close", () => sse.clear(transport));
+    await server.connect(transport);
+    const evicted = sse.activate(server, transport);
+    if (evicted) {
+      console.error(
+        "[server] a second MCP client connected — evicted the prior SSE connection (newest-wins). " +
+          "The displaced client's next call fails fast with HTTP 400 and it should reconnect; " +
+          "keep a single MCP client per server (a supergateway bridge may hang instead of surfacing the eviction).",
+      );
+    }
+  });
+
+  app.post("/messages", express.json(), async (req: Request, res: Response) => {
+    const t = sse.get(String(req.query.sessionId ?? ""));
+    if (!t) {
+      res.status(400).send("unknown session");
+      return;
+    }
+    await t.handlePostMessage(req, res, req.body);
+  });
+
+  const httpServer = http.createServer(app);
+  console.error(`[server] listening on http://localhost:${port}`);
+  console.error(`[server]   MCP SSE endpoint: GET /sse`);
+  await listenWithWs(httpServer, port, deps.session);
+  return httpServer;
+}
+
+export async function runStdio(_deps: Deps, _port?: number): Promise<void> {
+  throw new Error("stdio mode not yet implemented");
 }
