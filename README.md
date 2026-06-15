@@ -27,6 +27,12 @@ npx figma-prototype-mcp
 { "mcpServers": { "figma-prototype": { "url": "http://localhost:3000/sse" } } }
 ```
 
+**Claude Desktop** has no native SSE support, so point it at the server over stdio — it launches the server for you (no separate `npx figma-prototype-mcp` needed):
+```json
+{ "mcpServers": { "figma-prototype": { "command": "npx", "args": ["-y", "figma-prototype-mcp", "--stdio"] } } }
+```
+In `--stdio` mode the client starts the server and talks to it over stdio; the server still hosts the Figma plugin WebSocket on `ws://localhost:3000/ws`. Don't also run a separate SSE server (`npx figma-prototype-mcp`) on the same port — pick one. (Claude Code can use either the SSE `url` above or this stdio command.)
+
 **4. Wire it by talking.** In a file with ≥2 frames, ask Claude:
 > "Home의 버튼을 누르면 Detail 화면으로 가게 해줘"
 > *(or "when the button on Home is clicked, navigate to Detail")*
@@ -180,6 +186,7 @@ To bypass the preset system (e.g. for `MOVE_IN`/`PUSH`/`SLIDE_*` directional tra
 | A tool call hangs, then the client falls back to another tool | A **second MCP client** connected and evicted the first (single-active, newest-wins). Keep one client per server; reconnect the one you want to use. A stdio↔SSE bridge (e.g. supergateway) may not surface the eviction — the server logs `a second MCP client connected — evicted the prior SSE connection`. |
 | `get_canvas_overview` shows `frames: []` but the page clearly has frames | `get_canvas_overview` lists only **top-level** frames, so frames nested inside a **Section** don't appear. `get_prototype_flow` lists frames recursively (Sections included) and is the better read for a populated page; pass `pageId` if you're not on the intended page. |
 | Cryptic crash on startup (syntax / module errors) | Check your Node version — this needs **Node ≥ 18** (`node -v`). |
+| Client shows a zod `invalid_union` error mentioning `error.code` expected number, or `ECONNREFUSED ...:3000`, at startup | Your `:3000` server isn't running. For **Claude Desktop**, use the `--stdio` command config (it launches the server for you). For **Claude Code** over SSE, start `npx figma-prototype-mcp` first. (A stdio↔SSE bridge like supergateway reports a missing server as this malformed frame.) |
 
 ## Known limitations
 
