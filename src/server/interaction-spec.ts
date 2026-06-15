@@ -61,7 +61,7 @@ interface RawFlow {
     sourceNodeId: string;
     sourceNodeName: string;
     trigger: unknown;
-    action: unknown;
+    actions: unknown[];
   }>;
   truncated?: boolean;
 }
@@ -150,8 +150,10 @@ export function buildInteractionSpec(flow: RawFlow, screens: string[]): Interact
     }
     const interactions: InteractionEntry[] = (byFrame.get(id) ?? []).map((it) => {
       const source: NodeRef = { id: it.sourceNodeId, name: it.sourceNodeName ?? null };
-      const mapped = mapAction(it.action, source, unsupported);
-      return { source, trigger: it.trigger, actions: mapped ? [mapped] : [] };
+      const actions = (Array.isArray(it.actions) ? it.actions : [])
+        .map((a) => mapAction(a, source, unsupported))
+        .filter((x): x is Action => x !== null);
+      return { source, trigger: it.trigger, actions };
     });
     screensOut.push({ id, name: frame.name ?? null, interactions });
   }

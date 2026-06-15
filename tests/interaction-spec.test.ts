@@ -9,12 +9,12 @@ const flow = {
   ],
   interactions: [
     { frameId: "F1", sourceNodeId: "b1", sourceNodeName: "button01", trigger: { type: "ON_CLICK" },
-      action: { type: "set_variable", variable: "screenS3_01-bg", value: "#000000" } },
+      actions: [{ type: "set_variable", variable: "screenS3_01-bg", value: "#000000" }] },
     { frameId: "F1", sourceNodeId: "c1", sourceNodeName: "card", trigger: { type: "ON_CLICK" },
-      action: { type: "NODE", navigation: "NAVIGATE", destinationId: "F2", destinationName: "screenS3_detail",
-                transition: { type: "SMART_ANIMATE", easing: "EASE_OUT", duration: 300 } } },
-    { frameId: "F1", sourceNodeId: "u1", sourceNodeName: "weird", trigger: {}, action: { type: "MYSTERY" } },
-    { frameId: "F2", sourceNodeId: "x", sourceNodeName: "x", trigger: { type: "ON_CLICK" }, action: { type: "BACK" } },
+      actions: [{ type: "NODE", navigation: "NAVIGATE", destinationId: "F2", destinationName: "screenS3_detail",
+                transition: { type: "SMART_ANIMATE", easing: "EASE_OUT", duration: 300 } }] },
+    { frameId: "F1", sourceNodeId: "u1", sourceNodeName: "weird", trigger: {}, actions: [{ type: "MYSTERY" }] },
+    { frameId: "F2", sourceNodeId: "x", sourceNodeName: "x", trigger: { type: "ON_CLICK" }, actions: [{ type: "BACK" }] },
   ],
   truncated: false,
 };
@@ -51,7 +51,7 @@ describe("buildInteractionSpec", () => {
     const f = (action: unknown) => ({
       page: { id: "0:1", name: "P" },
       frames: [{ id: "S", name: "S", isStartFrame: false }],
-      interactions: [{ frameId: "S", sourceNodeId: "n", sourceNodeName: "n", trigger: {}, action }],
+      interactions: [{ frameId: "S", sourceNodeId: "n", sourceNodeName: "n", trigger: {}, actions: [action] }],
       truncated: false,
     });
     const only = (action: unknown) => buildInteractionSpec(f(action), ["S"]).screens[0]!.interactions[0]!.actions[0];
@@ -76,10 +76,10 @@ describe("buildInteractionSpec", () => {
       page: { id: "0:1", name: "P" },
       frames: [{ id: "S", name: "S", isStartFrame: false }],
       interactions: [{ frameId: "S", sourceNodeId: "n", sourceNodeName: "n", trigger: {},
-        action: { type: "CONDITIONAL",
+        actions: [{ type: "CONDITIONAL",
           condition: { all: [{ variable: "a", operator: "==", value: 1 }, { variable: "b", operator: ">", value: 2 }] },
           then: [{ type: "NODE", navigation: "OVERLAY", destinationId: "o", destinationName: "menu", transition: { type: "DISSOLVE" } }],
-          else: [{ type: "CLOSE" }] } }],
+          else: [{ type: "CLOSE" }] }] }],
       truncated: false,
     };
     const action = buildInteractionSpec(flow2, ["S"]).screens[0]!.interactions[0]!.actions[0];
@@ -96,7 +96,7 @@ describe("buildInteractionSpec", () => {
       page: { id: "0:1", name: "P" },
       frames: [{ id: "S", name: "S", isStartFrame: false }],
       interactions: [{ frameId: "S", sourceNodeId: "n", sourceNodeName: "node", trigger: {},
-        action: { type: "CONDITIONAL", raw: [{ foo: 1 }] } }],
+        actions: [{ type: "CONDITIONAL", raw: [{ foo: 1 }] }] }],
       truncated: false,
     };
     const spec = buildInteractionSpec(flow3, ["S"]);
@@ -104,6 +104,24 @@ describe("buildInteractionSpec", () => {
     expect(spec.unsupported).toEqual([
       { source: { id: "n", name: "node" }, reason: "non-standard conditional",
         raw: { type: "CONDITIONAL", raw: [{ foo: 1 }] } },
+    ]);
+  });
+
+  it("maps multiple actions of a single reaction", () => {
+    const flowMulti = {
+      page: { id: "0:1", name: "P" },
+      frames: [{ id: "S", name: "S", isStartFrame: false }],
+      interactions: [{ frameId: "S", sourceNodeId: "n", sourceNodeName: "node", trigger: { type: "ON_CLICK" },
+        actions: [
+          { type: "set_variable", variable: "bg", value: "#000000" },
+          { type: "NODE", navigation: "NAVIGATE", destinationId: "F2", destinationName: "next" },
+        ] }],
+      truncated: false,
+    };
+    const entry = buildInteractionSpec(flowMulti, ["S"]).screens[0]!.interactions[0]!;
+    expect(entry.actions).toEqual([
+      { type: "setVariable", variable: "bg", value: "#000000" },
+      { type: "navigate", to: { id: "F2", name: "next" }, transition: undefined },
     ]);
   });
 });
