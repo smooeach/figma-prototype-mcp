@@ -20,8 +20,15 @@ export const GetCanvasOverviewInput = z.object({
 
 export const GetPrototypeFlowInput = z.object({
   pageId: z.string().optional(),
-  limit: z.number().int().positive().max(2000).default(500),
+  limit: z.number().int().positive().max(5000).default(500),
 });
+
+export const ExportInteractionsInput = z
+  .object({
+    screens: z.array(z.string()).min(1),
+    pageId: z.string().optional(),
+  })
+  .strict();
 
 export const FindNodesInput = z.object({
   query: z.string().min(1),
@@ -303,6 +310,7 @@ export const SetFrameScrollInput = z.object({
 
 export type GetCanvasOverviewInput = z.infer<typeof GetCanvasOverviewInput>;
 export type GetPrototypeFlowInput = z.infer<typeof GetPrototypeFlowInput>;
+export type ExportInteractionsInput = z.infer<typeof ExportInteractionsInput>;
 export type FindNodesInput = z.infer<typeof FindNodesInput>;
 export type ListVariablesInput = z.infer<typeof ListVariablesInput>;
 export type CreateReactionsInput = z.infer<typeof CreateReactionsInput>;

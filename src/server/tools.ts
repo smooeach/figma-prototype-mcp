@@ -8,6 +8,7 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import {
   GetCanvasOverviewInput,
   GetPrototypeFlowInput,
+  ExportInteractionsInput,
   FindNodesInput,
   ListVariablesInput,
   CreateReactionsInput,
@@ -37,6 +38,7 @@ import {
   compileProtoChangeTo,
 } from "../mcp-server/protoTools.js";
 import type { CommandName } from "../mcp-server/types.js";
+import { buildInteractionSpec } from "./interaction-spec.js";
 import type { PluginSession } from "./sessions.js";
 import type { HistoryStore, ProtoToolName } from "./history.js";
 import { summarizeResult } from "./history.js";
@@ -91,6 +93,25 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "interactions (default 500) and sets `truncated`.",
       schema: GetPrototypeFlowInput,
       command: "GET_PROTOTYPE_FLOW" as CommandName,
+    },
+    {
+      name: "export_interactions",
+      description:
+        "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
+        "Export the wired prototype interactions of the given completed screens as a canonical, " +
+        "framework-agnostic JSON spec for developer handoff. Input `{ screens: string[] (frame node IDs), pageId? }`. " +
+        "Returns `{ schemaVersion, page, screens:[{id,name,interactions:[{source,trigger,actions}]}], " +
+        "requestedScreens, missingScreens, unsupported, truncated }`. Each action is a typed entry " +
+        "(navigate / scrollTo / openOverlay / swapOverlay / closeOverlay / back / openUrl / setVariable / " +
+        "toggleVariable / changeVariant / conditional). This is a READ/handoff tool — developers (or you) " +
+        "derive framework code (React, etc.) from the JSON; it does NOT generate framework or UI code.",
+      schema: ExportInteractionsInput,
+      handler: async (input, session) => {
+        const { screens, pageId } = input as ExportInteractionsInput;
+        const params = pageId ? { pageId, limit: 5000 } : { limit: 5000 };
+        const flow = await session.sendCommand("GET_PROTOTYPE_FLOW" as CommandName, params);
+        return buildInteractionSpec(flow as Parameters<typeof buildInteractionSpec>[0], screens);
+      },
     },
     {
       name: "find_nodes",
