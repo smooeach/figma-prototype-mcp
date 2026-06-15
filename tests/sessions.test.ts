@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { PluginSession } from "../src/server/sessions.js";
+import {
+  PLUGIN_NOT_CONNECTED,
+  PLUGIN_DISCONNECTED,
+  PLUGIN_CONNECTION_REPLACED,
+} from "../src/server/messages.js";
 
 // Minimal mock that mirrors the bits PluginSession uses.
 class MockWs {
@@ -45,7 +50,7 @@ describe("PluginSession", () => {
     promise.catch(() => {});
     // Advance fake time past the 3s waitForConnection
     await vi.advanceTimersByTimeAsync(3_100);
-    await expect(promise).rejects.toThrow("피그마 플러그인 연결을 확인해주세요");
+    await expect(promise).rejects.toThrow(PLUGIN_NOT_CONNECTED);
     vi.useRealTimers();
   });
 
@@ -61,5 +66,39 @@ describe("PluginSession", () => {
     expect(typeof sentCmd.id).toBe("string");
     s.handleResponse({ id: sentCmd.id, status: "ok", result: { ok: true } });
     await expect(promise).resolves.toEqual({ ok: true });
+  });
+
+  it("rejects pending commands with disconnect guidance when the plugin drops", async () => {
+    const s = new PluginSession();
+    const ws = new MockWs();
+    s.setActive(ws as any);
+    const promise = s.sendCommand("CMD", {});
+    promise.catch(() => {});
+    s.clearActive(ws as any);
+    await expect(promise).rejects.toThrow(PLUGIN_DISCONNECTED);
+  });
+
+  it("rejects pending commands with replaced-connection guidance when a newer plugin connects", async () => {
+    const s = new PluginSession();
+    const ws1 = new MockWs();
+    const ws2 = new MockWs();
+    s.setActive(ws1 as any);
+    const promise = s.sendCommand("CMD", {});
+    promise.catch(() => {});
+    s.setActive(ws2 as any);
+    await expect(promise).rejects.toThrow(PLUGIN_CONNECTION_REPLACED);
+  });
+
+  it("rejects with timeout guidance naming the command when the plugin never responds", async () => {
+    vi.useFakeTimers();
+    const s = new PluginSession();
+    const ws = new MockWs();
+    s.setActive(ws as any);
+    const promise = s.sendCommand("PING", {});
+    promise.catch(() => {});
+    await vi.advanceTimersByTimeAsync(30_100);
+    await expect(promise).rejects.toThrow("PING");
+    await expect(promise).rejects.toThrow("didn't respond");
+    vi.useRealTimers();
   });
 });
