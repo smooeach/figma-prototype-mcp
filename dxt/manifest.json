@@ -1,5 +1,5 @@
 {
-  "dxt_version": "0.1",
+  "manifest_version": "0.2",
   "name": "figma-prototype-mcp",
   "display_name": "Prototype MCP — wire prototypes with LLM",
   "version": "0.32.0",
