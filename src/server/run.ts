@@ -17,18 +17,32 @@ export interface Deps {
   version: string;
 }
 
+// Injected by tsup `define` in bundled builds; undefined under tsx/dev (guarded by typeof).
+declare const __PKG_VERSION__: string | undefined;
+
+/** Resolve the server version: build-injected constant first, else read package.json, else "0.0.0". */
+export function resolveVersion(injected: string | undefined, readPkgVersion: () => string): string {
+  if (injected) return injected;
+  try {
+    return readPkgVersion();
+  } catch {
+    return "0.0.0";
+  }
+}
+
 export function parseArgs(argv: string[]): { mode: "sse" | "stdio" } {
   return { mode: argv.includes("--stdio") ? "stdio" : "sse" };
 }
 
 export function createDeps(): Deps {
-  const pkg = JSON.parse(
-    readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
-  ) as { version: string };
+  const injected = typeof __PKG_VERSION__ === "string" ? __PKG_VERSION__ : undefined;
+  const version = resolveVersion(injected, () =>
+    (JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as { version: string }).version,
+  );
   return {
     session: new PluginSession(),
     historyStore: new HistoryStore(),
-    version: pkg.version,
+    version,
   };
 }
 
