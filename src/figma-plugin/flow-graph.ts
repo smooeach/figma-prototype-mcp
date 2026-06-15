@@ -7,13 +7,13 @@ export interface FlowFrame {
   isStartFrame: boolean;
 }
 
-/** An interaction record as produced by the handler (action already echo-decoded). */
+/** An interaction record as produced by the handler (actions already echo-decoded). */
 export interface RawInteraction {
   frameId: string | null;
   sourceNodeId: string;
   sourceNodeName: string;
   trigger: unknown;
-  action: unknown;
+  actions: unknown[];
 }
 
 export interface FlowInteraction extends RawInteraction {

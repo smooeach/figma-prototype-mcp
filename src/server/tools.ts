@@ -85,7 +85,7 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
       description:
         "Return the whole prototype interaction graph of a page in ONE call: its frames " +
         "(each with `isStartFrame`) and every wired interaction — `{ frameId, frameName, sourceNodeId, " +
-        "sourceNodeName, trigger, action }`. `action` is decoded exactly as `list_reactions` returns it " +
+        "sourceNodeName, trigger, actions }`. Each entry in `actions` is decoded exactly as `list_reactions` returns it " +
         "(navigate / scroll / overlay / swap / close / back / url / change_to / set_variable / " +
         "toggle_variable / conditional incl. all/any compound). Use this to see what is ALREADY wired " +
         "before adding more (avoid duplicates, check what a screen connects to); for a single node use " +

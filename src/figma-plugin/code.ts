@@ -29,7 +29,7 @@ import {
   type LibraryVarDescriptor,
 } from "./variable-catalog.js";
 import { findEnclosingFrameId, hasReactions, findScrollableAncestor, pathOf } from "./node-tree.js";
-import { encodeActionForListEcho, type EchoResolvers } from "./action-echo.js";
+import { encodeReactionActions, type EchoResolvers } from "./action-echo.js";
 import { resolveNavigateTransition } from "./motion-degrade.js";
 import {
   buildConditionExpression,
@@ -444,13 +444,12 @@ async function handleGetPrototypeFlow(params: GetPrototypeFlowInput) {
     const frameId = node.type === "FRAME" ? node.id : findEnclosingFrameId(node);
     const reactions = ((node as { reactions?: readonly any[] }).reactions ?? []) as any[];
     for (const r of reactions) {
-      const firstAction = r.actions?.[0] ?? r.action ?? {};
       interactions.push({
         frameId,
         sourceNodeId: node.id,
         sourceNodeName: node.name,
         trigger: r.trigger ?? { type: "UNKNOWN" },
-        action: await encodeActionForListEcho(firstAction, echoResolvers),
+        actions: await encodeReactionActions(r, echoResolvers),
       });
     }
   }
@@ -712,14 +711,11 @@ async function handleListReactions(params: ListReactionsInput) {
   return {
     nodeId: node.id,
     nodeName: node.name,
-    reactions: await Promise.all(reactions.map(async (r, i) => {
-      const firstAction = r.actions?.[0] ?? r.action ?? {};
-      return {
-        index: i,
-        trigger: r.trigger ?? { type: "UNKNOWN" },
-        action: await encodeActionForListEcho(firstAction, echoResolvers),
-      };
-    })),
+    reactions: await Promise.all(reactions.map(async (r, i) => ({
+      index: i,
+      trigger: r.trigger ?? { type: "UNKNOWN" },
+      actions: await encodeReactionActions(r, echoResolvers),
+    }))),
   };
 }
 
