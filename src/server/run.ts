@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import express, { type Request, type Response } from "express";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { PluginSession } from "./sessions.js";
 import { attachPluginWebSocket } from "./plugin-ws.js";
 import { HistoryStore } from "./history.js";
@@ -112,6 +113,27 @@ export async function runSse(
   return httpServer;
 }
 
-export async function runStdio(_deps: Deps, _port?: number): Promise<void> {
-  throw new Error("stdio mode not yet implemented");
+/**
+ * stdio mode: serve MCP over stdio (stdout = JSON-RPC) for a client that launches
+ * this process directly. Still hosts the plugin WebSocket on :PORT/ws. `transport`
+ * is injectable for testing; defaults to a real StdioServerTransport.
+ */
+export async function runStdio(
+  deps: Deps,
+  port = Number(process.env.PORT ?? 3000),
+  transport: Parameters<ReturnType<typeof createMcpServer>["connect"]>[0] =
+    new StdioServerTransport(),
+): Promise<{
+  httpServer: http.Server;
+  mcpServer: ReturnType<typeof createMcpServer>;
+}> {
+  const httpServer = http.createServer();
+  await listenWithWs(httpServer, port, deps.session);
+  const mcpServer = createMcpServer(deps.session, deps.historyStore, deps.version);
+  mcpServer.onclose = () => {
+    try { httpServer.close(); } catch { /* already closing */ }
+  };
+  await mcpServer.connect(transport);
+  logStartup(port, "stdio");
+  return { httpServer, mcpServer };
 }
