@@ -54,7 +54,7 @@ export interface InteractionSpec {
 }
 
 interface RawFlow {
-  page: { id: string; name: string };
+  page?: { id: string; name: string };
   frames: Array<{ id: string; name: string; isStartFrame?: boolean }>;
   interactions: Array<{
     frameId: string | null;
@@ -158,7 +158,7 @@ export function buildInteractionSpec(flow: RawFlow, screens: string[]): Interact
 
   return {
     schemaVersion: "1.0",
-    page: flow.page,
+    page: flow.page ?? { id: "", name: "" },
     screens: screensOut,
     requestedScreens: screens,
     missingScreens,

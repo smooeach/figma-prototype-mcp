@@ -90,4 +90,20 @@ describe("buildInteractionSpec", () => {
       else: [{ type: "closeOverlay" }],
     });
   });
+
+  it("flags a non-standard conditional (raw, no condition) as unsupported", () => {
+    const flow3 = {
+      page: { id: "0:1", name: "P" },
+      frames: [{ id: "S", name: "S", isStartFrame: false }],
+      interactions: [{ frameId: "S", sourceNodeId: "n", sourceNodeName: "node", trigger: {},
+        action: { type: "CONDITIONAL", raw: [{ foo: 1 }] } }],
+      truncated: false,
+    };
+    const spec = buildInteractionSpec(flow3, ["S"]);
+    expect(spec.screens[0]!.interactions[0]!.actions).toEqual([]);
+    expect(spec.unsupported).toEqual([
+      { source: { id: "n", name: "node" }, reason: "non-standard conditional",
+        raw: { type: "CONDITIONAL", raw: [{ foo: 1 }] } },
+    ]);
+  });
 });
