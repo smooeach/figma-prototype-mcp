@@ -1,5 +1,6 @@
 import http from "node:http";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import express, { type Request, type Response } from "express";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { PluginSession } from "./sessions.js";
@@ -54,10 +55,23 @@ export function listenWithWs(
       process.exit(1);
     });
     httpServer.listen(port, () => {
-      console.error(`[server]   Plugin WebSocket:  ws://localhost:${port}/ws`);
       resolve();
     });
   });
+}
+
+/** Print the startup banner to stderr after the server is listening. */
+export function logStartup(port: number, mode: "sse" | "stdio"): void {
+  if (mode === "sse") {
+    console.error(`[server] listening on http://localhost:${port}`);
+    console.error(`[server]   MCP SSE endpoint: GET /sse`);
+  } else {
+    console.error(`[server] stdio MCP mode (MCP over stdio; stdout is the JSON-RPC channel)`);
+  }
+  console.error(`[server]   Plugin WebSocket:  ws://localhost:${port}/ws`);
+  console.error(
+    `[server]   Figma plugin manifest: ${fileURLToPath(new URL("../figma-plugin/manifest.json", import.meta.url))}`,
+  );
 }
 
 /** SSE mode (default): Express /sse + /messages, newest-wins single-active client. */
@@ -93,9 +107,8 @@ export async function runSse(
   });
 
   const httpServer = http.createServer(app);
-  console.error(`[server] listening on http://localhost:${port}`);
-  console.error(`[server]   MCP SSE endpoint: GET /sse`);
   await listenWithWs(httpServer, port, deps.session);
+  logStartup(port, "sse");
   return httpServer;
 }
 
