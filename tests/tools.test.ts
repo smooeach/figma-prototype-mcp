@@ -11,6 +11,8 @@ import {
   CreateVariableInput,
   GenerateInteractionCodeInput,
 } from "../src/mcp-server/tools.js";
+import { makeTools } from "../src/server/tools.js";
+import { HistoryStore } from "../src/server/history.js";
 
 describe("GetCanvasOverviewInput", () => {
   it("accepts empty input", () => {
@@ -1094,5 +1096,20 @@ describe("GenerateInteractionCodeInput", () => {
     expect(() => GenerateInteractionCodeInput.parse({ screens: [], target: "react" })).toThrow();
     expect(() => GenerateInteractionCodeInput.parse({ screens: ["1:1"], target: "vue" })).toThrow();
     expect(() => GenerateInteractionCodeInput.parse({ screens: ["1:1"], target: "react", nope: 1 })).toThrow();
+  });
+});
+
+describe("orient-skip steering", () => {
+  const tools = makeTools(new HistoryStore());
+  const desc = (name: string) => tools.find((t) => t.name === name)!.description;
+
+  it("name-accepting proto_* tools carry the orient-skip clause", () => {
+    for (const name of ["proto_wire", "proto_overlay", "proto_scroll", "proto_back", "proto_url"]) {
+      expect(desc(name)).toContain("get_canvas_overview or find_nodes first");
+    }
+  });
+  it("get_canvas_overview no longer mandates being the first call", () => {
+    expect(desc("get_canvas_overview")).not.toContain("first call in any scenario");
+    expect(desc("get_canvas_overview")).toContain("Optional orientation");
   });
 });

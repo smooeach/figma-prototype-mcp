@@ -79,7 +79,9 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
       name: "get_canvas_overview",
       description:
         "Return the current Figma page, its top-level frames, and currently selected nodes. " +
-        "Use as the first call in any scenario to understand context.",
+        "Optional orientation: when the user already names the screens/elements to wire, the proto_* tools " +
+        "accept those names directly — you can skip straight to wiring. Reach for this when the request is " +
+        "abstract (you need the screen list / start frame) or to recover from an ambiguous/not-found name.",
       schema: GetCanvasOverviewInput,
       command: "GET_CANVAS_OVERVIEW" as CommandName,
     },
@@ -220,7 +222,11 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "SMART_ANIMATE only morphs layers shared by name between the two frames; when they share none " +
         "it auto-degrades to the connection's `degradeTo` (DISSOLVE by default). For a spatial 'slides/pushes in' " +
         "feel between distinct screens, pass a directional TransitionInput (PUSH/MOVE_IN/MOVE_OUT) as `motion`. " +
-        "Compiles to create_reactions internally.",
+        "Compiles to create_reactions internally. " +
+        "If the user already names the nodes/screens, pass those names directly — you don't need " +
+        "get_canvas_overview or find_nodes first (this tool resolves names, scoped by fromScreen when a name " +
+        "repeats). Orient first only for abstract requests (e.g. 'every screen', 'the back button') or when a " +
+        "name returns ambiguous/not-found.",
       schema: ProtoWireInput,
       handler: async (input, session) => {
         const parsedInput = input as ProtoWireInput;
@@ -266,7 +272,11 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "they mean rather than guessing. " +
         "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally. " +
         "Note: Figma's runtime rejects SMART_ANIMATE on overlay/swap/close navigation, so any SMART_ANIMATE-based " +
-        "motion (including all M3/HIG presets) is silently rewritten to DISSOLVE while preserving duration + easing.",
+        "motion (including all M3/HIG presets) is silently rewritten to DISSOLVE while preserving duration + easing. " +
+        "If the user already names the nodes/screens, pass those names directly — you don't need " +
+        "get_canvas_overview or find_nodes first (this tool resolves names, scoped by fromScreen when a name " +
+        "repeats). Orient first only for abstract requests (e.g. 'every screen', 'the back button') or when a " +
+        "name returns ambiguous/not-found.",
       schema: ProtoOverlayInput,
       handler: async (input, session) => {
         const parsedInput = input as ProtoOverlayInput;
@@ -284,7 +294,11 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "e.g. via set_frame_scroll). " +
         "NOT for the general 'scroll feel' between pages ('스크롤 느낌으로 화면이 부드럽게 넘어가게') — for that effect, use a directional transition " +
         "(PUSH or SLIDE_*) via proto_wire instead. " +
-        "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally.",
+        "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally. " +
+        "If the user already names the nodes/screens, pass those names directly — you don't need " +
+        "get_canvas_overview or find_nodes first (this tool resolves names, scoped by fromScreen when a name " +
+        "repeats). Orient first only for abstract requests (e.g. 'every screen', 'the back button') or when a " +
+        "name returns ambiguous/not-found.",
       schema: ProtoScrollInput,
       handler: async (input, session) => {
         const parsedInput = input as ProtoScrollInput;
@@ -309,7 +323,11 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "'go back / 돌아가 / 뒤로' is AMBIGUOUS — it may mean dismiss the overlay to reveal the screen " +
         "underneath (= proto_overlay close) or pop the navigation history (= Back, which on an overlay " +
         "often lands on an unexpected earlier frame). Ask the user which they mean before wiring. " +
-        "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally.",
+        "Defaults: trigger=ON_CLICK, motion=M3_EMPHASIZED. Compiles to create_reactions internally. " +
+        "If the user already names the nodes/screens, pass those names directly — you don't need " +
+        "get_canvas_overview or find_nodes first (this tool resolves names, scoped by fromScreen when a name " +
+        "repeats). Orient first only for abstract requests (e.g. 'every screen', 'the back button') or when a " +
+        "name returns ambiguous/not-found.",
       schema: ProtoBackInput,
       handler: async (input, session) => {
         const parsedInput = input as ProtoBackInput;
@@ -324,7 +342,10 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
         "Wire source nodes to the Open URL action. Input `{ urls: [{ from, url, openInNewTab? }] }`. " +
         "Defaults: trigger=ON_CLICK, openInNewTab=false. No `motion` field — URL is a terminal " +
-        "event and the underlying reaction's transition defaults to INSTANT. Compiles to create_reactions internally.",
+        "event and the underlying reaction's transition defaults to INSTANT. Compiles to create_reactions internally. " +
+        "If the user already names the source node, pass it directly — you don't need get_canvas_overview or " +
+        "find_nodes first (this tool resolves names, scoped by fromScreen when a name repeats). Orient first only " +
+        "for abstract requests or when a name returns ambiguous/not-found.",
       schema: ProtoUrlInput,
       handler: async (input, session) => {
         const parsedInput = input as ProtoUrlInput;
