@@ -57,6 +57,34 @@ export const ListVariablesInput = z
   })
   .strict();
 
+export const CreateVariableInput = z
+  .object({
+    name: z.string().min(1).describe("Variable name to find-or-create."),
+    type: z
+      .enum(["BOOLEAN", "FLOAT", "STRING", "COLOR"])
+      .describe("Variable resolvedType. Required and explicit (never inferred from value)."),
+    value: z
+      .union([z.boolean(), z.number(), z.string()])
+      .optional()
+      .describe(
+        "Initial value. Omit to use the type default (BOOLEAN→false, FLOAT→0, STRING→\"\", COLOR→transparent). " +
+          "COLOR takes a hex string (#RRGGBB or #RRGGBBAA). Type must match `type`.",
+      ),
+    collection: z
+      .string()
+      .min(1)
+      .default("forProto")
+      .describe("Collection to create the variable in (find-or-created). Defaults to a dedicated `forProto` collection."),
+  })
+  .strict()
+  .describe(
+    "Create a Figma Variable ONLY when the prototype genuinely needs one that does not yet exist. " +
+      "ALWAYS prefer reuse: call list_variables first and reuse a matching variable. If a variable of the " +
+      "same name already exists, do NOT create a new one — this tool reuses it (returns reused:true). New " +
+      "variables land in a dedicated `forProto` collection by default, keeping design-token collections untouched. " +
+      "Returns { name, id, type, collection, created, reused, warning? }.",
+  );
+
 const TriggerEnum = z.enum(TRIGGER_SHORTCUTS);
 
 const KeyboardDeviceEnum = z.enum(KEYBOARD_DEVICES);
@@ -313,6 +341,7 @@ export type GetPrototypeFlowInput = z.infer<typeof GetPrototypeFlowInput>;
 export type ExportInteractionsInput = z.infer<typeof ExportInteractionsInput>;
 export type FindNodesInput = z.infer<typeof FindNodesInput>;
 export type ListVariablesInput = z.infer<typeof ListVariablesInput>;
+export type CreateVariableInput = z.infer<typeof CreateVariableInput>;
 export type CreateReactionsInput = z.infer<typeof CreateReactionsInput>;
 export type ListReactionsInput = z.infer<typeof ListReactionsInput>;
 export type ClearReactionsInput = z.infer<typeof ClearReactionsInput>;

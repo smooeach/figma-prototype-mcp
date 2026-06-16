@@ -8,6 +8,7 @@ import {
   ClearReactionsInput,
   SetFrameScrollInput,
   ListVariablesInput,
+  CreateVariableInput,
 } from "../src/mcp-server/tools.js";
 
 describe("GetCanvasOverviewInput", () => {
@@ -1053,5 +1054,26 @@ describe("GetPrototypeFlowInput", () => {
   });
   it("rejects a non-positive limit", () => {
     expect(() => GetPrototypeFlowInput.parse({ limit: 0 })).toThrow();
+  });
+});
+
+describe("CreateVariableInput", () => {
+  it("requires name and type", () => {
+    expect(() => CreateVariableInput.parse({ name: "isOpen" })).toThrow();
+    expect(() => CreateVariableInput.parse({ type: "BOOLEAN" })).toThrow();
+  });
+  it("defaults collection to forProto and leaves value optional", () => {
+    const r = CreateVariableInput.parse({ name: "isOpen", type: "BOOLEAN" });
+    expect(r.collection).toBe("forProto");
+    expect(r.value).toBeUndefined();
+  });
+  it("accepts an explicit value and collection", () => {
+    const r = CreateVariableInput.parse({ name: "tint", type: "COLOR", value: "#FF0000", collection: "Theme" });
+    expect(r.value).toBe("#FF0000");
+    expect(r.collection).toBe("Theme");
+  });
+  it("rejects unknown keys and bad type", () => {
+    expect(() => CreateVariableInput.parse({ name: "x", type: "BOOLEAN", nope: 1 })).toThrow();
+    expect(() => CreateVariableInput.parse({ name: "x", type: "DATE" })).toThrow();
   });
 });
