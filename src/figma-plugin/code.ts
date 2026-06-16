@@ -172,28 +172,36 @@ async function buildNonConditionalAction(
     return { built: reaction.actions[0]!, warning };
   }
   if (action.type === "scroll") {
-    const target = await figma.getNodeByIdAsync(action.targetNodeId);
+    let target = await figma.getNodeByIdAsync(action.targetNodeId);
+    if (!target) {
+      const resolvedId = await resolveNodeByName(action.targetNodeId, undefined);
+      target = await figma.getNodeByIdAsync(resolvedId);
+    }
     if (!target) throw new Error(`Scroll target node not found: ${action.targetNodeId}`);
     const scrollable = findScrollableAncestor(target);
     let warning: string | undefined;
     if (!scrollable) {
-      warning = `Scroll target ${action.targetNodeId} (${target.name}) has no scrollable ancestor frame; the prototype scroll will not animate at runtime`;
+      warning = `Scroll target ${target.id} (${target.name}) has no scrollable ancestor frame; the prototype scroll will not animate at runtime`;
     }
     const reaction = buildScrollReaction({
-      targetNodeId: action.targetNodeId,
+      targetNodeId: target.id,
       trigger, afterTimeoutSeconds, transition,
       resetScrollPosition: action.resetScrollPosition,
     });
     return { built: reaction.actions[0]!, warning };
   }
   if (action.type === "overlay") {
-    const target = await figma.getNodeByIdAsync(action.targetFrameId);
+    let target = await figma.getNodeByIdAsync(action.targetFrameId);
+    if (!target) {
+      const resolvedId = await resolveFrameByName(action.targetFrameId);
+      target = await figma.getNodeByIdAsync(resolvedId);
+    }
     if (!target) throw new Error(`Overlay target frame not found: ${action.targetFrameId}`);
     if (target.type !== "FRAME") {
       throw new Error(`Overlay target must be a frame: ${action.targetFrameId} (got ${target.type})`);
     }
     const reaction = buildOverlayReaction({
-      targetFrameId: action.targetFrameId,
+      targetFrameId: target.id,
       trigger, afterTimeoutSeconds, transition,
       resetScrollPosition: action.resetScrollPosition,
     });
@@ -225,14 +233,18 @@ async function buildNonConditionalAction(
     return { built, warning };
   }
   if (action.type === "swap_overlay") {
-    const target = await figma.getNodeByIdAsync(action.targetFrameId);
+    let target = await figma.getNodeByIdAsync(action.targetFrameId);
+    if (!target) {
+      const resolvedId = await resolveFrameByName(action.targetFrameId);
+      target = await figma.getNodeByIdAsync(resolvedId);
+    }
     if (!target) throw new Error(`Swap overlay target frame not found: ${action.targetFrameId}`);
     if (target.type !== "FRAME") {
       throw new Error(`Swap overlay target must be a frame: ${action.targetFrameId} (got ${target.type})`);
     }
     const reaction = buildSwapOverlayReaction({
       trigger, afterTimeoutSeconds, transition,
-      targetFrameId: action.targetFrameId,
+      targetFrameId: target.id,
       resetScrollPosition: action.resetScrollPosition,
     });
     return { built: reaction.actions[0]! };
