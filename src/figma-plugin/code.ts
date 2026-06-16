@@ -42,6 +42,7 @@ import type {
   GetPrototypeFlowInput,
   FindNodesInput,
   ListVariablesInput,
+  CreateVariableInput,
   CreateReactionsInput,
   ListReactionsInput,
   ClearReactionsInput,
@@ -58,6 +59,7 @@ type Command =
   | { type: "GET_PROTOTYPE_FLOW"; params: GetPrototypeFlowInput }
   | { type: "FIND_NODES"; params: FindNodesInput }
   | { type: "LIST_VARIABLES"; params: ListVariablesInput }
+  | { type: "CREATE_VARIABLE"; params: CreateVariableInput }
   | { type: "CREATE_REACTIONS"; params: CreateReactionsInput }
   | { type: "LIST_REACTIONS"; params: ListReactionsInput }
   | { type: "CLEAR_REACTIONS"; params: ClearReactionsInput }

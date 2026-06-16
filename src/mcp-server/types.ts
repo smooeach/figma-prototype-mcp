@@ -5,6 +5,7 @@ export type CommandName =
   | "GET_PROTOTYPE_FLOW"
   | "FIND_NODES"
   | "LIST_VARIABLES"
+  | "CREATE_VARIABLE"
   | "CREATE_REACTIONS"
   | "LIST_REACTIONS"
   | "CLEAR_REACTIONS"
