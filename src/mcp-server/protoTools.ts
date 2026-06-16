@@ -33,6 +33,12 @@ const DEGRADE_TO_FIELD = z
       "INSTANT cuts immediately. Ignored for non-SMART_ANIMATE motion.",
   );
 
+const FROM_SCREEN_FIELD = z
+  .string()
+  .min(1)
+  .optional()
+  .describe("Optional screen (frame name or ID) to resolve `from` within, when the source element name repeats across screens.");
+
 const ProtoWireEntry = z.object({
   from: z.string().min(1).describe(
     "Source node ID (e.g. \"1404:1947\") OR a node name. A name is resolved on the current page; " +
@@ -70,23 +76,26 @@ export type ProtoChangeToInput = z.infer<typeof ProtoChangeToInput>;
 
 const ProtoOverlayOpenEntry = z.object({
   mode: z.literal("open"),
-  from: z.string().min(1),
-  overlay: z.string().min(1),
+  from: z.string().min(1).describe("Source node ID or name (scope with `fromScreen` if it repeats)."),
+  fromScreen: FROM_SCREEN_FIELD,
+  overlay: z.string().min(1).describe("Overlay frame node ID or name. A duplicated frame name returns a candidate list."),
   trigger: TriggerInput.optional(),
   motion: MotionInputSchema.optional(),
 }).strict();
 
 const ProtoOverlaySwapEntry = z.object({
   mode: z.literal("swap"),
-  from: z.string().min(1),
-  overlay: z.string().min(1),
+  from: z.string().min(1).describe("Source node ID or name (scope with `fromScreen` if it repeats)."),
+  fromScreen: FROM_SCREEN_FIELD,
+  overlay: z.string().min(1).describe("Overlay frame node ID or name. A duplicated frame name returns a candidate list."),
   trigger: TriggerInput.optional(),
   motion: MotionInputSchema.optional(),
 }).strict();
 
 const ProtoOverlayCloseEntry = z.object({
   mode: z.literal("close"),
-  from: z.string().min(1),
+  from: z.string().min(1).describe("Source node ID or name (scope with `fromScreen` if it repeats)."),
+  fromScreen: FROM_SCREEN_FIELD,
   trigger: TriggerInput.optional(),
   motion: MotionInputSchema.optional(),
 }).strict();
@@ -103,8 +112,9 @@ export const ProtoOverlayInput = z.object({
 });
 
 const ProtoScrollEntry = z.object({
-  from: z.string().min(1),
-  to: z.string().min(1),
+  from: z.string().min(1).describe("Source node ID or name (scope with `fromScreen` if it repeats)."),
+  fromScreen: FROM_SCREEN_FIELD,
+  to: z.string().min(1).describe("Scroll target node ID or name (a node inside a scrollable frame)."),
   trigger: TriggerInput.optional(),
   motion: MotionInputSchema.optional(),
   resetScrollPosition: z.boolean().optional(),
@@ -118,7 +128,8 @@ export const ProtoScrollInput = z.object({
 // Non-strict to match ProtoWireEntry / ProtoScrollEntry pattern (v1.20 convention).
 // ProtoUrlEntry below is .strict() because it specifically enforces no-motion.
 const ProtoBackEntry = z.object({
-  from: z.string().min(1),
+  from: z.string().min(1).describe("Source node ID or name. A name resolves on the current page; scope with `fromScreen` if it repeats across screens."),
+  fromScreen: FROM_SCREEN_FIELD,
   trigger: TriggerInput.optional(),
   motion: MotionInputSchema.optional(),
 });
@@ -129,7 +140,8 @@ export const ProtoBackInput = z.object({
 });
 
 const ProtoUrlEntry = z.object({
-  from: z.string().min(1),
+  from: z.string().min(1).describe("Source node ID or name (scope with `fromScreen` if it repeats)."),
+  fromScreen: FROM_SCREEN_FIELD,
   url: z.string().min(1),
   openInNewTab: z.boolean().optional(),
   trigger: TriggerInput.optional(),
@@ -327,7 +339,10 @@ export function compileProtoOverlay(input: ProtoOverlayInput): CreateReactionsIn
     } else {
       action = { type: "close" };
     }
-    return buildConnection(o.from, o.trigger, o.motion, action, rewriteForOverlay);
+    return {
+      ...buildConnection(o.from, o.trigger, o.motion, action, rewriteForOverlay),
+      ...(o.fromScreen !== undefined && { fromScreen: o.fromScreen }),
+    };
   });
   return { connections, replaceExisting: input.replaceExisting };
 }
@@ -337,7 +352,10 @@ export function compileProtoScroll(input: ProtoScrollInput): CreateReactionsInpu
     const action: Connection["action"] = s.resetScrollPosition === undefined
       ? { type: "scroll", targetNodeId: s.to }
       : { type: "scroll", targetNodeId: s.to, resetScrollPosition: s.resetScrollPosition };
-    return buildConnection(s.from, s.trigger, s.motion, action);
+    return {
+      ...buildConnection(s.from, s.trigger, s.motion, action),
+      ...(s.fromScreen !== undefined && { fromScreen: s.fromScreen }),
+    };
   });
   return { connections, replaceExisting: input.replaceExisting };
 }
@@ -345,7 +363,10 @@ export function compileProtoScroll(input: ProtoScrollInput): CreateReactionsInpu
 export function compileProtoBack(input: ProtoBackInput): CreateReactionsInputType {
   const connections: Connection[] = input.backs.map((b) => {
     const action: Connection["action"] = { type: "back" };
-    return buildConnection(b.from, b.trigger, b.motion, action);
+    return {
+      ...buildConnection(b.from, b.trigger, b.motion, action),
+      ...(b.fromScreen !== undefined && { fromScreen: b.fromScreen }),
+    };
   });
   return { connections, replaceExisting: input.replaceExisting };
 }
@@ -364,6 +385,7 @@ export function compileProtoUrl(input: ProtoUrlInput): CreateReactionsInputType 
       sourceNodeId: u.from,
       trigger: u.trigger ?? DEFAULT_TRIGGER,
       action,
+      ...(u.fromScreen !== undefined && { fromScreen: u.fromScreen }),
     } as Connection;
   });
   return { connections, replaceExisting: input.replaceExisting };

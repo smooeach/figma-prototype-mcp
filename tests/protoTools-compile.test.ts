@@ -831,3 +831,26 @@ describe("compileProtoWire fromScreen", () => {
     expect(out.connections[0]!.fromScreen).toBeUndefined();
   });
 });
+
+describe("proto cluster fromScreen threading", () => {
+  it("compileProtoBack threads fromScreen", () => {
+    const out = compileProtoBack({ backs: [{ from: "Back", fromScreen: "Detail" }], replaceExisting: false } as any);
+    expect(out.connections[0]!.fromScreen).toBe("Detail");
+  });
+  it("compileProtoUrl threads fromScreen", () => {
+    const out = compileProtoUrl({ urls: [{ from: "Link", url: "https://x.com", fromScreen: "Home" }], replaceExisting: false } as any);
+    expect(out.connections[0]!.fromScreen).toBe("Home");
+  });
+  it("compileProtoOverlay threads fromScreen (open)", () => {
+    const out = compileProtoOverlay({ overlays: [{ mode: "open", from: "Btn", overlay: "Sheet", fromScreen: "Home" }], replaceExisting: false } as any);
+    expect(out.connections[0]!.fromScreen).toBe("Home");
+  });
+  it("compileProtoScroll threads fromScreen", () => {
+    const out = compileProtoScroll({ scrolls: [{ from: "Btn", to: "Anchor", fromScreen: "Home" }], replaceExisting: false } as any);
+    expect(out.connections[0]!.fromScreen).toBe("Home");
+  });
+  it("omits fromScreen when not given (back)", () => {
+    const out = compileProtoBack({ backs: [{ from: "Back" }], replaceExisting: false } as any);
+    expect(out.connections[0]!.fromScreen).toBeUndefined();
+  });
+});
