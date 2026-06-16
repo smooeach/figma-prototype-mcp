@@ -5,6 +5,7 @@ import { emitRoutes } from "../src/codegen/emitters/react.js";
 import { emitStore, collectVariables } from "../src/codegen/emitters/react.js";
 import { emitScreenInteractions } from "../src/codegen/emitters/react.js";
 import { emitReact } from "../src/codegen/emitters/react.js";
+import type { InteractionSpec } from "../src/server/interaction-spec.js";
 
 describe("name helpers", () => {
   it("pascalCase converts arbitrary names", () => {
@@ -70,7 +71,7 @@ const SPEC_VARS = {
   missingScreens: [],
   unsupported: [],
   truncated: false,
-};
+} as unknown as InteractionSpec;
 
 describe("collectVariables", () => {
   it("gathers unique variable names from set/toggle/conditional actions", () => {
@@ -113,13 +114,13 @@ const SPEC_ACTIONS = {
   missingScreens: [],
   unsupported: [],
   truncated: false,
-};
+} as unknown as InteractionSpec;
 
 describe("emitScreenInteractions", () => {
   it("emits one file per screen with a hook and handlers", () => {
     const files = emitScreenInteractions(SPEC_ACTIONS);
     expect(files).toHaveLength(1);
-    const f = files[0];
+    const f = files[0]!;
     expect(f.path).toBe("interactions/Home.ts");
     expect(f.content).toContain("export function useHomeInteractions()");
     expect(f.content).toContain("useNavigate");
