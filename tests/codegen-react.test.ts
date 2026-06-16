@@ -3,6 +3,7 @@ import { pascalCase, slugify } from "../src/codegen/types.js";
 import { mapTransition } from "../src/codegen/emitters/react.js";
 import { emitRoutes } from "../src/codegen/emitters/react.js";
 import { emitStore, collectVariables } from "../src/codegen/emitters/react.js";
+import { emitScreenInteractions } from "../src/codegen/emitters/react.js";
 
 describe("name helpers", () => {
   it("pascalCase converts arbitrary names", () => {
@@ -85,5 +86,45 @@ describe("emitStore", () => {
     expect(out).toContain('"user"');
     expect(out).toContain("function set(");
     expect(out).toContain("function toggle(");
+  });
+});
+
+const SPEC_ACTIONS = {
+  schemaVersion: "1.0" as const,
+  page: { id: "p1", name: "Page 1" },
+  screens: [
+    {
+      id: "1:1",
+      name: "Home",
+      interactions: [
+        { source: { id: "n1", name: "GoDetail" }, trigger: { type: "ON_CLICK" },
+          actions: [{ type: "navigate", to: { id: "1:2", name: "Detail" }, transition: { duration: 0.4, easing: "EASE_OUT" } }] },
+        { source: { id: "n2", name: "Flip" }, trigger: { type: "ON_CLICK" },
+          actions: [{ type: "toggleVariable", variable: "isOpen" }] },
+        { source: { id: "n3", name: "Guard" }, trigger: { type: "ON_CLICK" },
+          actions: [{ type: "conditional", if: { variable: "isOpen", operator: "EQ", value: true },
+                      then: [{ type: "navigate", to: { id: "1:3", name: "Next" } }],
+                      else: [{ type: "back" }] }] },
+      ],
+    },
+  ],
+  requestedScreens: ["1:1"],
+  missingScreens: [],
+  unsupported: [],
+  truncated: false,
+};
+
+describe("emitScreenInteractions", () => {
+  it("emits one file per screen with a hook and handlers", () => {
+    const files = emitScreenInteractions(SPEC_ACTIONS);
+    expect(files).toHaveLength(1);
+    const f = files[0];
+    expect(f.path).toBe("interactions/Home.ts");
+    expect(f.content).toContain("export function useHomeInteractions()");
+    expect(f.content).toContain("useNavigate");
+    expect(f.content).toContain('navigate("/detail"');     // navigate target slug
+    expect(f.content).toContain("toggle(\"isOpen\")");       // toggle var
+    expect(f.content).toContain("if (");                     // conditional
+    expect(f.content).toContain("navigate(-1)");             // back in else
   });
 });

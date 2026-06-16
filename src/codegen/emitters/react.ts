@@ -101,3 +101,95 @@ export function emitRoutes(spec: InteractionSpec): string {
     ``,
   ].join("\n");
 }
+
+/** Map a trigger object to a DOM handler prop name. Unknown -> onClick (+ recorded note). */
+function triggerToHandler(trigger: any): string {
+  const t = trigger?.type;
+  if (t === "ON_HOVER" || t === "MOUSE_ENTER") return "onMouseEnter";
+  if (t === "MOUSE_LEAVE") return "onMouseLeave";
+  return "onClick";
+}
+
+/** Render a single action as a line of handler-body code. */
+function renderAction(a: Action, indent: string): string[] {
+  switch (a.type) {
+    case "navigate":
+    case "scrollTo":
+    case "openOverlay":
+    case "swapOverlay": {
+      const t = mapTransition((a as any).transition);
+      const slug = a.to?.name ? `/${slugify(a.to.name)}` : "/";
+      return [`${indent}navigate(${JSON.stringify(slug)}, { state: { transition: ${JSON.stringify(t)} } });`];
+    }
+    case "back":
+      return [`${indent}navigate(-1);`];
+    case "closeOverlay":
+      return [`${indent}navigate(-1); // close overlay`];
+    case "openUrl":
+      return [`${indent}window.open(${JSON.stringify(String((a as any).url ?? ""))}, ${(a as any).openInNewTab ? '"_blank"' : '"_self"'});`];
+    case "setVariable":
+      return [`${indent}set(${JSON.stringify(String((a as any).variable))}, ${JSON.stringify((a as any).value)});`];
+    case "toggleVariable":
+      return [`${indent}toggle(${JSON.stringify(String((a as any).variable))});`];
+    case "changeVariant":
+      return [`${indent}// TODO: changeVariant to ${JSON.stringify(a.to?.name ?? a.to?.id ?? "")} — variants are a design concern; wire manually.`];
+    case "conditional": {
+      const cond = renderCondition((a as any).if);
+      const then = (a as any).then.flatMap((x: Action) => renderAction(x, indent + "  "));
+      const out = [`${indent}if (${cond}) {`, ...then, `${indent}}`];
+      if ((a as any).else && (a as any).else.length) {
+        const els = (a as any).else.flatMap((x: Action) => renderAction(x, indent + "  "));
+        out.push(`${indent}else {`, ...els, `${indent}}`);
+      }
+      return out;
+    }
+    default:
+      return [`${indent}// TODO: unsupported action ${JSON.stringify((a as any).type)}`];
+  }
+}
+
+/** Render a condition node to a JS boolean expression over useProtoVar values. */
+function renderCondition(node: any): string {
+  if (!node || typeof node !== "object") return "false";
+  if (Array.isArray(node.all)) return node.all.map(renderCondition).join(" && ") || "true";
+  if (Array.isArray(node.any)) return node.any.map(renderCondition).join(" || ") || "false";
+  if (typeof node.variable === "string") {
+    const op = node.operator === "NEQ" ? "!==" : "===";
+    return `vars[${JSON.stringify(node.variable)}] ${op} ${JSON.stringify(node.value)}`;
+  }
+  return "false";
+}
+
+/** Emit one interaction-hook file per screen. */
+export function emitScreenInteractions(spec: InteractionSpec): GeneratedFile[] {
+  return spec.screens.map((s) => {
+    const comp = pascalCase(s.name ?? "");
+    const handlers = s.interactions.map((it) => {
+      const handler = triggerToHandler(it.trigger);
+      const key = it.source?.name ? pascalCase(it.source.name) : it.source?.id ?? "node";
+      const body = it.actions.flatMap((a) => renderAction(a, "        ")).join("\n");
+      return [
+        `    ${JSON.stringify(key)}: {`,
+        `      ${handler}: () => {`,
+        body,
+        `      },`,
+        `    },`,
+      ].join("\n");
+    }).join("\n");
+    const content = [
+      `import { useNavigate } from "react-router-dom";`,
+      `import { useProtoStore } from "../prototype-store";`,
+      ``,
+      `// Interaction handlers for the "${s.name ?? s.id}" screen, keyed by source node.`,
+      `export function use${comp}Interactions() {`,
+      `  const navigate = useNavigate();`,
+      `  const { vars, set, toggle } = useProtoStore();`,
+      `  return {`,
+      handlers,
+      `  };`,
+      `}`,
+      ``,
+    ].join("\n");
+    return { path: `interactions/${comp}.ts`, content };
+  });
+}
