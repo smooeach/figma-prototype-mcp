@@ -5,6 +5,7 @@ import {
   findScrollableAncestor,
   pathOf,
   findTopLevelFrameNode,
+  isScreenFrame,
   collectDescendantLayerPaths,
   framesShareLayer,
   type NodeLike,
@@ -73,6 +74,24 @@ describe("findTopLevelFrameNode", () => {
   it("returns null when no frame has a PAGE/SECTION parent", () => {
     const orphan: NodeLike = { id: "o", name: "O", type: "TEXT", parent: null };
     expect(findTopLevelFrameNode(orphan)).toBe(null);
+  });
+});
+
+describe("isScreenFrame", () => {
+  const page: NodeLike = { id: "p", name: "Page", type: "PAGE", parent: null };
+  it("is true for a FRAME directly under the PAGE", () => {
+    expect(isScreenFrame({ id: "s", name: "S", type: "FRAME", parent: page })).toBe(true);
+  });
+  it("is true for a FRAME inside a SECTION (the bug: must not be missed)", () => {
+    const section: NodeLike = { id: "sec", name: "Sec", type: "SECTION", parent: page };
+    expect(isScreenFrame({ id: "s", name: "S", type: "FRAME", parent: section })).toBe(true);
+  });
+  it("is false for a FRAME nested inside another FRAME (an element, not a screen)", () => {
+    const screen: NodeLike = { id: "s", name: "S", type: "FRAME", parent: page };
+    expect(isScreenFrame({ id: "inner", name: "Inner", type: "FRAME", parent: screen })).toBe(false);
+  });
+  it("is false for a non-FRAME node", () => {
+    expect(isScreenFrame({ id: "t", name: "T", type: "TEXT", parent: page })).toBe(false);
   });
 });
 

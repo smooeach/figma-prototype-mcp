@@ -70,6 +70,19 @@ export function findTopLevelFrameNode(node: NodeLike): NodeLike | null {
 }
 
 /**
+ * Whether `node` is a screen-level frame: a FRAME whose parent is the PAGE or a
+ * SECTION (or has no parent) — i.e. one of the screens you wire prototypes
+ * between, NOT a frame nested inside another frame (a button/card/etc.). Used to
+ * enumerate screens including those grouped inside Sections, which a top-level
+ * `page.children` filter would miss.
+ */
+export function isScreenFrame(node: NodeLike): boolean {
+  if (node.type !== "FRAME") return false;
+  const p = node.parent;
+  return !p || p.type === "PAGE" || p.type === "SECTION";
+}
+
+/**
  * Paths of every descendant of `node`, relative to `node` (the frame's own name
  * excluded). Each path is the "/"-joined chain of names from a direct child down
  * to that descendant — e.g. a "Title" inside a "Card" yields "Card" and
