@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { pascalCase, slugify } from "../src/codegen/types.js";
 import { mapTransition } from "../src/codegen/emitters/react.js";
 import { emitRoutes } from "../src/codegen/emitters/react.js";
+import { emitStore, collectVariables } from "../src/codegen/emitters/react.js";
 
 describe("name helpers", () => {
   it("pascalCase converts arbitrary names", () => {
@@ -47,5 +48,42 @@ describe("emitRoutes", () => {
     expect(out).toContain('path: "/detail"');     // second screen slug
     expect(out).toContain("import Home from \"./screens/Home\"");
     expect(out).toContain("import Detail from \"./screens/Detail\"");
+  });
+});
+
+const SPEC_VARS = {
+  schemaVersion: "1.0" as const,
+  page: { id: "p1", name: "Page 1" },
+  screens: [
+    {
+      id: "1:1",
+      name: "Home",
+      interactions: [
+        { source: { id: "n1", name: "Toggle" }, trigger: { type: "ON_CLICK" }, actions: [{ type: "toggleVariable", variable: "isOpen" }] },
+        { source: { id: "n2", name: "Login" }, trigger: { type: "ON_CLICK" }, actions: [{ type: "setVariable", variable: "user", value: "guest" }] },
+      ],
+    },
+  ],
+  requestedScreens: ["1:1"],
+  missingScreens: [],
+  unsupported: [],
+  truncated: false,
+};
+
+describe("collectVariables", () => {
+  it("gathers unique variable names from set/toggle/conditional actions", () => {
+    expect(collectVariables(SPEC_VARS).sort()).toEqual(["isOpen", "user"]);
+  });
+});
+
+describe("emitStore", () => {
+  it("emits a context with set/toggle and initial state for each variable", () => {
+    const out = emitStore(SPEC_VARS);
+    expect(out).toContain("createContext");
+    expect(out).toContain("useProtoVar");
+    expect(out).toContain('"isOpen"');
+    expect(out).toContain('"user"');
+    expect(out).toContain("function set(");
+    expect(out).toContain("function toggle(");
   });
 });
