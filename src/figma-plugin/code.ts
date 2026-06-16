@@ -28,7 +28,8 @@ import {
   type LocalVarDescriptor,
   type LibraryVarDescriptor,
 } from "./variable-catalog.js";
-import { findEnclosingFrameId, hasReactions, findScrollableAncestor, pathOf, isScreenFrame } from "./node-tree.js";
+import { findEnclosingFrameId, hasReactions, findScrollableAncestor, pathOf, isScreenFrame, findTopLevelFrameNode } from "./node-tree.js";
+import { selectNodeMatch, formatNodeNotFoundError, formatAmbiguousNodeError, type NodeCandidate } from "./node-catalog.js";
 import { encodeReactionActions, type EchoResolvers } from "./action-echo.js";
 import { resolveNavigateTransition } from "./motion-degrade.js";
 import {
@@ -146,7 +147,12 @@ async function buildNonConditionalAction(
   degradeTo: "DISSOLVE" | "INSTANT" | undefined,
 ): Promise<{ built: BuiltAction; warning?: string }> {
   if (action.type === "navigate") {
-    const target = await figma.getNodeByIdAsync(action.targetFrameId);
+    let target = await figma.getNodeByIdAsync(action.targetFrameId);
+    if (!target) {
+      // Not an ID — resolve as a screen/frame name.
+      const resolvedId = await resolveFrameByName(action.targetFrameId);
+      target = await figma.getNodeByIdAsync(resolvedId);
+    }
     if (!target) throw new Error(`Target frame not found: ${action.targetFrameId}`);
     if (target.type !== "FRAME") {
       throw new Error(`Target must be a frame: ${action.targetFrameId} (got ${target.type})`);
@@ -364,6 +370,60 @@ async function resolveVariableByName(
   const r = await findVariableByName(name, collection);
   if (r.kind === "match") return { variable: r.variable, warning: r.warning };
   throw new Error(r.message);
+}
+
+/** Enclosing screen name for a node (via the top-level frame), or null. */
+function screenNameOf(node: BaseNode): string | null {
+  const top = findTopLevelFrameNode(node as any);
+  return top ? top.name : null;
+}
+
+/**
+ * Resolve a source node by NAME (caller already confirmed it isn't an ID).
+ * Scope: within `fromScreen` (frame id or name) if given, else the whole page.
+ * Returns the resolved node id, or throws a candidate/not-found error.
+ */
+async function resolveNodeByName(name: string, fromScreen: string | undefined): Promise<string> {
+  const page = await loadPage();
+  let root: PageNode | FrameNode = page;
+  let scopeLabel: string | null = null;
+
+  if (fromScreen) {
+    const byId = await figma.getNodeByIdAsync(fromScreen);
+    let scopeFrame: BaseNode | null = byId && byId.type === "FRAME" ? byId : null;
+    if (!scopeFrame) {
+      const frames: NodeCandidate[] = page
+        .findAll((n) => isScreenFrame(n))
+        .map((f) => ({ id: f.id, name: f.name, screen: null }));
+      const m = selectNodeMatch(fromScreen, frames);
+      if (m.kind === "none") throw new Error(formatNodeNotFoundError(fromScreen, null));
+      if (m.kind === "ambiguous") throw new Error(formatAmbiguousNodeError(fromScreen, m.candidates));
+      scopeFrame = await figma.getNodeByIdAsync(m.id);
+    }
+    if (!scopeFrame || !("findAll" in scopeFrame)) throw new Error(formatNodeNotFoundError(fromScreen, null));
+    root = scopeFrame as FrameNode;
+    scopeLabel = (scopeFrame as BaseNode).name;
+  }
+
+  const pool: NodeCandidate[] = root
+    .findAll(() => true)
+    .map((n) => ({ id: n.id, name: n.name, screen: screenNameOf(n as BaseNode) }));
+  const match = selectNodeMatch(name, pool);
+  if (match.kind === "none") throw new Error(formatNodeNotFoundError(name, scopeLabel));
+  if (match.kind === "ambiguous") throw new Error(formatAmbiguousNodeError(name, match.candidates));
+  return match.id;
+}
+
+/** Resolve a destination FRAME by NAME (caller already confirmed it isn't an ID). */
+async function resolveFrameByName(name: string): Promise<string> {
+  const page = await loadPage();
+  const pool: NodeCandidate[] = page
+    .findAll((n) => isScreenFrame(n))
+    .map((f) => ({ id: f.id, name: f.name, screen: null }));
+  const match = selectNodeMatch(name, pool);
+  if (match.kind === "none") throw new Error(formatNodeNotFoundError(name, null));
+  if (match.kind === "ambiguous") throw new Error(formatAmbiguousNodeError(name, match.candidates));
+  return match.id;
 }
 
 /**
@@ -630,7 +690,12 @@ async function handleCreateReactions(params: CreateReactionsInput) {
 
   for (const conn of params.connections) {
     try {
-      const source = await figma.getNodeByIdAsync(conn.sourceNodeId);
+      let source = await figma.getNodeByIdAsync(conn.sourceNodeId);
+      if (!source) {
+        // Not an ID — treat as a name and resolve (scoped by fromScreen).
+        const resolvedId = await resolveNodeByName(conn.sourceNodeId, conn.fromScreen);
+        source = await figma.getNodeByIdAsync(resolvedId);
+      }
       if (!source) throw new Error(`Source node not found: ${conn.sourceNodeId}`);
       if (!("setReactionsAsync" in source) || typeof (source as any).setReactionsAsync !== "function") {
         throw new Error(`Node cannot have reactions: ${source.name} (type: ${source.type})`);
