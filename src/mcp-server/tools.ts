@@ -310,6 +310,7 @@ const ActionInput = z.discriminatedUnion("type", [
 
 const ConnectionInput = z.object({
   sourceNodeId: z.string().min(1),
+  fromScreen: z.string().min(1).optional(),
   trigger: TriggerInput.default("ON_CLICK"),
   afterTimeoutSeconds: z.number().positive().optional(),
   transition: TransitionInput.default("INSTANT"),
