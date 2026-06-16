@@ -487,3 +487,21 @@ describe("ProtoWireInput fromScreen", () => {
     expect(r.wires[0]!.fromScreen).toBeUndefined();
   });
 });
+
+describe("proto cluster fromScreen schema", () => {
+  it("ProtoBackInput accepts optional fromScreen", () => {
+    expect(ProtoBackInput.parse({ backs: [{ from: "b", fromScreen: "S" }] }).backs[0]!.fromScreen).toBe("S");
+  });
+  it("ProtoScrollInput accepts fromScreen and to", () => {
+    const r = ProtoScrollInput.parse({ scrolls: [{ from: "b", to: "anchor", fromScreen: "S" }] });
+    expect(r.scrolls[0]!.fromScreen).toBe("S");
+  });
+  it("ProtoOverlayInput open accepts fromScreen", () => {
+    const r = ProtoOverlayInput.parse({ overlays: [{ mode: "open", from: "b", overlay: "Sheet", fromScreen: "S" }] });
+    expect(r.overlays[0]!.fromScreen).toBe("S");
+  });
+  it("ProtoUrlInput accepts fromScreen", () => {
+    const r = ProtoUrlInput.parse({ urls: [{ from: "b", url: "https://x.com", fromScreen: "S" }] });
+    expect(r.urls[0]!.fromScreen).toBe("S");
+  });
+});
