@@ -28,7 +28,7 @@ import {
   type LocalVarDescriptor,
   type LibraryVarDescriptor,
 } from "./variable-catalog.js";
-import { findEnclosingFrameId, hasReactions, findScrollableAncestor, pathOf } from "./node-tree.js";
+import { findEnclosingFrameId, hasReactions, findScrollableAncestor, pathOf, isScreenFrame } from "./node-tree.js";
 import { encodeReactionActions, type EchoResolvers } from "./action-echo.js";
 import { resolveNavigateTransition } from "./motion-degrade.js";
 import {
@@ -417,8 +417,11 @@ function buildSetVariableData(
 
 async function handleGetCanvasOverview(params: GetCanvasOverviewInput) {
   const page = await loadPage(params.pageId);
-  const frames = page.children
-    .filter((n) => n.type === "FRAME")
+  // findAll (recursive) + isScreenFrame: include screens nested inside SECTIONs,
+  // which a top-level page.children filter misses. Mirrors get_prototype_flow,
+  // which already enumerates via findAll.
+  const frames = page
+    .findAll((n) => isScreenFrame(n))
     .map((f) => ({
       id: f.id,
       name: f.name,
