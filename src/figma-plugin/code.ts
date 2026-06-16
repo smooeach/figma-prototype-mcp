@@ -586,10 +586,12 @@ async function handleEnsureVariable(params: CreateVariableInput) {
   }
 
   // 2. Not found → find-or-create the target collection, then the variable.
+  // Target = user-specified collection, else the default forProto.
+  const targetName = collection ?? "forProto";
   const collections = await figma.variables.getLocalVariableCollectionsAsync();
   const targetCollection =
-    collections.find((c) => c.name === collection) ??
-    figma.variables.createVariableCollection(collection);
+    collections.find((c) => c.name === targetName) ??
+    figma.variables.createVariableCollection(targetName);
 
   // Object overload (the deprecated collectionId overload throws under dynamic-page).
   const variable = figma.variables.createVariable(name, targetCollection, type);

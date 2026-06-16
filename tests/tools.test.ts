@@ -1062,9 +1062,9 @@ describe("CreateVariableInput", () => {
     expect(() => CreateVariableInput.parse({ name: "isOpen" })).toThrow();
     expect(() => CreateVariableInput.parse({ type: "BOOLEAN" })).toThrow();
   });
-  it("defaults collection to forProto and leaves value optional", () => {
+  it("leaves collection and value optional (no default)", () => {
     const r = CreateVariableInput.parse({ name: "isOpen", type: "BOOLEAN" });
-    expect(r.collection).toBe("forProto");
+    expect(r.collection).toBeUndefined();
     expect(r.value).toBeUndefined();
   });
   it("accepts an explicit value and collection", () => {

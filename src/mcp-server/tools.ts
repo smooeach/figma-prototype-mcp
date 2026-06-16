@@ -73,8 +73,12 @@ export const CreateVariableInput = z
     collection: z
       .string()
       .min(1)
-      .default("forProto")
-      .describe("Collection to create the variable in (find-or-create). Defaults to a dedicated `forProto` collection."),
+      .optional()
+      .describe(
+        "Optional. When omitted, reuse-search looks across ALL collections (local + library) and, if the variable " +
+          "is genuinely missing, it is created in a dedicated `forProto` collection. When provided, BOTH the " +
+          "reuse-search and the creation are scoped to that collection.",
+      ),
   })
   .strict()
   .describe(
