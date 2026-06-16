@@ -269,6 +269,7 @@ async function buildNonConditionalAction(
 type FindVariableResult =
   | { kind: "match"; variable: Variable; warning?: string }
   | { kind: "ambiguous"; message: string }
+  | { kind: "import-failed"; message: string }
   | { kind: "not-found"; message: string };
 
 async function findVariableByName(
@@ -343,7 +344,7 @@ async function findVariableByName(
       };
     } catch (err: any) {
       return {
-        kind: "not-found",
+        kind: "import-failed",
         message: `Found library variable "${name}" in "${libPick.item.libraryName}" but failed to import it: ${err?.message ?? String(err)}`,
       };
     }
@@ -563,9 +564,10 @@ async function handleEnsureVariable(params: CreateVariableInput) {
 
   // 1. Reuse-first: a same-named existing variable wins (local → library).
   const found = await findVariableByName(name, collection);
-  if (found.kind === "ambiguous") {
-    // A same-named variable already exists in multiple collections — never create
-    // a duplicate; ask which one (same error as set/conditional).
+  if (found.kind === "ambiguous" || found.kind === "import-failed") {
+    // ambiguous: same name in multiple collections — ask which one (same error as set/conditional).
+    // import-failed: the variable EXISTS in a library but couldn't be imported —
+    // do NOT create a duplicate local; surface the failure.
     throw new Error(found.message);
   }
   if (found.kind === "match") {
@@ -594,6 +596,7 @@ async function handleEnsureVariable(params: CreateVariableInput) {
 
   const modeValue = buildCreateVariableValue(name, type, value);
   for (const mode of targetCollection.modes) {
+    // buildCreateVariableValue returns boolean|number|string|RGBA — all VariableValue subtypes.
     variable.setValueForMode(mode.modeId, modeValue as VariableValue);
   }
 
