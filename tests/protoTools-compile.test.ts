@@ -816,3 +816,18 @@ describe("compileProtoConditional — compound", () => {
     expect((out.connections[0]!.action as any).condition).toEqual({ variable: "x", operator: "==", value: true });
   });
 });
+
+describe("compileProtoWire fromScreen", () => {
+  it("threads fromScreen into the connection", () => {
+    const out = compileProtoWire({
+      wires: [{ from: "Submit", to: "Home", fromScreen: "Login" }],
+      replaceExisting: false,
+    } as any);
+    expect(out.connections[0]!.fromScreen).toBe("Login");
+    expect(out.connections[0]!.sourceNodeId).toBe("Submit");
+  });
+  it("omits fromScreen when not given", () => {
+    const out = compileProtoWire({ wires: [{ from: "a", to: "b" }], replaceExisting: false } as any);
+    expect(out.connections[0]!.fromScreen).toBeUndefined();
+  });
+});

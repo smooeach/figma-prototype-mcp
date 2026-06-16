@@ -476,3 +476,14 @@ describe("ProtoConditionalInput — rejections", () => {
     ).toThrow();
   });
 });
+
+describe("ProtoWireInput fromScreen", () => {
+  it("accepts an optional fromScreen", () => {
+    const r = ProtoWireInput.parse({ wires: [{ from: "Submit", to: "Home", fromScreen: "Login" }] });
+    expect(r.wires[0]!.fromScreen).toBe("Login");
+  });
+  it("works without fromScreen", () => {
+    const r = ProtoWireInput.parse({ wires: [{ from: "1:1", to: "2:2" }] });
+    expect(r.wires[0]!.fromScreen).toBeUndefined();
+  });
+});

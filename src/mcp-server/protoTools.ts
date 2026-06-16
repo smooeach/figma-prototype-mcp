@@ -34,8 +34,16 @@ const DEGRADE_TO_FIELD = z
   );
 
 const ProtoWireEntry = z.object({
-  from: z.string().min(1).describe("Source node ID (e.g. \"1404:1947\"), NOT a frame name — resolve names via find_nodes/get_canvas_overview first."),
-  to: z.string().min(1).describe("Destination frame node ID (e.g. \"1404:1950\"), NOT a frame name."),
+  from: z.string().min(1).describe(
+    "Source node ID (e.g. \"1404:1947\") OR a node name. A name is resolved on the current page; " +
+      "if the same name repeats across screens, scope it with `fromScreen`.",
+  ),
+  to: z.string().min(1).describe(
+    "Destination frame node ID OR a screen/frame name. A duplicated frame name returns a candidate list to pick from.",
+  ),
+  fromScreen: z.string().min(1).optional().describe(
+    "Optional screen (frame name or ID) to resolve `from` within, when the source element name repeats across screens.",
+  ),
   trigger: TriggerInput.optional(),
   motion: MotionInputSchema.optional(),
   resetScrollPosition: z.boolean().optional(),
@@ -295,6 +303,7 @@ export function compileProtoWire(input: ProtoWireInput): CreateReactionsInputTyp
       : { type: "navigate", targetFrameId: w.to, resetScrollPosition: w.resetScrollPosition };
     return {
       ...buildConnection(w.from, w.trigger, w.motion, action),
+      ...(w.fromScreen !== undefined && { fromScreen: w.fromScreen }),
       ...(w.degradeTo !== undefined && { degradeTo: w.degradeTo }),
     };
   });
