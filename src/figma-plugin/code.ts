@@ -164,7 +164,8 @@ async function buildNonConditionalAction(
       degradeTo,
     });
     const reaction = buildNavigateReaction({
-      targetFrameId: action.targetFrameId,
+      // target.id (resolved) — action.targetFrameId may be a NAME, not the destination ID.
+      targetFrameId: target.id,
       trigger, afterTimeoutSeconds, transition: effectiveTransition,
       resetScrollPosition: action.resetScrollPosition,
     });
