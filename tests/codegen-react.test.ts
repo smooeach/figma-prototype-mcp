@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { pascalCase, slugify } from "../src/codegen/types.js";
-import { mapTransition } from "../src/codegen/emitters/react.js";
+import { mapTransition, buildScreenIdentities } from "../src/codegen/emitters/react.js";
 import { emitRoutes } from "../src/codegen/emitters/react.js";
 import { emitStore, collectVariables } from "../src/codegen/emitters/react.js";
 import { emitScreenInteractions } from "../src/codegen/emitters/react.js";
@@ -175,5 +175,54 @@ describe("emitReact", () => {
     expect(readme.content).toContain("unknown action type: FOO");
     expect(readme.content).toContain("react-router");
     expect(readme.content).toContain("framer-motion");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Duplicate screen names — the core bug being fixed
+// ---------------------------------------------------------------------------
+
+const SPEC_DUP = {
+  schemaVersion: "1.0" as const,
+  page: { id: "p1", name: "P" },
+  screens: [
+    { id: "9:1", name: "screen01", interactions: [
+      { source: { id: "n1", name: "Go" }, trigger: { type: "ON_CLICK" },
+        actions: [{ type: "navigate", to: { id: "9:2", name: "screen01" } }] } ] },
+    { id: "9:2", name: "screen01", interactions: [] },
+    { id: "9:3", name: "Detail", interactions: [
+      { source: { id: "n2", name: "Ext" }, trigger: { type: "ON_CLICK" },
+        actions: [{ type: "navigate", to: { id: "99:99", name: "External" } }] } ] },
+  ],
+  requestedScreens: ["9:1", "9:2", "9:3"], missingScreens: [], unsupported: [], truncated: false,
+};
+
+describe("buildScreenIdentities (duplicate names)", () => {
+  it("assigns unique components and paths to same-named screens", () => {
+    const m = buildScreenIdentities(SPEC_DUP as any);
+    const a = m.get("9:1"), b = m.get("9:2");
+    expect(a!.component).not.toBe(b!.component);
+    expect(a!.path).not.toBe(b!.path);
+    expect(a!.path).toBe("/"); // first screen
+  });
+});
+
+describe("emitReact with duplicate screen names", () => {
+  it("produces unique imports, routes, and interaction file paths", () => {
+    const files = emitReact(SPEC_DUP as any);
+    const routes = files.find((f) => f.path === "routes.tsx")!.content;
+    // no duplicate import identifier and no duplicate path literal
+    const importLines = routes.split("\n").filter((l) => l.startsWith("import ") && l.includes("./screens/"));
+    const importedNames = importLines.map((l) => l.split(" ")[1]);
+    expect(new Set(importedNames).size).toBe(importedNames.length); // all unique
+    const interactionPaths = files.filter((f) => f.path.startsWith("interactions/")).map((f) => f.path);
+    expect(new Set(interactionPaths).size).toBe(interactionPaths.length); // no overwrite
+  });
+  it("navigates to the target's path by id, and flags external targets", () => {
+    const files = emitReact(SPEC_DUP as any);
+    const go = files.find((f) => f.path.startsWith("interactions/") && f.content.includes('"Go"'))!.content;
+    expect(go).toContain(`navigate("${buildScreenIdentities(SPEC_DUP as any).get("9:2")!.path}"`);
+    const ext = files.map((f) => f.content).join("\n");
+    expect(ext).toContain("not in the generated routes");
   });
 });

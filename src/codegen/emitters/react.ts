@@ -3,6 +3,42 @@ import type { Action } from "../../server/interaction-spec.js";
 import type { GeneratedFile } from "../types.js";
 import { pascalCase, slugify } from "../types.js";
 
+// ---------------------------------------------------------------------------
+// Screen identity — unique component name + route path keyed by frame id
+// ---------------------------------------------------------------------------
+
+export interface ScreenIdentity { component: string; path: string; }
+
+/** id-fragment safe for identifiers/paths: "935:21614" -> "935_21614". */
+function idFragment(id: string): string {
+  return (id ?? "").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "x";
+}
+
+/**
+ * Build id -> unique {component, path}.
+ * First screen gets path "/". Collisions get an id suffix.
+ */
+export function buildScreenIdentities(spec: InteractionSpec): Map<string, ScreenIdentity> {
+  const map = new Map<string, ScreenIdentity>();
+  const usedComponents = new Set<string>();
+  const usedPaths = new Set<string>();
+  spec.screens.forEach((s, i) => {
+    const base = pascalCase(s.name ?? "");
+    let component = base;
+    if (usedComponents.has(component)) component = `${base}_${idFragment(s.id)}`;
+    usedComponents.add(component);
+
+    let path = i === 0 ? "/" : `/${slugify(s.name ?? "")}`;
+    if (path !== "/" && usedPaths.has(path)) path = `/${slugify(s.name ?? "")}-${idFragment(s.id)}`;
+    usedPaths.add(path);
+
+    map.set(s.id, { component, path });
+  });
+  return map;
+}
+
+// ---------------------------------------------------------------------------
+
 /** Map a Figma transition (best-effort, shape is loose) to a framer-motion transition. */
 export function mapTransition(transition: any): { duration: number; ease: string } {
   const duration = typeof transition?.duration === "number" ? transition.duration : 0.3;
@@ -80,14 +116,17 @@ export function emitStore(spec: InteractionSpec): string {
 
 /** Build a react-router route table from the screens. First screen maps to "/". */
 export function emitRoutes(spec: InteractionSpec): string {
-  const screens = spec.screens;
-  const imports = screens
-    .map((s) => `import ${pascalCase(s.name ?? "")} from "./screens/${pascalCase(s.name ?? "")}";`)
+  const identities = buildScreenIdentities(spec);
+  const imports = spec.screens
+    .map((s) => {
+      const { component } = identities.get(s.id)!;
+      return `import ${component} from "./screens/${component}";`;
+    })
     .join("\n");
-  const routes = screens
-    .map((s, i) => {
-      const path = i === 0 ? "/" : `/${slugify(s.name ?? "")}`;
-      return `  { path: ${JSON.stringify(path)}, element: <${pascalCase(s.name ?? "")} /> },`;
+  const routes = spec.screens
+    .map((s) => {
+      const { component, path } = identities.get(s.id)!;
+      return `  { path: ${JSON.stringify(path)}, element: <${component} /> },`;
     })
     .join("\n");
   return [
@@ -111,15 +150,28 @@ function triggerToHandler(trigger: any): string {
 }
 
 /** Render a single action as a line of handler-body code. */
-function renderAction(a: Action, indent: string): string[] {
+function renderAction(a: Action, indent: string, identities: Map<string, ScreenIdentity>): string[] {
   switch (a.type) {
     case "navigate":
     case "scrollTo":
     case "openOverlay":
     case "swapOverlay": {
       const t = mapTransition((a as any).transition);
-      const slug = a.to?.name ? `/${slugify(a.to.name)}` : "/";
-      return [`${indent}navigate(${JSON.stringify(slug)}, { state: { transition: ${JSON.stringify(t)} } });`];
+      const toId: string | undefined = (a as any).to?.id;
+      const toName: string | undefined = (a as any).to?.name;
+      const identity = toId ? identities.get(toId) : undefined;
+      let path: string;
+      let todoComment: string | undefined;
+      if (identity) {
+        path = identity.path;
+      } else {
+        path = toName ? `/${slugify(toName)}` : "/";
+        if (toName) {
+          todoComment = `${indent}// TODO: target screen "${toName}" is not in the generated routes`;
+        }
+      }
+      const line = `${indent}navigate(${JSON.stringify(path)}, { state: { transition: ${JSON.stringify(t)} } });`;
+      return todoComment ? [line, todoComment] : [line];
     }
     case "back":
       return [`${indent}navigate(-1);`];
@@ -135,10 +187,10 @@ function renderAction(a: Action, indent: string): string[] {
       return [`${indent}// TODO: changeVariant to ${JSON.stringify(a.to?.name ?? a.to?.id ?? "")} — variants are a design concern; wire manually.`];
     case "conditional": {
       const cond = renderCondition((a as any).if);
-      const then = (a as any).then.flatMap((x: Action) => renderAction(x, indent + "  "));
+      const then = (a as any).then.flatMap((x: Action) => renderAction(x, indent + "  ", identities));
       const out = [`${indent}if (${cond}) {`, ...then, `${indent}}`];
       if ((a as any).else && (a as any).else.length) {
-        const els = (a as any).else.flatMap((x: Action) => renderAction(x, indent + "  "));
+        const els = (a as any).else.flatMap((x: Action) => renderAction(x, indent + "  ", identities));
         out.push(`${indent}else {`, ...els, `${indent}}`);
       }
       return out;
@@ -170,12 +222,13 @@ function renderCondition(node: any): string {
 
 /** Emit one interaction-hook file per screen. */
 export function emitScreenInteractions(spec: InteractionSpec): GeneratedFile[] {
+  const identities = buildScreenIdentities(spec);
   return spec.screens.map((s) => {
-    const comp = pascalCase(s.name ?? "");
+    const { component: comp } = identities.get(s.id)!;
     const handlers = s.interactions.map((it) => {
       const handler = triggerToHandler(it.trigger);
       const key = it.source?.name ? pascalCase(it.source.name) : it.source?.id ?? "node";
-      const body = it.actions.flatMap((a) => renderAction(a, "        ")).join("\n");
+      const body = it.actions.flatMap((a) => renderAction(a, "        ", identities)).join("\n");
       return [
         `    ${JSON.stringify(key)}: {`,
         `      ${handler}: () => {`,
