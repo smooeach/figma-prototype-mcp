@@ -19,7 +19,7 @@ import {
   type TransitionInput,
 } from "./reaction-builder.js";
 import { CommandQueue } from "./command-queue.js";
-import { validateVariableLiteralCompat } from "./variable-literal.js";
+import { validateVariableLiteralCompat, buildCreateVariableValue } from "./variable-literal.js";
 import {
   filterVariables,
   formatVariableNotFoundError,
@@ -42,6 +42,7 @@ import type {
   GetPrototypeFlowInput,
   FindNodesInput,
   ListVariablesInput,
+  CreateVariableInput,
   CreateReactionsInput,
   ListReactionsInput,
   ClearReactionsInput,
@@ -58,6 +59,7 @@ type Command =
   | { type: "GET_PROTOTYPE_FLOW"; params: GetPrototypeFlowInput }
   | { type: "FIND_NODES"; params: FindNodesInput }
   | { type: "LIST_VARIABLES"; params: ListVariablesInput }
+  | { type: "CREATE_VARIABLE"; params: CreateVariableInput }
   | { type: "CREATE_REACTIONS"; params: CreateReactionsInput }
   | { type: "LIST_REACTIONS"; params: ListReactionsInput }
   | { type: "CLEAR_REACTIONS"; params: ClearReactionsInput }
@@ -104,6 +106,7 @@ async function dispatch(command: Command["type"], params: any): Promise<
       case "GET_PROTOTYPE_FLOW":   return { status: "ok", result: await handleGetPrototypeFlow(params) };
       case "FIND_NODES":          return { status: "ok", result: await handleFindNodes(params) };
       case "LIST_VARIABLES":      return { status: "ok", result: await handleListVariables(params) };
+      case "CREATE_VARIABLE":     return { status: "ok", result: await handleEnsureVariable(params) };
       case "CREATE_REACTIONS": return { status: "ok", result: await handleCreateReactions(params) };
       case "LIST_REACTIONS":      return { status: "ok", result: await handleListReactions(params) };
       case "CLEAR_REACTIONS":     return { status: "ok", result: await handleClearReactions(params) };
@@ -263,13 +266,16 @@ async function buildNonConditionalAction(
   throw new Error(`Unhandled action type: ${(action as { type: string }).type}`);
 }
 
-async function resolveVariableByName(
+type FindVariableResult =
+  | { kind: "match"; variable: Variable; warning?: string }
+  | { kind: "ambiguous"; message: string }
+  | { kind: "import-failed"; message: string }
+  | { kind: "not-found"; message: string };
+
+async function findVariableByName(
   name: string,
   collection?: string,
-): Promise<{
-  variable: Variable;
-  warning?: string;
-}> {
+): Promise<FindVariableResult> {
   // Step 1: local. Build descriptors so collection-aware selection can run.
   // This fans out one getVariableCollectionByIdAsync per local variable on every
   // resolve. Acceptable at the current call frequency; if profiling ever shows
@@ -290,10 +296,10 @@ async function resolveVariableByName(
   );
   const localPick = selectVariableMatch(name, collection, localDescriptors);
   if (localPick.kind === "match") {
-    return { variable: localPick.item.ref };
+    return { kind: "match", variable: localPick.item.ref };
   }
   if (localPick.kind === "ambiguous") {
-    throw new Error(formatAmbiguousVariableError(name, localPick.collections, "local"));
+    return { kind: "ambiguous", message: formatAmbiguousVariableError(name, localPick.collections, "local") };
   }
 
   // Step 2: library. Reached when there's no usable local match — either the name
@@ -324,7 +330,7 @@ async function resolveVariableByName(
 
   const libPick = selectVariableMatch(name, collection, libraryDescriptors);
   if (libPick.kind === "ambiguous") {
-    throw new Error(formatAmbiguousVariableError(name, libPick.collections, "library"));
+    return { kind: "ambiguous", message: formatAmbiguousVariableError(name, libPick.collections, "library") };
   }
   if (libPick.kind === "match") {
     // Import the matched library variable. A failure here is reported distinctly
@@ -332,20 +338,32 @@ async function resolveVariableByName(
     try {
       const imported = await figma.variables.importVariableByKeyAsync(libPick.item.key);
       return {
+        kind: "match",
         variable: imported,
         warning: `Imported library variable "${name}" from "${libPick.item.libraryName}".`,
       };
     } catch (err: any) {
-      throw new Error(
-        `Found library variable "${name}" in "${libPick.item.libraryName}" but failed to import it: ${err?.message ?? String(err)}`,
-      );
+      return {
+        kind: "import-failed",
+        message: `Found library variable "${name}" in "${libPick.item.libraryName}" but failed to import it: ${err?.message ?? String(err)}`,
+      };
     }
   }
 
   // Step 3: not found — list candidates.
-  throw new Error(
-    formatVariableNotFoundError(name, all.map((v) => v.name), libraryDescriptors.map((v) => v.name)),
-  );
+  return {
+    kind: "not-found",
+    message: formatVariableNotFoundError(name, all.map((v) => v.name), libraryDescriptors.map((v) => v.name)),
+  };
+}
+
+async function resolveVariableByName(
+  name: string,
+  collection?: string,
+): Promise<{ variable: Variable; warning?: string }> {
+  const r = await findVariableByName(name, collection);
+  if (r.kind === "match") return { variable: r.variable, warning: r.warning };
+  throw new Error(r.message);
 }
 
 /**
@@ -539,6 +557,59 @@ async function handleListVariables(params: ListVariablesInput) {
   }
 
   return { local, library, remoteEnumerated };
+}
+
+async function handleEnsureVariable(params: CreateVariableInput) {
+  const { name, type, value, collection } = params;
+
+  // 1. Reuse-first: a same-named existing variable wins (local → library).
+  const found = await findVariableByName(name, collection);
+  if (found.kind === "ambiguous" || found.kind === "import-failed") {
+    // ambiguous: same name in multiple collections — ask which one (same error as set/conditional).
+    // import-failed: the variable EXISTS in a library but couldn't be imported —
+    // do NOT create a duplicate local; surface the failure.
+    throw new Error(found.message);
+  }
+  if (found.kind === "match") {
+    const col = await figma.variables.getVariableCollectionByIdAsync(
+      found.variable.variableCollectionId,
+    );
+    return {
+      name: found.variable.name,
+      id: found.variable.id,
+      type: found.variable.resolvedType,
+      collection: col?.name ?? "",
+      created: false,
+      reused: true,
+      warning: found.warning,
+    };
+  }
+
+  // 2. Not found → find-or-create the target collection, then the variable.
+  // Target = user-specified collection, else the default forProto.
+  const targetName = collection ?? "forProto";
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  const targetCollection =
+    collections.find((c) => c.name === targetName) ??
+    figma.variables.createVariableCollection(targetName);
+
+  // Object overload (the deprecated collectionId overload throws under dynamic-page).
+  const variable = figma.variables.createVariable(name, targetCollection, type);
+
+  const modeValue = buildCreateVariableValue(name, type, value);
+  for (const mode of targetCollection.modes) {
+    // buildCreateVariableValue returns boolean|number|string|RGBA — all VariableValue subtypes.
+    variable.setValueForMode(mode.modeId, modeValue as VariableValue);
+  }
+
+  return {
+    name: variable.name,
+    id: variable.id,
+    type: variable.resolvedType,
+    collection: targetCollection.name,
+    created: true,
+    reused: false,
+  };
 }
 
 async function handleCreateReactions(params: CreateReactionsInput) {

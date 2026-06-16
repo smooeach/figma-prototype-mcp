@@ -3,6 +3,7 @@ import {
   hexToRgb,
   rgbToHex,
   validateVariableLiteralCompat,
+  buildCreateVariableValue,
 } from "../src/figma-plugin/variable-literal.js";
 
 describe("hexToRgb", () => {
@@ -127,5 +128,26 @@ describe("validateVariableLiteralCompat — rejections", () => {
   it("uses the variable name in the error message", () => {
     expect(() => validateVariableLiteralCompat({ name: "myVar", resolvedType: "BOOLEAN" }, 1, "assignment"))
       .toThrow(/"myVar"/);
+  });
+});
+
+describe("buildCreateVariableValue", () => {
+  it("returns type defaults when value omitted", () => {
+    expect(buildCreateVariableValue("flag", "BOOLEAN")).toBe(false);
+    expect(buildCreateVariableValue("count", "FLOAT")).toBe(0);
+    expect(buildCreateVariableValue("label", "STRING")).toBe("");
+    expect(buildCreateVariableValue("tint", "COLOR")).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+  });
+
+  it("passes provided values through validateVariableLiteralCompat", () => {
+    expect(buildCreateVariableValue("flag", "BOOLEAN", true)).toBe(true);
+    expect(buildCreateVariableValue("count", "FLOAT", 3)).toBe(3);
+    expect(buildCreateVariableValue("label", "STRING", "hi")).toBe("hi");
+    expect(buildCreateVariableValue("tint", "COLOR", "#FF0000")).toEqual({ r: 1, g: 0, b: 0, a: 1 });
+  });
+
+  it("rejects a value whose type mismatches the variable type", () => {
+    expect(() => buildCreateVariableValue("flag", "BOOLEAN", "true")).toThrow(/cannot assign string/);
+    expect(() => buildCreateVariableValue("tint", "COLOR", "nothex")).toThrow(/hex string/);
   });
 });
