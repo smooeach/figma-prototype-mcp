@@ -11,6 +11,7 @@ import {
   ExportInteractionsInput,
   FindNodesInput,
   ListVariablesInput,
+  CreateVariableInput,
   CreateReactionsInput,
   ListReactionsInput,
   ClearReactionsInput,
@@ -130,6 +131,18 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "a variable name. `remoteEnumerated:false` means library enumeration was unavailable (local list still valid).",
       schema: ListVariablesInput,
       command: "LIST_VARIABLES" as CommandName,
+    },
+    {
+      name: "create_variable",
+      description:
+        "Find-or-create a Figma Variable. Creates one ONLY when the prototype needs a variable that does not " +
+        "exist yet — if a variable of the same name already exists it is REUSED (reused:true), never duplicated. " +
+        "Call list_variables first and prefer an existing variable. New variables go into a dedicated `forProto` " +
+        "collection by default (override with `collection`). `type` (BOOLEAN/FLOAT/STRING/COLOR) is required; " +
+        "`value` is optional (defaults to the type's neutral value; COLOR takes a hex string). After creating, " +
+        "reference it by name in proto_set_variable / proto_toggle_variable / proto_conditional.",
+      schema: CreateVariableInput,
+      command: "CREATE_VARIABLE" as CommandName,
     },
     {
       name: "create_reactions",
