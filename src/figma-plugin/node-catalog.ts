@@ -18,7 +18,7 @@ export function selectNodeMatch(name: string, pool: NodeCandidate[]): NodeMatch 
   const lower = name.toLowerCase();
   const matches = pool.filter((c) => c.name.toLowerCase() === lower);
   if (matches.length === 0) return { kind: "none" };
-  if (matches.length === 1) return { kind: "match", id: matches[0].id };
+  if (matches.length === 1) return { kind: "match", id: matches[0]!.id };
   return { kind: "ambiguous", candidates: matches };
 }
 
