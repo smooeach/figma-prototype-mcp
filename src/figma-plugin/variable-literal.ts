@@ -106,3 +106,30 @@ export function validateVariableLiteralCompat(
   // expected === "string"
   return { type: "STRING", resolvedType: "STRING", value: value as string };
 }
+
+/**
+ * Compute the value to write to a newly created variable's modes.
+ * When `value` is omitted, returns the type's neutral default
+ * (BOOLEAN→false, FLOAT→0, STRING→"", COLOR→transparent). When provided,
+ * delegates to validateVariableLiteralCompat (assignment context) so the
+ * same type-checking + hex parsing as set_variable applies.
+ */
+export function buildCreateVariableValue(
+  name: string,
+  type: VariableResolvedType,
+  value?: boolean | number | string,
+): boolean | number | string | { r: number; g: number; b: number; a: number } {
+  if (value === undefined) {
+    switch (type) {
+      case "BOOLEAN":
+        return false;
+      case "FLOAT":
+        return 0;
+      case "STRING":
+        return "";
+      case "COLOR":
+        return { r: 0, g: 0, b: 0, a: 0 };
+    }
+  }
+  return validateVariableLiteralCompat({ name, resolvedType: type }, value, "assignment").value;
+}
