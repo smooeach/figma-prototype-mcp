@@ -193,3 +193,40 @@ export function emitScreenInteractions(spec: InteractionSpec): GeneratedFile[] {
     return { path: `interactions/${comp}.ts`, content };
   });
 }
+
+/** Emit a README explaining how to wire the files in + listing unsupported interactions. */
+export function emitReadme(spec: InteractionSpec): string {
+  const unsupportedLines = spec.unsupported.length
+    ? spec.unsupported.map((u) => `- \`${u.source?.name ?? u.source?.id ?? "?"}\`: ${u.reason}`).join("\n")
+    : "- (none)";
+  return [
+    `# Generated prototype interactions (React)`,
+    ``,
+    `Generated from the Figma prototype. Covers navigation, transitions, variables, and`,
+    `conditionals — NOT screen UI. Wire these into your own components.`,
+    ``,
+    `## Dependencies`,
+    `- \`react-router-dom\` (navigation)`,
+    `- \`framer-motion\` (transitions — see \`state.transition\` passed on navigate)`,
+    ``,
+    `## Files`,
+    `- \`routes.tsx\` — route table; render with \`<RouterProvider router={router} />\`.`,
+    `- \`prototype-store.tsx\` — wrap your app in \`<PrototypeStoreProvider>\`; read with \`useProtoVar(name)\`.`,
+    `- \`interactions/<Screen>.ts\` — \`use<Screen>Interactions()\` returns handlers keyed by source node; spread onto your elements.`,
+    ``,
+    `## Unsupported / manual interactions`,
+    unsupportedLines,
+    ``,
+    spec.truncated ? `> Note: the source flow was truncated; some interactions may be missing.\n` : ``,
+  ].join("\n");
+}
+
+/** The React emitter: InteractionSpec -> structured file set. */
+export function emitReact(spec: InteractionSpec): GeneratedFile[] {
+  return [
+    { path: "routes.tsx", content: emitRoutes(spec) },
+    { path: "prototype-store.tsx", content: emitStore(spec) },
+    ...emitScreenInteractions(spec),
+    { path: "README.md", content: emitReadme(spec) },
+  ];
+}

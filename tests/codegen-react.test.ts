@@ -4,6 +4,7 @@ import { mapTransition } from "../src/codegen/emitters/react.js";
 import { emitRoutes } from "../src/codegen/emitters/react.js";
 import { emitStore, collectVariables } from "../src/codegen/emitters/react.js";
 import { emitScreenInteractions } from "../src/codegen/emitters/react.js";
+import { emitReact } from "../src/codegen/emitters/react.js";
 
 describe("name helpers", () => {
   it("pascalCase converts arbitrary names", () => {
@@ -126,5 +127,29 @@ describe("emitScreenInteractions", () => {
     expect(f.content).toContain("toggle(\"isOpen\")");       // toggle var
     expect(f.content).toContain("if (");                     // conditional
     expect(f.content).toContain("navigate(-1)");             // back in else
+  });
+});
+
+const SPEC_FULL = {
+  schemaVersion: "1.0" as const,
+  page: { id: "p1", name: "Page 1" },
+  screens: [{ id: "1:1", name: "Home", interactions: [] }],
+  requestedScreens: ["1:1"],
+  missingScreens: [],
+  unsupported: [{ source: { id: "n9", name: "Weird" }, reason: "unknown action type: FOO", raw: {} }],
+  truncated: false,
+};
+
+describe("emitReact", () => {
+  it("returns the full structured file set", () => {
+    const files = emitReact(SPEC_FULL);
+    const paths = files.map((f) => f.path).sort();
+    expect(paths).toEqual(["README.md", "interactions/Home.ts", "prototype-store.tsx", "routes.tsx"].sort());
+  });
+  it("README lists unsupported interactions", () => {
+    const readme = emitReact(SPEC_FULL).find((f) => f.path === "README.md")!;
+    expect(readme.content).toContain("unknown action type: FOO");
+    expect(readme.content).toContain("react-router");
+    expect(readme.content).toContain("framer-motion");
   });
 });
