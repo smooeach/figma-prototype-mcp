@@ -74,7 +74,7 @@ export const CreateVariableInput = z
       .string()
       .min(1)
       .default("forProto")
-      .describe("Collection to create the variable in (find-or-created). Defaults to a dedicated `forProto` collection."),
+      .describe("Collection to create the variable in (find-or-create). Defaults to a dedicated `forProto` collection."),
   })
   .strict()
   .describe(
