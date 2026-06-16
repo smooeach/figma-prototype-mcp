@@ -9,6 +9,7 @@ import {
   SetFrameScrollInput,
   ListVariablesInput,
   CreateVariableInput,
+  GenerateInteractionCodeInput,
 } from "../src/mcp-server/tools.js";
 
 describe("GetCanvasOverviewInput", () => {
@@ -1075,5 +1076,23 @@ describe("CreateVariableInput", () => {
   it("rejects unknown keys and bad type", () => {
     expect(() => CreateVariableInput.parse({ name: "x", type: "BOOLEAN", nope: 1 })).toThrow();
     expect(() => CreateVariableInput.parse({ name: "x", type: "DATE" })).toThrow();
+  });
+});
+
+describe("GenerateInteractionCodeInput", () => {
+  it("requires screens and target", () => {
+    expect(() => GenerateInteractionCodeInput.parse({ screens: ["1:1"] })).toThrow();
+    expect(() => GenerateInteractionCodeInput.parse({ target: "react" })).toThrow();
+  });
+  it("accepts screens + target react + optional pageId", () => {
+    const r = GenerateInteractionCodeInput.parse({ screens: ["1:1"], target: "react", pageId: "p1" });
+    expect(r.screens).toEqual(["1:1"]);
+    expect(r.target).toBe("react");
+    expect(r.pageId).toBe("p1");
+  });
+  it("rejects empty screens, bad target, and unknown keys", () => {
+    expect(() => GenerateInteractionCodeInput.parse({ screens: [], target: "react" })).toThrow();
+    expect(() => GenerateInteractionCodeInput.parse({ screens: ["1:1"], target: "vue" })).toThrow();
+    expect(() => GenerateInteractionCodeInput.parse({ screens: ["1:1"], target: "react", nope: 1 })).toThrow();
   });
 });

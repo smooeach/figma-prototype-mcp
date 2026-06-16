@@ -30,6 +30,22 @@ export const ExportInteractionsInput = z
   })
   .strict();
 
+export const GenerateInteractionCodeInput = z
+  .object({
+    screens: z.array(z.string()).min(1).describe("Frame node IDs of completed screens to generate code for."),
+    target: z
+      .enum(["react"])
+      .describe("Target framework for code generation. Currently: react (react-router + framer-motion)."),
+    pageId: z.string().optional(),
+  })
+  .strict()
+  .describe(
+    "Generate framework code from a prototype's wired interactions (navigation, transitions, variables, " +
+      "conditionals) — NOT screen UI. Pick `target` (currently 'react'). Returns a structured set of files " +
+      "{ path, content } (routes, a variable store, per-screen interaction hooks, a README) to drop into the " +
+      "developer's project. Complements design→UI codegen; this emits the interaction layer only.",
+  );
+
 export const FindNodesInput = z.object({
   query: z.string().min(1),
   nodeTypes: z.array(z.string()).optional(),
@@ -343,6 +359,7 @@ export const SetFrameScrollInput = z.object({
 export type GetCanvasOverviewInput = z.infer<typeof GetCanvasOverviewInput>;
 export type GetPrototypeFlowInput = z.infer<typeof GetPrototypeFlowInput>;
 export type ExportInteractionsInput = z.infer<typeof ExportInteractionsInput>;
+export type GenerateInteractionCodeInput = z.infer<typeof GenerateInteractionCodeInput>;
 export type FindNodesInput = z.infer<typeof FindNodesInput>;
 export type ListVariablesInput = z.infer<typeof ListVariablesInput>;
 export type CreateVariableInput = z.infer<typeof CreateVariableInput>;

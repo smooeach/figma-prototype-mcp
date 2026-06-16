@@ -9,6 +9,7 @@ import {
   GetCanvasOverviewInput,
   GetPrototypeFlowInput,
   ExportInteractionsInput,
+  GenerateInteractionCodeInput,
   FindNodesInput,
   ListVariablesInput,
   CreateVariableInput,
@@ -40,6 +41,7 @@ import {
 } from "../mcp-server/protoTools.js";
 import type { CommandName } from "../mcp-server/types.js";
 import { buildInteractionSpec } from "./interaction-spec.js";
+import { runEmitter } from "../codegen/registry.js";
 import type { PluginSession } from "./sessions.js";
 import type { HistoryStore, ProtoToolName } from "./history.js";
 import { summarizeResult } from "./history.js";
@@ -112,6 +114,33 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         const params = pageId ? { pageId, limit: 5000 } : { limit: 5000 };
         const flow = await session.sendCommand("GET_PROTOTYPE_FLOW" as CommandName, params);
         return buildInteractionSpec(flow as Parameters<typeof buildInteractionSpec>[0], screens);
+      },
+    },
+    {
+      name: "generate_interaction_code",
+      description:
+        "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
+        "Generate framework code from the wired interactions of the given screens. Input " +
+        "`{ screens: string[] (frame node IDs), target: \"react\", pageId? }`. Returns " +
+        "`{ schemaVersion, target, files: [{ path, content }], unsupported, missingScreens, truncated }`. " +
+        "Emits the INTERACTION layer (react-router routes, a React Context variable store, per-screen " +
+        "interaction hooks, transitions, README) — NOT screen UI; pair it with design→UI code. " +
+        "Deterministic; built on the same spec as export_interactions.",
+      schema: GenerateInteractionCodeInput,
+      handler: async (input, session) => {
+        const { screens, target, pageId } = input as GenerateInteractionCodeInput;
+        const params = pageId ? { pageId, limit: 5000 } : { limit: 5000 };
+        const flow = await session.sendCommand("GET_PROTOTYPE_FLOW" as CommandName, params);
+        const spec = buildInteractionSpec(flow as Parameters<typeof buildInteractionSpec>[0], screens);
+        const files = runEmitter(target, spec);
+        return {
+          schemaVersion: spec.schemaVersion,
+          target,
+          files,
+          unsupported: spec.unsupported,
+          missingScreens: spec.missingScreens,
+          truncated: spec.truncated,
+        };
       },
     },
     {
