@@ -1099,6 +1099,12 @@ describe("GenerateInteractionCodeInput", () => {
   });
 });
 
+describe("GenerateInteractionCodeInput react-native", () => {
+  it("accepts target react-native", () => {
+    expect(GenerateInteractionCodeInput.parse({ screens: ["1:1"], target: "react-native" }).target).toBe("react-native");
+  });
+});
+
 describe("orient-skip steering", () => {
   const tools = makeTools(new HistoryStore());
   const desc = (name: string) => tools.find((t) => t.name === name)!.description;

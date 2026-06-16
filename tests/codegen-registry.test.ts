@@ -23,3 +23,12 @@ describe("registry", () => {
     expect(() => runEmitter("vue", SPEC)).toThrow(/unknown target/i);
   });
 });
+
+import { emitReactNative as _rn } from "../src/codegen/emitters/react-native.js"; // ensure module resolves
+describe("registry react-native", () => {
+  it("exposes react-native and runs it", () => {
+    expect(EMITTER_TARGETS).toContain("react-native");
+    const files = runEmitter("react-native", SPEC);
+    expect(files.some((f) => f.path === "navigation.tsx")).toBe(true);
+  });
+});
