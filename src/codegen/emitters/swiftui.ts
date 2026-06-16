@@ -82,13 +82,27 @@ function renderActionSwift(a: Action, indent: string, ids: Map<string, ScreenIde
   switch (a.type) {
     case "navigate": {
       const known = a.to?.id ? ids.get(a.to.id) : undefined;
-      const out = [`${indent}router.navigate(.${caseFor(a.to)})`];
-      if (!known) out.push(`${indent}// TODO: target "${a.to?.name ?? a.to?.id ?? ""}" is not in the Screen enum`);
-      return out;
+      // Unknown target → comment the call out (an undefined Screen case is a SWIFT COMPILE error,
+      // unlike a runtime no-op in JS), so the generated file still builds.
+      if (!known) {
+        return [
+          `${indent}// TODO: target "${a.to?.name ?? a.to?.id ?? ""}" is not in the Screen enum — add a case, then uncomment:`,
+          `${indent}// router.navigate(.${caseFor(a.to)})`,
+        ];
+      }
+      return [`${indent}router.navigate(.${caseFor(a.to)})`];
     }
     case "openOverlay":
-    case "swapOverlay":
+    case "swapOverlay": {
+      const known = a.to?.id ? ids.get(a.to.id) : undefined;
+      if (!known) {
+        return [
+          `${indent}// TODO: overlay target "${a.to?.name ?? a.to?.id ?? ""}" is not in the Screen enum — add a case, then uncomment (present as a .sheet / .fullScreenCover):`,
+          `${indent}// router.navigate(.${caseFor(a.to)})`,
+        ];
+      }
       return [`${indent}router.navigate(.${caseFor(a.to)}) // TODO: present as a .sheet / .fullScreenCover`];
+    }
     case "closeOverlay":
       return [`${indent}router.goBack() // close overlay`];
     case "back":

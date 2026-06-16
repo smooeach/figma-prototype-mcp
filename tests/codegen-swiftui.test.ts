@@ -57,3 +57,24 @@ describe("emitSwiftUI", () => {
     expect(f("README.md")).toContain("NavigationStack");
   });
 });
+
+describe("emitSwiftUI unknown navigate target", () => {
+  const SPEC2 = {
+    schemaVersion: "1.0" as const,
+    page: { id: "p", name: "P" },
+    screens: [
+      { id: "1:1", name: "Home", interactions: [
+        { source: { id: "n1", name: "Go" }, trigger: { type: "ON_CLICK" },
+          actions: [{ type: "navigate", to: { id: "9:9", name: "Elsewhere" } }] },
+      ] },
+    ],
+    requestedScreens: ["1:1"], missingScreens: [], unsupported: [], truncated: false,
+  };
+  it("comments out navigate to a screen not in the enum (so Swift still compiles)", () => {
+    const files = emitSwiftUI(SPEC2 as any);
+    const a = files.find((x) => x.path === "HomeActions.swift")!.content;
+    expect(a).toContain("// TODO: target \"Elsewhere\" is not in the Screen enum");
+    expect(a).toContain("// router.navigate(.elsewhere)");
+    expect(a).not.toMatch(/^\s*router\.navigate\(\.elsewhere\)/m); // not an active (uncommented) call
+  });
+});
