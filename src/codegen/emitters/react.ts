@@ -112,7 +112,11 @@ function renderAction(a: Action, indent: string, identities: Map<string, ScreenI
   }
 }
 
-/** Emit one interaction-hook file per screen. */
+/**
+ * Emit one interaction-hook file per screen — including screens with no interactions
+ * (an empty hook), for 1:1 parity with the routes table. (The React Native emitter, by
+ * contrast, skips empty screens since it has no routes table to anchor them to.)
+ */
 export function emitScreenInteractions(spec: InteractionSpec): GeneratedFile[] {
   const identities = buildScreenIdentities(spec);
   return spec.screens.map((s) => {
