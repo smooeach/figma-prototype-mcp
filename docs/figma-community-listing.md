@@ -72,3 +72,17 @@ Open source (MIT). No data leaves your machine — the plugin only connects to y
 - **Review may question localhost network access** — the reasoning + description cover it (local-only, user-run server, open source). Precedent exists (similar AI/bridge plugins are on Community).
 - **UX expectation** — set it in the first lines so non-technical designers aren't surprised by the setup.
 - Versioning: the Community plugin version is managed in the publish flow, independent of the npm package version.
+
+## Update release notes (paste into Figma "Publish new version" → version notes)
+
+### Update — multi-action echo (sync with npm v0.32.0, published 2026-06-16)
+First Community update since the initial publish (which carried v0.30.1 plugin code).
+Only one plugin-facing change since then:
+
+> Read tools now report **every** interaction on an element. When one click/hover
+> triggers multiple actions (e.g. Navigate + Set variable), the prototype-flow view
+> and reaction listing now echo **all** of them instead of just the first.
+
+(Everything else shipped since v0.30.1 — connection-guidance messages, --stdio mode,
+export_interactions, the Claude Desktop .mcpb extension — is server-side and needs no
+plugin re-publish.)
