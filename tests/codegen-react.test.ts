@@ -104,7 +104,7 @@ const SPEC_ACTIONS = {
         { source: { id: "n2", name: "Flip" }, trigger: { type: "ON_CLICK" },
           actions: [{ type: "toggleVariable", variable: "isOpen" }] },
         { source: { id: "n3", name: "Guard" }, trigger: { type: "ON_CLICK" },
-          actions: [{ type: "conditional", if: { variable: "isOpen", operator: "EQ", value: true },
+          actions: [{ type: "conditional", if: { variable: "isOpen", operator: "==", value: true },
                       then: [{ type: "navigate", to: { id: "1:3", name: "Next" } }],
                       else: [{ type: "back" }] }] },
       ],
@@ -128,6 +128,29 @@ describe("emitScreenInteractions", () => {
     expect(f.content).toContain("toggle(\"isOpen\")");       // toggle var
     expect(f.content).toContain("if (");                     // conditional
     expect(f.content).toContain("navigate(-1)");             // back in else
+    expect(f.content).toContain('vars["isOpen"] === true'); // operator maps == -> ===
+  });
+});
+
+describe("conditional operator mapping", () => {
+  const specWithOp = (operator: string, value: unknown) => ({
+    schemaVersion: "1.0" as const,
+    page: { id: "p1", name: "Page 1" },
+    screens: [{
+      id: "1:1", name: "Home",
+      interactions: [{
+        source: { id: "n1", name: "Guard" }, trigger: { type: "ON_CLICK" },
+        actions: [{ type: "conditional", if: { variable: "count", operator, value },
+                    then: [{ type: "back" }] }],
+      }],
+    }],
+    requestedScreens: ["1:1"], missingScreens: [], unsupported: [], truncated: false,
+  });
+  it("maps != to !== and >= to >= (not collapsed to ===)", () => {
+    const neq = emitScreenInteractions(specWithOp("!=", 0) as any)[0]!.content;
+    expect(neq).toContain('vars["count"] !== 0');
+    const gte = emitScreenInteractions(specWithOp(">=", 3) as any)[0]!.content;
+    expect(gte).toContain('vars["count"] >= 3');
   });
 });
 

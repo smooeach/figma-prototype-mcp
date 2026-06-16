@@ -154,7 +154,15 @@ function renderCondition(node: any): string {
   if (Array.isArray(node.all)) return node.all.map(renderCondition).join(" && ") || "true";
   if (Array.isArray(node.any)) return node.any.map(renderCondition).join(" || ") || "false";
   if (typeof node.variable === "string") {
-    const op = node.operator === "NEQ" ? "!==" : "===";
+    const OP_MAP: Record<string, string> = {
+      "==": "===",
+      "!=": "!==",
+      "<": "<",
+      "<=": "<=",
+      ">": ">",
+      ">=": ">=",
+    };
+    const op = OP_MAP[node.operator as string] ?? "===";
     return `vars[${JSON.stringify(node.variable)}] ${op} ${JSON.stringify(node.value)}`;
   }
   return "false";
