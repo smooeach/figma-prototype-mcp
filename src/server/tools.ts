@@ -123,7 +123,7 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
       description:
         "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
         "Generate framework code from the wired interactions of the given screens. Input " +
-        "`{ screens: string[] (frame node IDs), target: \"react\" | \"react-native\" | \"swiftui\", pageId? }`. Returns " +
+        "`{ screens: string[] (frame node IDs), target: \"react\" | \"react-native\" | \"swiftui\" | \"compose\" | \"flutter\", pageId? }`. Returns " +
         "`{ schemaVersion, target, files: [{ path, content }], unsupported, missingScreens, truncated }`. " +
         "Emits the INTERACTION layer (react-router routes, a React Context variable store, per-screen " +
         "interaction hooks, transitions, README) — NOT screen UI; pair it with design→UI code. " +

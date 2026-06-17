@@ -3,11 +3,15 @@ import type { Emitter, GeneratedFile } from "./types.js";
 import { emitReact } from "./emitters/react.js";
 import { emitReactNative } from "./emitters/react-native.js";
 import { emitSwiftUI } from "./emitters/swiftui.js";
+import { emitCompose } from "./emitters/compose.js";
+import { emitFlutter } from "./emitters/flutter.js";
 
 const EMITTERS: Record<string, Emitter> = {
   react: emitReact,
   "react-native": emitReactNative,
   swiftui: emitSwiftUI,
+  compose: emitCompose,
+  flutter: emitFlutter,
 };
 
 /** The selectable codegen targets (keep in sync with GenerateInteractionCodeInput.target). */

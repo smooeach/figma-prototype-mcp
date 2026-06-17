@@ -40,3 +40,19 @@ describe("registry swiftui", () => {
     expect(files.some((f) => f.path === "Router.swift")).toBe(true);
   });
 });
+
+describe("registry compose", () => {
+  it("exposes compose and runs it", () => {
+    expect(EMITTER_TARGETS).toContain("compose");
+    const files = runEmitter("compose", SPEC);
+    expect(files.some((f) => f.path === "Router.kt")).toBe(true);
+  });
+});
+
+describe("registry flutter", () => {
+  it("exposes flutter and runs it", () => {
+    expect(EMITTER_TARGETS).toContain("flutter");
+    const files = runEmitter("flutter", SPEC);
+    expect(files.some((f) => f.path === "router.dart")).toBe(true);
+  });
+});
