@@ -264,7 +264,7 @@ export function emitReadmeDart(spec: InteractionSpec): string {
     `  the widget for each \`Screen\`. \`dismissable\` maps to isDismissible/barrierDismissible.`,
     ``,
     `## Best-effort / manual`,
-    `- openUrl, scroll-to, and component variants are commented stubs. Navigation transitions use the default.`,
+    `- scroll-to (names the target node) and component variants are commented stubs. Navigation transitions use the default.`,
     ``,
     `## Unsupported interactions`,
     unsupported,

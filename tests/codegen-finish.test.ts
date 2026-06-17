@@ -86,12 +86,14 @@ describe("openUrl Flutter", () => {
   });
 });
 
-const keywordSpec = (target: "swift" | "kotlin" | "dart") => ({
+// Frame named to collide with a real keyword in THAT language once lower-cased.
+// `switch` is reserved in Swift & Dart but NOT in Kotlin (which uses `when`), so Kotlin
+// uses `When` instead. `Class` is a keyword in all three → guards the func name everywhere.
+const keywordSpec = (frame: string) => ({
   schemaVersion: "1.0" as const,
   page: { id: "p", name: "P" },
-  // frame named to collide with a language keyword once lower-cased
   screens: [
-    { id: "1:1", name: "Switch", interactions: [
+    { id: "1:1", name: frame, interactions: [
       { source: { id: "n1", name: "Class" }, trigger: { type: "ON_CLICK" }, actions: [{ type: "back" }] },
     ] },
   ],
@@ -100,21 +102,25 @@ const keywordSpec = (target: "swift" | "kotlin" | "dart") => ({
 
 describe("reserved-word guard", () => {
   it("SwiftUI: keyword enum case and func name get a trailing underscore", () => {
-    const files = emitSwiftUI(keywordSpec("swift") as any);
+    const files = emitSwiftUI(keywordSpec("Switch") as any);
     const router = files.find((f) => f.path === "Router.swift")!.content;
     const actions = files.find((f) => f.path === "SwitchActions.swift")!.content;
     expect(router).toContain("case switch_"); // not `case switch`
     expect(actions).toContain("func class_(");
   });
   it("Compose: keyword route + fun name get a trailing underscore", () => {
-    const files = emitCompose(keywordSpec("kotlin") as any);
+    const files = emitCompose(keywordSpec("When") as any); // `when` is the Kotlin keyword, not `switch`
     const router = files.find((f) => f.path === "Router.kt")!.content;
-    const actions = files.find((f) => f.path === "SwitchActions.kt")!.content;
-    expect(router).toContain('Screen("switch_")'); // route string guarded
+    const actions = files.find((f) => f.path === "WhenActions.kt")!.content;
+    expect(router).toContain('Screen("when_")'); // route string guarded
     expect(actions).toContain("fun class_(");
   });
+  it("Compose: `switch` is a valid Kotlin identifier (NOT guarded)", () => {
+    const router = emitCompose(keywordSpec("Switch") as any).find((f) => f.path === "Router.kt")!.content;
+    expect(router).toContain('Screen("switch")'); // no trailing underscore — switch is fine in Kotlin
+  });
   it("Flutter: keyword enum value + fn name get a trailing underscore (+ values/index)", () => {
-    const files = emitFlutter(keywordSpec("dart") as any);
+    const files = emitFlutter(keywordSpec("Switch") as any);
     const router = files.find((f) => f.path === "router.dart")!.content;
     const actions = files.find((f) => f.path === "switch_actions.dart")!.content;
     expect(router).toContain("switch_"); // enum value guarded (not bare `switch`)

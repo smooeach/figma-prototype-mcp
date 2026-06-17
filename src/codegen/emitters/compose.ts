@@ -7,9 +7,6 @@ const KOTLIN_KEYWORDS = new Set([
   "as","break","class","continue","do","else","false","for","fun","if","in","interface","is",
   "null","object","package","return","super","this","throw","true","try","typealias","typeof",
   "val","var","when","while",
-  // `switch` is not a Kotlin hard keyword (Kotlin uses `when`), but guard it too so generated
-  // routes/idents stay consistent with the SwiftUI/Flutter targets where it IS reserved.
-  "switch",
 ]);
 function guardKotlin(s: string): string { return KOTLIN_KEYWORDS.has(s) ? `${s}_` : s; }
 
@@ -241,7 +238,7 @@ export function emitReadmeKotlin(spec: InteractionSpec): string {
     `  \`\`\``,
     ``,
     `## Best-effort / manual`,
-    `- openUrl, scroll-to, and component variants are commented stubs. Navigation transitions use the default.`,
+    `- scroll-to (names the target node) and component variants are commented stubs. Navigation transitions use the default.`,
     ``,
     `## Unsupported interactions`,
     unsupported,
