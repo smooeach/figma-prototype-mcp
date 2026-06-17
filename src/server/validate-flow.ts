@@ -100,6 +100,43 @@ export function analyzeFlow(flow: RawFlow): ValidationResult {
     });
   }
 
+  // unreachable: BFS from all start frames over on-page nav edges
+  if (starts.length > 0) {
+    const adj = new Map<string, string[]>();
+    for (const screen of spec.screens) {
+      const outs: string[] = [];
+      for (const it of screen.interactions) {
+        for (const t of navTargets(it.actions)) {
+          if (t !== null && frameIds.has(t)) outs.push(t);
+        }
+      }
+      adj.set(screen.id, outs);
+    }
+    const reached = new Set<string>();
+    const queue = starts.map((f) => f.id);
+    for (const id of queue) reached.add(id);
+    while (queue.length > 0) {
+      const id = queue.shift()!;
+      for (const next of adj.get(id) ?? []) {
+        if (!reached.has(next)) {
+          reached.add(next);
+          queue.push(next);
+        }
+      }
+    }
+    for (const f of frames) {
+      if (!reached.has(f.id)) {
+        issues.push({
+          severity: "error",
+          rule: "unreachable",
+          frameId: f.id,
+          frameName: f.name,
+          message: `Frame '${f.name}' is not reachable from any start frame.`,
+        });
+      }
+    }
+  }
+
   const errors = issues.filter((i) => i.severity === "error").length;
   const warnings = issues.filter((i) => i.severity === "warning").length;
   return {

@@ -83,3 +83,52 @@ describe("analyzeFlow — broken-reference & start-frame", () => {
     expect(r.issues.filter((i) => i.rule === "broken-reference")).toEqual([]);
   });
 });
+
+describe("analyzeFlow — unreachable", () => {
+  const base = {
+    page: { id: "0:1", name: "Flow" },
+    frames: [
+      { id: "A", name: "Home", isStartFrame: true },
+      { id: "B", name: "Detail", isStartFrame: false },
+      { id: "C", name: "Orphan", isStartFrame: false },
+    ],
+    interactions: [
+      { frameId: "A", sourceNodeId: "a1", sourceNodeName: "btn", trigger: { type: "ON_CLICK" },
+        actions: [{ type: "NODE", navigation: "NAVIGATE", destinationId: "B", destinationName: "Detail" }] },
+    ],
+    truncated: false,
+  };
+
+  it("flags a frame not reachable from any start frame as unreachable error", () => {
+    const r = analyzeFlow(base);
+    const un = r.issues.filter((i) => i.rule === "unreachable");
+    expect(un).toHaveLength(1);
+    expect(un[0]).toMatchObject({ severity: "error", frameId: "C" });
+  });
+
+  it("does NOT flag the start frame itself as unreachable", () => {
+    const r = analyzeFlow(base);
+    expect(r.issues.filter((i) => i.rule === "unreachable" && i.frameId === "A")).toEqual([]);
+  });
+
+  it("skips the unreachable check entirely when there are zero start frames", () => {
+    const flow = { ...base, frames: base.frames.map((f) => ({ ...f, isStartFrame: false })) };
+    const r = analyzeFlow(flow);
+    expect(r.issues.filter((i) => i.rule === "unreachable")).toEqual([]);
+  });
+
+  it("reaches frames via conditional then/else branches", () => {
+    const flow = {
+      ...base,
+      interactions: [
+        { frameId: "A", sourceNodeId: "a1", sourceNodeName: "btn", trigger: { type: "ON_CLICK" },
+          actions: [{ type: "CONDITIONAL",
+            condition: { variable: "x", operator: "EQ", value: true },
+            then: [{ type: "NODE", navigation: "NAVIGATE", destinationId: "B", destinationName: "Detail" }],
+            else: [{ type: "NODE", navigation: "NAVIGATE", destinationId: "C", destinationName: "Orphan" }] }] },
+      ],
+    };
+    const r = analyzeFlow(flow);
+    expect(r.issues.filter((i) => i.rule === "unreachable")).toEqual([]);
+  });
+});
