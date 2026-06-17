@@ -3,9 +3,22 @@ import type { GeneratedFile } from "../types.js";
 import { pascalCase } from "../types.js";
 import { buildScreenIdentities, collectVariables, type ScreenIdentity } from "./react-shared.js";
 
+const DART_KEYWORDS = new Set([
+  "abstract","else","import","show","as","enum","in","static","assert","export","interface","super",
+  "async","extends","is","switch","await","extension","late","sync","break","external","library",
+  "this","case","factory","mixin","throw","catch","false","new","true","class","final","null","try",
+  "const","finally","on","typedef","continue","for","operator","var","covariant","part","void",
+  "default","get","required","while","deferred","hide","rethrow","with","do","if","return","yield",
+  "dynamic","implements","set","late","function",
+  // implicit enum members — collide with a generated enum value
+  "values","index",
+]);
+function guardDart(s: string): string { return DART_KEYWORDS.has(s) ? `${s}_` : s; }
+
 /** lowercase-first of a PascalCase component (e.g. Home → home). Used for enum values + fn names. */
 export function dartCase(component: string): string {
-  return component.charAt(0).toLowerCase() + component.slice(1);
+  const s = component.charAt(0).toLowerCase() + component.slice(1);
+  return guardDart(s);
 }
 
 /** PascalCase/camelCase → snake_case for Dart file names (HomeScreen → home_screen). */
@@ -23,7 +36,8 @@ export function snakeCase(component: string): string {
  */
 export function dartIdent(raw: string): string {
   const cleaned = (raw ?? "").replace(/[^A-Za-z0-9]/g, "_");
-  return /^[A-Za-z]/.test(cleaned) ? cleaned : `n${cleaned}`;
+  const safe = /^[A-Za-z]/.test(cleaned) ? cleaned : `n${cleaned}`;
+  return guardDart(safe);
 }
 
 /** A Dart literal for a JS boolean/number/string value. */
@@ -165,13 +179,16 @@ function renderActionDart(a: Action, indent: string, ids: Map<string, ScreenIden
     case "back":
       return [`${indent}router.goBack();`];
     case "openUrl":
-      return [`${indent}// TODO: open URL ${JSON.stringify(String((a as any).url ?? ""))} — launchUrl(Uri.parse(...)) (add url_launcher)`];
+      return [`${indent}launchUrl(Uri.parse(${JSON.stringify(String((a as any).url ?? ""))}));`];
     case "setVariable":
       return [`${indent}store.set(${JSON.stringify(String((a as any).variable))}, ${dartLiteral((a as any).value)});`];
     case "toggleVariable":
       return [`${indent}store.toggle(${JSON.stringify(String((a as any).variable))});`];
-    case "scrollTo":
-      return [`${indent}// TODO: ScrollController.animateTo — no navigation equivalent`];
+    case "scrollTo": {
+      const label = (a as any).to?.name ?? (a as any).to?.id ?? "";
+      const id = String((a as any).to?.id ?? "");
+      return [`${indent}// TODO: scroll to "${label}" — attach a ScrollController and call Scrollable.ensureVisible / animateTo for "${id}"`];
+    }
     case "changeVariant":
       return [`${indent}// TODO: component variant — handle in the Widget`];
     case "conditional": {
@@ -205,9 +222,11 @@ export function emitScreenActionsDart(spec: InteractionSpec): GeneratedFile[] {
         const body = it.actions.flatMap((act) => renderActionDart(act, "  ", ids)).join("\n");
         return [`void ${fn}(ProtoRouter router, PrototypeStore store) {`, body, `}`].join("\n");
       }).join("\n\n");
+      const usesUrl = funcs.includes("launchUrl(");
       const content = [
         `import 'router.dart';`,
         `import 'prototype_store.dart';`,
+        ...(usesUrl ? [`import 'package:url_launcher/url_launcher.dart';`] : []),
         ``,
         `// Interaction handlers for the "${s.name ?? s.id}" screen, keyed by source node.`,
         funcs,
@@ -227,7 +246,7 @@ export function emitReadmeDart(spec: InteractionSpec): string {
     `Dart + GoRouter. Covers navigation, variables, and conditionals — NOT screen UI.`,
     ``,
     `## Wiring`,
-    `- Add dependencies: \`go_router\`, \`provider\`.`,
+    `- Add dependencies: \`go_router\`, \`provider\`, \`url_launcher\`.`,
     `- Build a GoRouter, wrap it in ProtoRouter, and bind MaterialApp.router:`,
     `  \`\`\`dart`,
     `  final go = GoRouter(routes: [`,
@@ -245,7 +264,7 @@ export function emitReadmeDart(spec: InteractionSpec): string {
     `  the widget for each \`Screen\`. \`dismissable\` maps to isDismissible/barrierDismissible.`,
     ``,
     `## Best-effort / manual`,
-    `- openUrl, scroll-to, and component variants are commented stubs. Navigation transitions use the default.`,
+    `- scroll-to (names the target node) and component variants are commented stubs. Navigation transitions use the default.`,
     ``,
     `## Unsupported interactions`,
     unsupported,

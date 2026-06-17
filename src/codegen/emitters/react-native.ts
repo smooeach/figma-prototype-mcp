@@ -74,8 +74,11 @@ function renderActionRN(a: Action, indent: string, ids: Map<string, ScreenIdenti
       return [`${indent}set(${JSON.stringify(String((a as any).variable))}, ${JSON.stringify((a as any).value)});`];
     case "toggleVariable":
       return [`${indent}toggle(${JSON.stringify(String((a as any).variable))});`];
-    case "scrollTo":
-      return [`${indent}// TODO: scroll-to-node has no React Navigation equivalent; scroll a ScrollView ref manually`];
+    case "scrollTo": {
+      const label = (a as any).to?.name ?? (a as any).to?.id ?? "";
+      const id = String((a as any).to?.id ?? "");
+      return [`${indent}// TODO: scroll to "${label}" — attach a ScrollView ref and call ref.scrollTo(...) for "${id}"`];
+    }
     case "changeVariant":
       return [`${indent}// TODO: changeVariant — component variants are a design concern; handle manually`];
     case "conditional": {

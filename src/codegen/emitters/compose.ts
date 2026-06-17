@@ -3,9 +3,17 @@ import type { GeneratedFile } from "../types.js";
 import { pascalCase } from "../types.js";
 import { buildScreenIdentities, collectVariables, type ScreenIdentity } from "./react-shared.js";
 
+const KOTLIN_KEYWORDS = new Set([
+  "as","break","class","continue","do","else","false","for","fun","if","in","interface","is",
+  "null","object","package","return","super","this","throw","true","try","typealias","typeof",
+  "val","var","when","while",
+]);
+function guardKotlin(s: string): string { return KOTLIN_KEYWORDS.has(s) ? `${s}_` : s; }
+
 /** lowercase-first of a PascalCase component (e.g. Home → home). Used for routes + fun names. */
 export function camelCase(component: string): string {
-  return component.charAt(0).toLowerCase() + component.slice(1);
+  const s = component.charAt(0).toLowerCase() + component.slice(1);
+  return guardKotlin(s);
 }
 
 /**
@@ -14,14 +22,24 @@ export function camelCase(component: string): string {
  */
 export function kotlinIdent(raw: string): string {
   const cleaned = (raw ?? "").replace(/[^A-Za-z0-9]/g, "_");
-  return /^[A-Za-z]/.test(cleaned) ? cleaned : `n${cleaned}`;
+  const safe = /^[A-Za-z]/.test(cleaned) ? cleaned : `n${cleaned}`;
+  return guardKotlin(safe);
+}
+
+/**
+ * A Kotlin double-quoted string literal. JSON.stringify handles quotes/backslashes, but Kotlin
+ * also treats `$` as string-template interpolation inside "..." — so `$id`/`${…}` in a URL or
+ * variable value would break compilation. Escape `$` as `\$` (valid in a non-raw Kotlin string).
+ */
+function kotlinStringLit(value: string): string {
+  return JSON.stringify(value).replace(/\$/g, "\\$");
 }
 
 /** A Kotlin literal for a JS boolean/number/string value. */
 function kotlinLiteral(value: unknown): string {
   if (typeof value === "boolean") return value ? "true" : "false";
   if (typeof value === "number") return String(value);
-  return JSON.stringify(String(value));
+  return kotlinStringLit(String(value));
 }
 
 /** sealed Screen class + Router wrapping a NavHostController. */
@@ -47,6 +65,7 @@ export function emitRouterKotlin(spec: InteractionSpec): string {
     ``,
     `class Router(private val nav: NavHostController) {`,
     `    var overlay by mutableStateOf<OverlayPresentation?>(null)`,
+    `    var onOpenUri: (String) -> Unit = {}`,
     `    fun navigate(screen: Screen) { nav.navigate(screen.route) }`,
     `    fun goBack() { nav.popBackStack() }`,
     `    fun reset() { nav.popBackStack(nav.graph.startDestinationId, inclusive = false) }`,
@@ -62,7 +81,7 @@ export function emitRouterKotlin(spec: InteractionSpec): string {
 /** ViewModel variable store. */
 export function emitStoreKotlin(spec: InteractionSpec): string {
   const vars = collectVariables(spec);
-  const inits = vars.map((v) => `        ${JSON.stringify(v)} to false,`).join("\n");
+  const inits = vars.map((v) => `        ${kotlinStringLit(v)} to false,`).join("\n");
   return [
     `import androidx.compose.runtime.mutableStateMapOf`,
     `import androidx.lifecycle.ViewModel`,
@@ -88,7 +107,7 @@ export function renderConditionKotlin(node: any): string {
   if (typeof node.variable === "string") {
     const OP: Record<string, string> = { "==": "==", "!=": "!=", "<": "<", "<=": "<=", ">": ">", ">=": ">=" };
     const op = OP[node.operator as string] ?? "==";
-    const key = JSON.stringify(node.variable);
+    const key = kotlinStringLit(node.variable);
     const v = node.value;
     if (typeof v === "boolean") return `((store.vars[${key}] as? Boolean) ?: false) ${op} ${kotlinLiteral(v)}`;
     // Cast side is Double, so the literal must be Double too — `Double == 5` (Int) does not compile in Kotlin.
@@ -138,13 +157,16 @@ function renderActionKotlin(a: Action, indent: string, ids: Map<string, ScreenId
     case "back":
       return [`${indent}router.goBack()`];
     case "openUrl":
-      return [`${indent}// TODO: open URL ${JSON.stringify(String((a as any).url ?? ""))} — call LocalUriHandler.current.openUri(...) from a @Composable`];
+      return [`${indent}router.onOpenUri(${kotlinStringLit(String((a as any).url ?? ""))})`];
     case "setVariable":
-      return [`${indent}store.set(${JSON.stringify(String((a as any).variable))}, ${kotlinLiteral((a as any).value)})`];
+      return [`${indent}store.set(${kotlinStringLit(String((a as any).variable))}, ${kotlinLiteral((a as any).value)})`];
     case "toggleVariable":
-      return [`${indent}store.toggle(${JSON.stringify(String((a as any).variable))})`];
-    case "scrollTo":
-      return [`${indent}// TODO: LazyListState.animateScrollToItem — no navigation equivalent`];
+      return [`${indent}store.toggle(${kotlinStringLit(String((a as any).variable))})`];
+    case "scrollTo": {
+      const label = (a as any).to?.name ?? (a as any).to?.id ?? "";
+      const id = String((a as any).to?.id ?? "");
+      return [`${indent}// TODO: scroll to "${label}" — use rememberLazyListState() + animateScrollToItem(/* index of "${id}" */)`];
+    }
     case "changeVariant":
       return [`${indent}// TODO: component variant — handle in the Composable`];
     case "conditional": {
@@ -211,6 +233,7 @@ export function emitReadmeKotlin(spec: InteractionSpec): string {
     `    composable(Screen.Home.route) { /* HomeScreen(router, store) */ }`,
     `  }`,
     `  \`\`\``,
+    `- External links: wire \`router.onOpenUri = LocalUriHandler.current::openUri\` inside a @Composable.`,
     `- Files: \`Router.kt\` (sealed Screen + Router), \`PrototypeStore.kt\` (vars ViewModel),`,
     `  \`<Screen>Actions.kt\` (call e.g. \`HomeActions.goDetail(router, store)\` from your Buttons).`,
     ``,
@@ -224,7 +247,7 @@ export function emitReadmeKotlin(spec: InteractionSpec): string {
     `  \`\`\``,
     ``,
     `## Best-effort / manual`,
-    `- openUrl, scroll-to, and component variants are commented stubs. Navigation transitions use the default.`,
+    `- scroll-to (names the target node) and component variants are commented stubs. Navigation transitions use the default.`,
     ``,
     `## Unsupported interactions`,
     unsupported,

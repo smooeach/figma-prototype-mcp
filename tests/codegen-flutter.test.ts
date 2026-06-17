@@ -54,7 +54,7 @@ describe("emitFlutter", () => {
     const a = f("home_actions.dart");
     expect(a).toContain("void goDetail(ProtoRouter router, PrototypeStore store)");
     expect(a).toContain("router.navigate(Screen.detail)");
-    expect(a).toContain("// TODO: open URL");
+    expect(a).toContain('launchUrl(Uri.parse("https://x.com"));');
     expect(a).toContain('if ((store.vars["isOpen"] is bool ? store.vars["isOpen"] as bool : false) == true)');
     expect(a).toContain("router.goBack();");
   });
