@@ -3,9 +3,22 @@ import type { GeneratedFile } from "../types.js";
 import { pascalCase } from "../types.js";
 import { buildScreenIdentities, collectVariables, type ScreenIdentity } from "./react-shared.js";
 
+const DART_KEYWORDS = new Set([
+  "abstract","else","import","show","as","enum","in","static","assert","export","interface","super",
+  "async","extends","is","switch","await","extension","late","sync","break","external","library",
+  "this","case","factory","mixin","throw","catch","false","new","true","class","final","null","try",
+  "const","finally","on","typedef","continue","for","operator","var","covariant","part","void",
+  "default","get","required","while","deferred","hide","rethrow","with","do","if","return","yield",
+  "dynamic","implements","set","late","function",
+  // implicit enum members — collide with a generated enum value
+  "values","index",
+]);
+function guardDart(s: string): string { return DART_KEYWORDS.has(s) ? `${s}_` : s; }
+
 /** lowercase-first of a PascalCase component (e.g. Home → home). Used for enum values + fn names. */
 export function dartCase(component: string): string {
-  return component.charAt(0).toLowerCase() + component.slice(1);
+  const s = component.charAt(0).toLowerCase() + component.slice(1);
+  return guardDart(s);
 }
 
 /** PascalCase/camelCase → snake_case for Dart file names (HomeScreen → home_screen). */
@@ -23,7 +36,8 @@ export function snakeCase(component: string): string {
  */
 export function dartIdent(raw: string): string {
   const cleaned = (raw ?? "").replace(/[^A-Za-z0-9]/g, "_");
-  return /^[A-Za-z]/.test(cleaned) ? cleaned : `n${cleaned}`;
+  const safe = /^[A-Za-z]/.test(cleaned) ? cleaned : `n${cleaned}`;
+  return guardDart(safe);
 }
 
 /** A Dart literal for a JS boolean/number/string value. */

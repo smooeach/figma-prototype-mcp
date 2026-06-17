@@ -3,9 +3,19 @@ import type { GeneratedFile } from "../types.js";
 import { pascalCase } from "../types.js";
 import { buildScreenIdentities, collectVariables, type ScreenIdentity } from "./react-shared.js";
 
+const SWIFT_KEYWORDS = new Set([
+  "associatedtype","class","deinit","enum","extension","fileprivate","func","import","init",
+  "inout","internal","let","open","operator","private","protocol","public","rethrows","static",
+  "struct","subscript","typealias","var","break","case","continue","default","defer","do","else",
+  "fallthrough","for","guard","if","in","repeat","return","switch","where","while","as","catch",
+  "false","is","nil","super","self","throw","throws","true","try",
+]);
+function guardSwift(s: string): string { return SWIFT_KEYWORDS.has(s) ? `${s}_` : s; }
+
 /** Screen enum case name: lowercase-first of the unique component (e.g. Screen02 → screen02). */
 export function screenCase(component: string): string {
-  return component.charAt(0).toLowerCase() + component.slice(1);
+  const s = component.charAt(0).toLowerCase() + component.slice(1);
+  return guardSwift(s);
 }
 
 /**
@@ -15,7 +25,8 @@ export function screenCase(component: string): string {
  */
 export function swiftIdent(raw: string): string {
   const cleaned = (raw ?? "").replace(/[^A-Za-z0-9]/g, "_");
-  return /^[A-Za-z]/.test(cleaned) ? cleaned : `n${cleaned}`;
+  const safe = /^[A-Za-z]/.test(cleaned) ? cleaned : `n${cleaned}`;
+  return guardSwift(safe);
 }
 
 /** A Swift literal for a JS boolean/number/string value. */

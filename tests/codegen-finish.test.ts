@@ -85,3 +85,39 @@ describe("openUrl Flutter", () => {
     expect(without).not.toContain("url_launcher"); // no unused import
   });
 });
+
+const keywordSpec = (target: "swift" | "kotlin" | "dart") => ({
+  schemaVersion: "1.0" as const,
+  page: { id: "p", name: "P" },
+  // frame named to collide with a language keyword once lower-cased
+  screens: [
+    { id: "1:1", name: "Switch", interactions: [
+      { source: { id: "n1", name: "Class" }, trigger: { type: "ON_CLICK" }, actions: [{ type: "back" }] },
+    ] },
+  ],
+  requestedScreens: ["1:1"], missingScreens: [], unsupported: [], truncated: false,
+});
+
+describe("reserved-word guard", () => {
+  it("SwiftUI: keyword enum case and func name get a trailing underscore", () => {
+    const files = emitSwiftUI(keywordSpec("swift") as any);
+    const router = files.find((f) => f.path === "Router.swift")!.content;
+    const actions = files.find((f) => f.path === "SwitchActions.swift")!.content;
+    expect(router).toContain("case switch_"); // not `case switch`
+    expect(actions).toContain("func class_(");
+  });
+  it("Compose: keyword route + fun name get a trailing underscore", () => {
+    const files = emitCompose(keywordSpec("kotlin") as any);
+    const router = files.find((f) => f.path === "Router.kt")!.content;
+    const actions = files.find((f) => f.path === "SwitchActions.kt")!.content;
+    expect(router).toContain('Screen("switch_")'); // route string guarded
+    expect(actions).toContain("fun class_(");
+  });
+  it("Flutter: keyword enum value + fn name get a trailing underscore (+ values/index)", () => {
+    const files = emitFlutter(keywordSpec("dart") as any);
+    const router = files.find((f) => f.path === "router.dart")!.content;
+    const actions = files.find((f) => f.path === "switch_actions.dart")!.content;
+    expect(router).toContain("switch_"); // enum value guarded (not bare `switch`)
+    expect(actions).toContain("void class_(");
+  });
+});

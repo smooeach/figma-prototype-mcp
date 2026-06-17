@@ -3,9 +3,20 @@ import type { GeneratedFile } from "../types.js";
 import { pascalCase } from "../types.js";
 import { buildScreenIdentities, collectVariables, type ScreenIdentity } from "./react-shared.js";
 
+const KOTLIN_KEYWORDS = new Set([
+  "as","break","class","continue","do","else","false","for","fun","if","in","interface","is",
+  "null","object","package","return","super","this","throw","true","try","typealias","typeof",
+  "val","var","when","while",
+  // `switch` is not a Kotlin hard keyword (Kotlin uses `when`), but guard it too so generated
+  // routes/idents stay consistent with the SwiftUI/Flutter targets where it IS reserved.
+  "switch",
+]);
+function guardKotlin(s: string): string { return KOTLIN_KEYWORDS.has(s) ? `${s}_` : s; }
+
 /** lowercase-first of a PascalCase component (e.g. Home → home). Used for routes + fun names. */
 export function camelCase(component: string): string {
-  return component.charAt(0).toLowerCase() + component.slice(1);
+  const s = component.charAt(0).toLowerCase() + component.slice(1);
+  return guardKotlin(s);
 }
 
 /**
@@ -14,7 +25,8 @@ export function camelCase(component: string): string {
  */
 export function kotlinIdent(raw: string): string {
   const cleaned = (raw ?? "").replace(/[^A-Za-z0-9]/g, "_");
-  return /^[A-Za-z]/.test(cleaned) ? cleaned : `n${cleaned}`;
+  const safe = /^[A-Za-z]/.test(cleaned) ? cleaned : `n${cleaned}`;
+  return guardKotlin(safe);
 }
 
 /** A Kotlin literal for a JS boolean/number/string value. */
