@@ -64,10 +64,18 @@ function triggerToHandler(trigger: any): string {
 /** Render a single action as a line of handler-body code. */
 function renderAction(a: Action, indent: string, identities: Map<string, ScreenIdentity>): string[] {
   switch (a.type) {
-    case "navigate":
-    case "scrollTo":
     case "openOverlay":
     case "swapOverlay": {
+      const toName = (a as any).to?.name ?? "";
+      const id = (a as any).to?.id;
+      const identity = id ? identities.get(id) : undefined;
+      const screen = identity ? identity.component : (toName ? pascalCase(toName) : "Home");
+      const style = (a as any).overlay?.style === "dialog" ? "dialog" : "sheet";
+      const dismissable = (a as any).overlay?.dismissable === false ? "false" : "true";
+      return [`${indent}presentOverlay({ screen: ${JSON.stringify(screen)}, style: ${JSON.stringify(style)}, dismissable: ${dismissable} });`];
+    }
+    case "navigate":
+    case "scrollTo": {
       const t = mapTransition((a as any).transition);
       const toId: string | undefined = (a as any).to?.id;
       const toName: string | undefined = (a as any).to?.name;
@@ -88,7 +96,7 @@ function renderAction(a: Action, indent: string, identities: Map<string, ScreenI
     case "back":
       return [`${indent}navigate(-1);`];
     case "closeOverlay":
-      return [`${indent}navigate(-1); // close overlay`];
+      return [`${indent}dismissOverlay();`];
     case "openUrl":
       return [`${indent}window.open(${JSON.stringify(String((a as any).url ?? ""))}, ${(a as any).openInNewTab ? '"_blank"' : '"_self"'});`];
     case "setVariable":
@@ -140,7 +148,7 @@ export function emitScreenInteractions(spec: InteractionSpec): GeneratedFile[] {
       `// Interaction handlers for the "${s.name ?? s.id}" screen, keyed by source node.`,
       `export function use${comp}Interactions() {`,
       `  const navigate = useNavigate();`,
-      `  const { vars, set, toggle } = useProtoStore();`,
+      `  const { vars, set, toggle, presentOverlay, dismissOverlay } = useProtoStore();`,
       `  return {`,
       handlers,
       `  };`,
@@ -170,6 +178,7 @@ export function emitReadme(spec: InteractionSpec): string {
     `- \`routes.tsx\` — route table; render with \`<RouterProvider router={router} />\`.`,
     `- \`prototype-store.tsx\` — wrap your app in \`<PrototypeStoreProvider>\`; read with \`useProtoVar(name)\`.`,
     `- \`interactions/<Screen>.ts\` — \`use<Screen>Interactions()\` returns handlers keyed by source node; spread onto your elements.`,
+    `- Overlays: read \`useProtoStore().overlay\` and render a modal (sheet/dialog by \`overlay.style\`); call \`dismissOverlay()\` to close.`,
     ``,
     `## Unsupported / manual interactions`,
     unsupportedLines,

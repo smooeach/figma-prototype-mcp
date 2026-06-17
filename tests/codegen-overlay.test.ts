@@ -80,3 +80,23 @@ describe("emitFlutter overlay", () => {
     expect(actions).toContain("router.presentOverlay(Screen.sheet, OverlayStyle.dialog, false)");
   });
 });
+
+import { emitReact } from "../src/codegen/emitters/react.js";
+
+describe("emitReact overlay", () => {
+  it("presents/dismisses overlay via the store (not navigate(-1))", () => {
+    const files = emitReact(overlaySpec({ style: "sheet", scrim: true, dismissable: true }) as any);
+    const store = files.find((f) => f.path === "prototype-store.tsx")!.content;
+    const hook = files.find((f) => f.path === "interactions/Home.ts")!.content;
+    expect(store).toContain("overlay");
+    expect(store).toContain("presentOverlay");
+    expect(store).toContain("dismissOverlay");
+    expect(hook).toContain('presentOverlay({ screen: "Sheet", style: "sheet", dismissable: true });');
+    expect(hook).toContain("dismissOverlay();");
+  });
+  it("maps CENTER → dialog and dismissable=false", () => {
+    const files = emitReact(overlaySpec({ style: "dialog", scrim: true, dismissable: false }) as any);
+    const hook = files.find((f) => f.path === "interactions/Home.ts")!.content;
+    expect(hook).toContain('presentOverlay({ screen: "Sheet", style: "dialog", dismissable: false });');
+  });
+});
