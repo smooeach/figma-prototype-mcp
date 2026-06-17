@@ -108,8 +108,10 @@ function renderAction(a: Action, indent: string, identities: Map<string, ScreenI
       return [`${indent}set(${JSON.stringify(String((a as any).variable))}, ${JSON.stringify((a as any).value)});`];
     case "toggleVariable":
       return [`${indent}toggle(${JSON.stringify(String((a as any).variable))});`];
-    case "changeVariant":
-      return [`${indent}// TODO: changeVariant to ${JSON.stringify(a.to?.name ?? a.to?.id ?? "")} — variants are a design concern; wire manually.`];
+    case "changeVariant": {
+      const label = a.to?.name ?? a.to?.id ?? "";
+      return [`${indent}// TODO: change to variant "${label}" — set your component's variant prop/state`];
+    }
     case "conditional": {
       const cond = renderCondition((a as any).if);
       const then = (a as any).then.flatMap((x: Action) => renderAction(x, indent + "  ", identities));

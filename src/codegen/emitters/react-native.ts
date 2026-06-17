@@ -79,8 +79,10 @@ function renderActionRN(a: Action, indent: string, ids: Map<string, ScreenIdenti
       const id = String((a as any).to?.id ?? "");
       return [`${indent}// TODO: scroll to "${label}" — attach a ScrollView ref and call ref.scrollTo(...) for "${id}"`];
     }
-    case "changeVariant":
-      return [`${indent}// TODO: changeVariant — component variants are a design concern; handle manually`];
+    case "changeVariant": {
+      const label = (a as any).to?.name ?? (a as any).to?.id ?? "";
+      return [`${indent}// TODO: change to variant "${label}" — set your component's variant prop/state`];
+    }
     case "conditional": {
       const cond = renderCondition((a as any).if);
       const then = (a as any).then.flatMap((x: Action) => renderActionRN(x, indent + "  ", ids));

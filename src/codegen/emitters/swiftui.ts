@@ -157,8 +157,10 @@ function renderActionSwift(a: Action, indent: string, ids: Map<string, ScreenIde
       const id = String((a as any).to?.id ?? "");
       return [`${indent}// TODO: scroll to "${label}" — wrap the list in ScrollViewReader { proxy in … } and call proxy.scrollTo("${id}")`];
     }
-    case "changeVariant":
-      return [`${indent}// TODO: component variant — handle in the View`];
+    case "changeVariant": {
+      const label = (a as any).to?.name ?? (a as any).to?.id ?? "";
+      return [`${indent}// TODO: change to variant "${label}" — set your component's variant state in the View`];
+    }
     case "conditional": {
       const cond = renderConditionSwift((a as any).if);
       const then = (a as any).then.flatMap((x: Action) => renderActionSwift(x, indent + "    ", ids));

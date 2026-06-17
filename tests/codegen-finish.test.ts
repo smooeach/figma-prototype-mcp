@@ -140,3 +140,36 @@ describe("reserved-word guard", () => {
     expect(actions).toContain("void class_(");
   });
 });
+
+const variantSpec = {
+  schemaVersion: "1.0" as const,
+  page: { id: "p", name: "P" },
+  screens: [
+    { id: "1:1", name: "Home", interactions: [
+      { source: { id: "n1", name: "Toggle" }, trigger: { type: "ON_CLICK" },
+        actions: [{ type: "changeVariant", to: { id: "9:9", name: "State=On" } }] },
+    ] },
+  ],
+  requestedScreens: ["1:1"], missingScreens: [], unsupported: [], truncated: false,
+};
+const variantActions = (files: { path: string; content: string }[]) =>
+  files.find((f) => f.path === "HomeActions.swift" || f.path === "HomeActions.kt" ||
+    f.path === "home_actions.dart" || f.path === "interactions/Home.ts")!.content;
+
+describe("changeVariant guide stub (names the target variant)", () => {
+  it("SwiftUI", () => {
+    expect(variantActions(emitSwiftUI(variantSpec as any))).toContain('change to variant "State=On"');
+  });
+  it("Compose", () => {
+    expect(variantActions(emitCompose(variantSpec as any))).toContain('change to variant "State=On"');
+  });
+  it("Flutter", () => {
+    expect(variantActions(emitFlutter(variantSpec as any))).toContain('change to variant "State=On"');
+  });
+  it("React", () => {
+    expect(variantActions(emitReact(variantSpec as any))).toContain('change to variant "State=On"');
+  });
+  it("React Native", () => {
+    expect(variantActions(emitReactNative(variantSpec as any))).toContain('change to variant "State=On"');
+  });
+});
