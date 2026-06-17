@@ -132,3 +132,53 @@ describe("analyzeFlow — unreachable", () => {
     expect(r.issues.filter((i) => i.rule === "unreachable")).toEqual([]);
   });
 });
+
+describe("analyzeFlow — dead-end", () => {
+  const mk = (extraInteractions: any[]) => ({
+    page: { id: "0:1", name: "Flow" },
+    frames: [
+      { id: "A", name: "Home", isStartFrame: true },
+      { id: "B", name: "End", isStartFrame: false },
+    ],
+    interactions: [
+      { frameId: "A", sourceNodeId: "a1", sourceNodeName: "btn", trigger: { type: "ON_CLICK" },
+        actions: [{ type: "NODE", navigation: "NAVIGATE", destinationId: "B", destinationName: "End" }] },
+      ...extraInteractions,
+    ],
+    truncated: false,
+  });
+
+  it("flags a frame with no outgoing screen-changing action as a dead-end warning", () => {
+    const r = analyzeFlow(mk([]));
+    const de = r.issues.filter((i) => i.rule === "dead-end");
+    expect(de).toHaveLength(1);
+    expect(de[0]).toMatchObject({ severity: "warning", frameId: "B" });
+  });
+
+  it("does NOT flag a frame whose only action is a BACK as a dead-end", () => {
+    const flow = mk([
+      { frameId: "B", sourceNodeId: "b1", sourceNodeName: "back", trigger: { type: "ON_CLICK" },
+        actions: [{ type: "BACK" }] },
+    ]);
+    expect(analyzeFlow(flow).issues.filter((i) => i.rule === "dead-end")).toEqual([]);
+  });
+
+  it("does NOT count set_variable / scrollTo / url as an exit (still a dead-end)", () => {
+    const flow = mk([
+      { frameId: "B", sourceNodeId: "b1", sourceNodeName: "x", trigger: { type: "ON_CLICK" },
+        actions: [{ type: "set_variable", variable: "v", value: true }] },
+    ]);
+    const de = analyzeFlow(flow).issues.filter((i) => i.rule === "dead-end");
+    expect(de).toHaveLength(1);
+    expect(de[0]!.frameId).toBe("B");
+  });
+
+  it("counts an exit inside a conditional then-branch", () => {
+    const flow = mk([
+      { frameId: "B", sourceNodeId: "b1", sourceNodeName: "x", trigger: { type: "ON_CLICK" },
+        actions: [{ type: "CONDITIONAL", condition: { variable: "v", operator: "EQ", value: true },
+          then: [{ type: "BACK" }] }] },
+    ]);
+    expect(analyzeFlow(flow).issues.filter((i) => i.rule === "dead-end")).toEqual([]);
+  });
+});

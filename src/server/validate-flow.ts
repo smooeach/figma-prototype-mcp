@@ -53,6 +53,27 @@ function navTargets(actions: Action[]): Array<string | null> {
   return out;
 }
 
+/** True if any action lets the user leave / change the current screen. */
+function hasExit(actions: Action[]): boolean {
+  for (const a of actions) {
+    if (
+      a.type === "navigate" ||
+      a.type === "openOverlay" ||
+      a.type === "swapOverlay" ||
+      a.type === "back" ||
+      a.type === "closeOverlay" ||
+      a.type === "changeVariant"
+    ) {
+      return true;
+    }
+    if (a.type === "conditional") {
+      if (hasExit(a.then)) return true;
+      if (a.else && hasExit(a.else)) return true;
+    }
+  }
+  return false;
+}
+
 export function analyzeFlow(flow: RawFlow): ValidationResult {
   const frames = flow.frames ?? [];
   const page = flow.page ?? { id: "", name: "" };
@@ -134,6 +155,20 @@ export function analyzeFlow(flow: RawFlow): ValidationResult {
           message: `Frame '${f.name}' is not reachable from any start frame.`,
         });
       }
+    }
+  }
+
+  // dead-end: frame with no screen-changing action
+  for (const screen of spec.screens) {
+    const exits = screen.interactions.some((it) => hasExit(it.actions));
+    if (!exits) {
+      issues.push({
+        severity: "warning",
+        rule: "dead-end",
+        frameId: screen.id,
+        frameName: screen.name,
+        message: `Frame '${screen.name ?? screen.id}' has no outgoing navigation — may be a final screen.`,
+      });
     }
   }
 
