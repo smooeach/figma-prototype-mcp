@@ -82,6 +82,16 @@ describe("analyzeFlow — broken-reference & start-frame", () => {
     const r = analyzeFlow(flow);
     expect(r.issues.filter((i) => i.rule === "broken-reference")).toEqual([]);
   });
+
+  it("propagates truncated:true from the flow", () => {
+    const flow = {
+      page: { id: "0:1", name: "Flow" },
+      frames: [{ id: "A", name: "Home", isStartFrame: true }],
+      interactions: [],
+      truncated: true,
+    };
+    expect(analyzeFlow(flow).truncated).toBe(true);
+  });
 });
 
 describe("analyzeFlow — unreachable", () => {

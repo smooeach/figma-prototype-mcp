@@ -78,7 +78,7 @@ export function analyzeFlow(flow: RawFlow): ValidationResult {
   const frames = flow.frames ?? [];
   const page = flow.page ?? { id: "", name: "" };
   const frameIds = new Set(frames.map((f) => f.id));
-  const spec = buildInteractionSpec(flow as never, frames.map((f) => f.id));
+  const spec = buildInteractionSpec(flow as Parameters<typeof buildInteractionSpec>[0], frames.map((f) => f.id));
 
   const issues: ValidationIssue[] = [];
 
@@ -178,6 +178,7 @@ export function analyzeFlow(flow: RawFlow): ValidationResult {
     ok: errors === 0,
     page,
     issues,
+    // counts all wired interactions on the page (incl. any with a null frameId that are not analyzed) — matches get_prototype_flow's total-wired semantics
     summary: { errors, warnings, frames: frames.length, interactions: (flow.interactions ?? []).length },
     truncated: Boolean(flow.truncated),
   };

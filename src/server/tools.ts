@@ -106,8 +106,7 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
       description:
         "Statically lint a page's prototype flow and return problems in ONE call. Internally reads the " +
         "whole interaction graph (like get_prototype_flow) and checks four rules: `broken-reference` (error — " +
-        "a navigate/overlay points to a frame not on this page), `unreachable` (error — a frame no start frame " +
-        "can reach), `dead-end` (warning — a frame with no outgoing navigation; may be a final screen), and " +
+        "a navigate/overlay points to a frame not on this page), `unreachable` (error — a frame no start frame can reach; skipped when no start frame is set), `dead-end` (warning — a frame with no outgoing navigation; may be a final screen), and " +
         "`start-frame` (warning — zero or multiple start frames). Returns `{ ok, page, issues:[{severity, rule, " +
         "frameId, frameName, sourceNodeId?, sourceNodeName?, message}], summary:{errors,warnings,frames," +
         "interactions}, truncated }` with `ok = (errors === 0)`. Page-scoped — optional `pageId` (defaults to " +
