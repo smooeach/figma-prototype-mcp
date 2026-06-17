@@ -1117,6 +1117,12 @@ describe("GenerateInteractionCodeInput compose", () => {
   });
 });
 
+describe("GenerateInteractionCodeInput flutter", () => {
+  it("accepts target flutter", () => {
+    expect(GenerateInteractionCodeInput.parse({ screens: ["1:1"], target: "flutter" }).target).toBe("flutter");
+  });
+});
+
 describe("orient-skip steering", () => {
   const tools = makeTools(new HistoryStore());
   const desc = (name: string) => tools.find((t) => t.name === name)!.description;

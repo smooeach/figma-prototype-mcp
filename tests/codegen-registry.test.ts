@@ -48,3 +48,11 @@ describe("registry compose", () => {
     expect(files.some((f) => f.path === "Router.kt")).toBe(true);
   });
 });
+
+describe("registry flutter", () => {
+  it("exposes flutter and runs it", () => {
+    expect(EMITTER_TARGETS).toContain("flutter");
+    const files = runEmitter("flutter", SPEC);
+    expect(files.some((f) => f.path === "router.dart")).toBe(true);
+  });
+});
