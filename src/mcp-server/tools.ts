@@ -34,14 +34,14 @@ export const GenerateInteractionCodeInput = z
   .object({
     screens: z.array(z.string()).min(1).describe("Frame node IDs of completed screens to generate code for."),
     target: z
-      .enum(["react", "react-native", "swiftui"])
-      .describe("Target framework. react (react-router+framer-motion), react-native (@react-navigation), or swiftui (NavigationStack)."),
+      .enum(["react", "react-native", "swiftui", "compose"])
+      .describe("Target framework. react (react-router+framer-motion), react-native (@react-navigation), swiftui (NavigationStack), or compose (Navigation Compose)."),
     pageId: z.string().optional(),
   })
   .strict()
   .describe(
     "Generate framework code from a prototype's wired interactions (navigation, transitions, variables, " +
-      "conditionals) — NOT screen UI. Pick `target` ('react', 'react-native', or 'swiftui'). Returns a structured set of files " +
+      "conditionals) — NOT screen UI. Pick `target` ('react', 'react-native', 'swiftui', or 'compose'). Returns a structured set of files " +
       "{ path, content } (routes/navigator, a variable store, per-screen interaction hooks, a README) to drop into the " +
       "developer's project. Complements design→UI codegen; this emits the interaction layer only.",
   );

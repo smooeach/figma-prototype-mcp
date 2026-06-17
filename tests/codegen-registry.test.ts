@@ -40,3 +40,11 @@ describe("registry swiftui", () => {
     expect(files.some((f) => f.path === "Router.swift")).toBe(true);
   });
 });
+
+describe("registry compose", () => {
+  it("exposes compose and runs it", () => {
+    expect(EMITTER_TARGETS).toContain("compose");
+    const files = runEmitter("compose", SPEC);
+    expect(files.some((f) => f.path === "Router.kt")).toBe(true);
+  });
+});

@@ -1111,6 +1111,12 @@ describe("GenerateInteractionCodeInput swiftui", () => {
   });
 });
 
+describe("GenerateInteractionCodeInput compose", () => {
+  it("accepts target compose", () => {
+    expect(GenerateInteractionCodeInput.parse({ screens: ["1:1"], target: "compose" }).target).toBe("compose");
+  });
+});
+
 describe("orient-skip steering", () => {
   const tools = makeTools(new HistoryStore());
   const desc = (name: string) => tools.find((t) => t.name === name)!.description;
