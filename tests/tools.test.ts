@@ -1105,6 +1105,12 @@ describe("GenerateInteractionCodeInput react-native", () => {
   });
 });
 
+describe("GenerateInteractionCodeInput swiftui", () => {
+  it("accepts target swiftui", () => {
+    expect(GenerateInteractionCodeInput.parse({ screens: ["1:1"], target: "swiftui" }).target).toBe("swiftui");
+  });
+});
+
 describe("orient-skip steering", () => {
   const tools = makeTools(new HistoryStore());
   const desc = (name: string) => tools.find((t) => t.name === name)!.description;

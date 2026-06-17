@@ -32,3 +32,11 @@ describe("registry react-native", () => {
     expect(files.some((f) => f.path === "navigation.tsx")).toBe(true);
   });
 });
+
+describe("registry swiftui", () => {
+  it("exposes swiftui and runs it", () => {
+    expect(EMITTER_TARGETS).toContain("swiftui");
+    const files = runEmitter("swiftui", SPEC);
+    expect(files.some((f) => f.path === "Router.swift")).toBe(true);
+  });
+});
