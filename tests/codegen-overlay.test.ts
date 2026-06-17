@@ -39,3 +39,23 @@ describe("emitSwiftUI overlay", () => {
     expect(actions).toContain("router.presentOverlay(.sheet, screen: .sheet, dismissable: true)");
   });
 });
+
+import { emitCompose } from "../src/codegen/emitters/compose.js";
+
+describe("emitCompose overlay", () => {
+  it("presents/dismisses an overlay via Router state (not navigate)", () => {
+    const files = emitCompose(overlaySpec({ style: "sheet", scrim: true, dismissable: true }) as any);
+    const router = files.find((f) => f.path === "Router.kt")!.content;
+    const actions = files.find((f) => f.path === "HomeActions.kt")!.content;
+    expect(router).toContain("var overlay by mutableStateOf<OverlayPresentation?>(null)");
+    expect(router).toContain("fun presentOverlay(");
+    expect(router).toContain("fun dismissOverlay()");
+    expect(actions).toContain("router.presentOverlay(OverlayStyle.Sheet, Screen.Sheet, true)");
+    expect(actions).toContain("router.dismissOverlay()");
+  });
+  it("maps CENTER → Dialog and respects dismissable=false", () => {
+    const files = emitCompose(overlaySpec({ style: "dialog", scrim: true, dismissable: false }) as any);
+    const actions = files.find((f) => f.path === "HomeActions.kt")!.content;
+    expect(actions).toContain("router.presentOverlay(OverlayStyle.Dialog, Screen.Sheet, false)");
+  });
+});
