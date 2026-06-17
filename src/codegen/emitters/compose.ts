@@ -167,8 +167,10 @@ function renderActionKotlin(a: Action, indent: string, ids: Map<string, ScreenId
       const id = String((a as any).to?.id ?? "");
       return [`${indent}// TODO: scroll to "${label}" — use rememberLazyListState() + animateScrollToItem(/* index of "${id}" */)`];
     }
-    case "changeVariant":
-      return [`${indent}// TODO: component variant — handle in the Composable`];
+    case "changeVariant": {
+      const label = (a as any).to?.name ?? (a as any).to?.id ?? "";
+      return [`${indent}// TODO: change to variant "${label}" — set your Composable's variant state`];
+    }
     case "conditional": {
       const cond = renderConditionKotlin((a as any).if);
       const then = (a as any).then.flatMap((x: Action) => renderActionKotlin(x, indent + "    ", ids));

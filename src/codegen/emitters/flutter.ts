@@ -189,8 +189,10 @@ function renderActionDart(a: Action, indent: string, ids: Map<string, ScreenIden
       const id = String((a as any).to?.id ?? "");
       return [`${indent}// TODO: scroll to "${label}" — attach a ScrollController and call Scrollable.ensureVisible / animateTo for "${id}"`];
     }
-    case "changeVariant":
-      return [`${indent}// TODO: component variant — handle in the Widget`];
+    case "changeVariant": {
+      const label = (a as any).to?.name ?? (a as any).to?.id ?? "";
+      return [`${indent}// TODO: change to variant "${label}" — set your Widget's variant state`];
+    }
     case "conditional": {
       const cond = renderConditionDart((a as any).if);
       const then = (a as any).then.flatMap((x: Action) => renderActionDart(x, indent + "  ", ids));
