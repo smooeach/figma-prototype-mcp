@@ -57,7 +57,7 @@ describe("emitCompose", () => {
     expect(a).toContain("object HomeActions");
     expect(a).toContain("fun goDetail(router: Router, store: PrototypeStore)");
     expect(a).toContain("router.navigate(Screen.Detail)");
-    expect(a).toContain("// TODO: open URL");
+    expect(a).toContain('router.onOpenUri("https://x.com")');
     expect(a).toContain('if (((store.vars["isOpen"] as? Boolean) ?: false) == true)');
     expect(a).toContain("router.goBack()");
   });

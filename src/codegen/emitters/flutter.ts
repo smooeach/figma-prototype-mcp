@@ -165,7 +165,7 @@ function renderActionDart(a: Action, indent: string, ids: Map<string, ScreenIden
     case "back":
       return [`${indent}router.goBack();`];
     case "openUrl":
-      return [`${indent}// TODO: open URL ${JSON.stringify(String((a as any).url ?? ""))} — launchUrl(Uri.parse(...)) (add url_launcher)`];
+      return [`${indent}launchUrl(Uri.parse(${JSON.stringify(String((a as any).url ?? ""))}));`];
     case "setVariable":
       return [`${indent}store.set(${JSON.stringify(String((a as any).variable))}, ${dartLiteral((a as any).value)});`];
     case "toggleVariable":
@@ -208,9 +208,11 @@ export function emitScreenActionsDart(spec: InteractionSpec): GeneratedFile[] {
         const body = it.actions.flatMap((act) => renderActionDart(act, "  ", ids)).join("\n");
         return [`void ${fn}(ProtoRouter router, PrototypeStore store) {`, body, `}`].join("\n");
       }).join("\n\n");
+      const usesUrl = funcs.includes("launchUrl(");
       const content = [
         `import 'router.dart';`,
         `import 'prototype_store.dart';`,
+        ...(usesUrl ? [`import 'package:url_launcher/url_launcher.dart';`] : []),
         ``,
         `// Interaction handlers for the "${s.name ?? s.id}" screen, keyed by source node.`,
         funcs,
@@ -230,7 +232,7 @@ export function emitReadmeDart(spec: InteractionSpec): string {
     `Dart + GoRouter. Covers navigation, variables, and conditionals — NOT screen UI.`,
     ``,
     `## Wiring`,
-    `- Add dependencies: \`go_router\`, \`provider\`.`,
+    `- Add dependencies: \`go_router\`, \`provider\`, \`url_launcher\`.`,
     `- Build a GoRouter, wrap it in ProtoRouter, and bind MaterialApp.router:`,
     `  \`\`\`dart`,
     `  final go = GoRouter(routes: [`,

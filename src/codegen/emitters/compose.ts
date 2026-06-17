@@ -47,6 +47,7 @@ export function emitRouterKotlin(spec: InteractionSpec): string {
     ``,
     `class Router(private val nav: NavHostController) {`,
     `    var overlay by mutableStateOf<OverlayPresentation?>(null)`,
+    `    var onOpenUri: (String) -> Unit = {}`,
     `    fun navigate(screen: Screen) { nav.navigate(screen.route) }`,
     `    fun goBack() { nav.popBackStack() }`,
     `    fun reset() { nav.popBackStack(nav.graph.startDestinationId, inclusive = false) }`,
@@ -138,7 +139,7 @@ function renderActionKotlin(a: Action, indent: string, ids: Map<string, ScreenId
     case "back":
       return [`${indent}router.goBack()`];
     case "openUrl":
-      return [`${indent}// TODO: open URL ${JSON.stringify(String((a as any).url ?? ""))} — call LocalUriHandler.current.openUri(...) from a @Composable`];
+      return [`${indent}router.onOpenUri(${JSON.stringify(String((a as any).url ?? ""))})`];
     case "setVariable":
       return [`${indent}store.set(${JSON.stringify(String((a as any).variable))}, ${kotlinLiteral((a as any).value)})`];
     case "toggleVariable":
@@ -214,6 +215,7 @@ export function emitReadmeKotlin(spec: InteractionSpec): string {
     `    composable(Screen.Home.route) { /* HomeScreen(router, store) */ }`,
     `  }`,
     `  \`\`\``,
+    `- External links: wire \`router.onOpenUri = LocalUriHandler.current::openUri\` inside a @Composable.`,
     `- Files: \`Router.kt\` (sealed Screen + Router), \`PrototypeStore.kt\` (vars ViewModel),`,
     `  \`<Screen>Actions.kt\` (call e.g. \`HomeActions.goDetail(router, store)\` from your Buttons).`,
     ``,

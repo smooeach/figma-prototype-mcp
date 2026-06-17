@@ -48,3 +48,40 @@ describe("scrollTo guide stub", () => {
     expect(a).toContain("ref.scrollTo");
   });
 });
+
+const urlSpec = {
+  schemaVersion: "1.0" as const,
+  page: { id: "p", name: "P" },
+  screens: [
+    { id: "1:1", name: "Home", interactions: [
+      { source: { id: "n1", name: "Site" }, trigger: { type: "ON_CLICK" },
+        actions: [{ type: "openUrl", url: "https://x.com" }] },
+    ] },
+    { id: "1:2", name: "Plain", interactions: [
+      { source: { id: "n2", name: "Go" }, trigger: { type: "ON_CLICK" },
+        actions: [{ type: "back" }] },
+    ] },
+  ],
+  requestedScreens: ["1:1", "1:2"], missingScreens: [], unsupported: [], truncated: false,
+};
+
+describe("openUrl Compose", () => {
+  it("Router exposes onOpenUri and the action calls it", () => {
+    const files = emitCompose(urlSpec as any);
+    const router = files.find((f) => f.path === "Router.kt")!.content;
+    const actions = files.find((f) => f.path === "HomeActions.kt")!.content;
+    expect(router).toContain("var onOpenUri: (String) -> Unit = {}");
+    expect(actions).toContain('router.onOpenUri("https://x.com")');
+  });
+});
+
+describe("openUrl Flutter", () => {
+  it("emits launchUrl and imports url_launcher only in files that use it", () => {
+    const files = emitFlutter(urlSpec as any);
+    const withUrl = files.find((f) => f.path === "home_actions.dart")!.content;
+    const without = files.find((f) => f.path === "plain_actions.dart")!.content;
+    expect(withUrl).toContain('launchUrl(Uri.parse("https://x.com"))');
+    expect(withUrl).toContain("import 'package:url_launcher/url_launcher.dart';");
+    expect(without).not.toContain("url_launcher"); // no unused import
+  });
+});
