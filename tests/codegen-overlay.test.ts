@@ -100,3 +100,19 @@ describe("emitReact overlay", () => {
     expect(hook).toContain('presentOverlay({ screen: "Sheet", style: "dialog", dismissable: false });');
   });
 });
+
+import { emitReactNative } from "../src/codegen/emitters/react-native.js";
+
+describe("emitReactNative overlay", () => {
+  it("presents/dismisses overlay via the shared store (not navigate)", () => {
+    const files = emitReactNative(overlaySpec({ style: "sheet", scrim: true, dismissable: true }) as any);
+    const hook = files.find((f) => f.path === "interactions/Home.ts")!.content;
+    expect(hook).toContain('presentOverlay({ screen: "Sheet", style: "sheet", dismissable: true });');
+    expect(hook).toContain("dismissOverlay();");
+  });
+  it("maps CENTER → dialog and dismissable=false", () => {
+    const files = emitReactNative(overlaySpec({ style: "dialog", scrim: true, dismissable: false }) as any);
+    const hook = files.find((f) => f.path === "interactions/Home.ts")!.content;
+    expect(hook).toContain('presentOverlay({ screen: "Sheet", style: "dialog", dismissable: false });');
+  });
+});
