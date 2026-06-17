@@ -59,3 +59,24 @@ describe("emitCompose overlay", () => {
     expect(actions).toContain("router.presentOverlay(OverlayStyle.Dialog, Screen.Sheet, false)");
   });
 });
+
+import { emitFlutter } from "../src/codegen/emitters/flutter.js";
+
+describe("emitFlutter overlay", () => {
+  it("presents/dismisses an overlay imperatively via navigatorKey", () => {
+    const files = emitFlutter(overlaySpec({ style: "sheet", scrim: true, dismissable: true }) as any);
+    const router = files.find((f) => f.path === "router.dart")!.content;
+    const actions = files.find((f) => f.path === "home_actions.dart")!.content;
+    expect(router).toContain("void presentOverlay(");
+    expect(router).toContain("void dismissOverlay()");
+    expect(router).toContain("showModalBottomSheet");
+    expect(router).toContain("showDialog");
+    expect(actions).toContain("router.presentOverlay(Screen.sheet, OverlayStyle.sheet, true)");
+    expect(actions).toContain("router.dismissOverlay()");
+  });
+  it("maps CENTER → dialog style and dismissable=false", () => {
+    const files = emitFlutter(overlaySpec({ style: "dialog", scrim: true, dismissable: false }) as any);
+    const actions = files.find((f) => f.path === "home_actions.dart")!.content;
+    expect(actions).toContain("router.presentOverlay(Screen.sheet, OverlayStyle.dialog, false)");
+  });
+});

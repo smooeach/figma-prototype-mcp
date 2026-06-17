@@ -42,6 +42,7 @@ export function emitRouterDart(spec: InteractionSpec): string {
     return `      case Screen.${c}:\n        return ${JSON.stringify("/" + c)};`;
   }).join("\n");
   return [
+    `import 'package:flutter/material.dart';`,
     `import 'package:go_router/go_router.dart';`,
     ``,
     `// Routes generated from the Figma prototype screen graph.`,
@@ -55,12 +56,28 @@ export function emitRouterDart(spec: InteractionSpec): string {
     `  }`,
     `}`,
     ``,
+    `enum OverlayStyle { sheet, dialog }`,
+    ``,
     `// Named ProtoRouter to avoid colliding with Flutter's own Router widget.`,
     `class ProtoRouter {`,
     `  final GoRouter go;`,
     `  ProtoRouter(this.go);`,
     `  void navigate(Screen screen) => go.push(screen.path);`,
     `  void goBack() => go.pop();`,
+    `  void presentOverlay(Screen screen, OverlayStyle style, bool dismissable) {`,
+    `    final ctx = go.routerDelegate.navigatorKey.currentContext;`,
+    `    if (ctx == null) return;`,
+    `    final child = const SizedBox.shrink(); // TODO: build the widget for \`screen\``,
+    `    if (style == OverlayStyle.sheet) {`,
+    `      showModalBottomSheet(context: ctx, isDismissible: dismissable, builder: (_) => child);`,
+    `    } else {`,
+    `      showDialog(context: ctx, barrierDismissible: dismissable, builder: (_) => child);`,
+    `    }`,
+    `  }`,
+    `  void dismissOverlay() {`,
+    `    final ctx = go.routerDelegate.navigatorKey.currentContext;`,
+    `    if (ctx != null) Navigator.of(ctx).pop();`,
+    `  }`,
     `}`,
     ``,
   ].join("\n");
@@ -116,6 +133,11 @@ function renderActionDart(a: Action, indent: string, ids: Map<string, ScreenIden
     const dest = to?.id ? ids.get(to.id) : undefined;
     return dest ? dartCase(dest.component) : to?.name ? dartCase(pascalCase(to.name)) : "screen";
   };
+  const overlayCall = (a: any): string => {
+    const style = a.overlay?.style === "dialog" ? "OverlayStyle.dialog" : "OverlayStyle.sheet";
+    const dismissable = a.overlay?.dismissable === false ? "false" : "true";
+    return `Screen.${caseFor(a.to)}, ${style}, ${dismissable}`;
+  };
   switch (a.type) {
     case "navigate": {
       const known = a.to?.id ? ids.get(a.to.id) : undefined;
@@ -132,14 +154,14 @@ function renderActionDart(a: Action, indent: string, ids: Map<string, ScreenIden
       const known = a.to?.id ? ids.get(a.to.id) : undefined;
       if (!known) {
         return [
-          `${indent}// TODO: overlay target "${a.to?.name ?? a.to?.id ?? ""}" is not in the Screen enum — add a value, then uncomment (present as a dialog / bottom sheet):`,
-          `${indent}// router.navigate(Screen.${caseFor(a.to)});`,
+          `${indent}// TODO: overlay target "${a.to?.name ?? a.to?.id ?? ""}" is not in the Screen enum — add a value, then uncomment:`,
+          `${indent}// router.presentOverlay(${overlayCall(a)});`,
         ];
       }
-      return [`${indent}router.navigate(Screen.${caseFor(a.to)}); // TODO: present as a dialog / bottom sheet`];
+      return [`${indent}router.presentOverlay(${overlayCall(a)});`];
     }
     case "closeOverlay":
-      return [`${indent}router.goBack(); // close overlay`];
+      return [`${indent}router.dismissOverlay();`];
     case "back":
       return [`${indent}router.goBack();`];
     case "openUrl":
@@ -217,9 +239,13 @@ export function emitReadmeDart(spec: InteractionSpec): string {
     `- Files: \`router.dart\` (Screen enum + ProtoRouter), \`prototype_store.dart\` (vars ChangeNotifier),`,
     `  \`<screen>_actions.dart\` (call e.g. \`goDetail(router, store)\` from your widgets).`,
     ``,
+    `## Overlays`,
+    `- \`presentOverlay\` uses the GoRouter navigatorKey to show a \`showModalBottomSheet\` (sheet)`,
+    `  or \`showDialog\` (dialog). Replace the \`SizedBox.shrink()\` placeholder in router.dart with`,
+    `  the widget for each \`Screen\`. \`dismissable\` maps to isDismissible/barrierDismissible.`,
+    ``,
     `## Best-effort / manual`,
-    `- Overlays → plain navigate (present as a dialog/bottom sheet). \`openUrl\`, scroll-to, and`,
-    `  component variants are commented stubs. Navigation transitions use the default.`,
+    `- openUrl, scroll-to, and component variants are commented stubs. Navigation transitions use the default.`,
     ``,
     `## Unsupported interactions`,
     unsupported,
