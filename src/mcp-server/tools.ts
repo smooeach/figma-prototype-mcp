@@ -23,6 +23,12 @@ export const GetPrototypeFlowInput = z.object({
   limit: z.number().int().positive().max(5000).default(500),
 });
 
+export const ValidatePrototypeInput = z
+  .object({
+    pageId: z.string().optional(),
+  })
+  .strict();
+
 export const ExportInteractionsInput = z
   .object({
     screens: z.array(z.string()).min(1),
@@ -359,6 +365,7 @@ export const SetFrameScrollInput = z.object({
 
 export type GetCanvasOverviewInput = z.infer<typeof GetCanvasOverviewInput>;
 export type GetPrototypeFlowInput = z.infer<typeof GetPrototypeFlowInput>;
+export type ValidatePrototypeInput = z.infer<typeof ValidatePrototypeInput>;
 export type ExportInteractionsInput = z.infer<typeof ExportInteractionsInput>;
 export type GenerateInteractionCodeInput = z.infer<typeof GenerateInteractionCodeInput>;
 export type FindNodesInput = z.infer<typeof FindNodesInput>;

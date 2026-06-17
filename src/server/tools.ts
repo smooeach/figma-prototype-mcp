@@ -8,6 +8,7 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import {
   GetCanvasOverviewInput,
   GetPrototypeFlowInput,
+  ValidatePrototypeInput,
   ExportInteractionsInput,
   GenerateInteractionCodeInput,
   FindNodesInput,
@@ -41,6 +42,7 @@ import {
 } from "../mcp-server/protoTools.js";
 import type { CommandName } from "../mcp-server/types.js";
 import { buildInteractionSpec } from "./interaction-spec.js";
+import { analyzeFlow } from "./validate-flow.js";
 import { runEmitter } from "../codegen/registry.js";
 import type { PluginSession } from "./sessions.js";
 import type { HistoryStore, ProtoToolName } from "./history.js";
@@ -98,6 +100,25 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "interactions (default 500) and sets `truncated`.",
       schema: GetPrototypeFlowInput,
       command: "GET_PROTOTYPE_FLOW" as CommandName,
+    },
+    {
+      name: "validate_prototype",
+      description:
+        "Statically lint a page's prototype flow and return problems in ONE call. Internally reads the " +
+        "whole interaction graph (like get_prototype_flow) and checks four rules: `broken-reference` (error — " +
+        "a navigate/overlay points to a frame not on this page), `unreachable` (error — a frame no start frame " +
+        "can reach), `dead-end` (warning — a frame with no outgoing navigation; may be a final screen), and " +
+        "`start-frame` (warning — zero or multiple start frames). Returns `{ ok, page, issues:[{severity, rule, " +
+        "frameId, frameName, sourceNodeId?, sourceNodeName?, message}], summary:{errors,warnings,frames," +
+        "interactions}, truncated }` with `ok = (errors === 0)`. Page-scoped — optional `pageId` (defaults to " +
+        "current page). Use after wiring to check the prototype is correctly connected.",
+      schema: ValidatePrototypeInput,
+      handler: async (input, session) => {
+        const { pageId } = input as ValidatePrototypeInput;
+        const params = pageId ? { pageId, limit: 5000 } : { limit: 5000 };
+        const flow = await session.sendCommand("GET_PROTOTYPE_FLOW" as CommandName, params);
+        return analyzeFlow(flow as Parameters<typeof analyzeFlow>[0]);
+      },
     },
     {
       name: "export_interactions",
