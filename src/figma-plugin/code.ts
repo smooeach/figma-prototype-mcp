@@ -852,6 +852,16 @@ const echoResolvers: EchoResolvers = {
     }
   },
   nodeName: async (id) => (await figma.getNodeByIdAsync(id))?.name ?? undefined,
+  overlayMeta: async (id) => {
+    const node = await figma.getNodeByIdAsync(id);
+    if (!node || node.type !== "FRAME") return undefined;
+    const f = node as FrameNode;
+    return {
+      positionType: f.overlayPositionType,
+      background: (f.overlayBackground as { type?: string } | undefined)?.type,
+      backgroundInteraction: f.overlayBackgroundInteraction,
+    };
+  },
 };
 
 async function handleListReactions(params: ListReactionsInput) {

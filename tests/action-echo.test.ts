@@ -11,6 +11,7 @@ import { buildConditionExpression, buildCompoundConditionExpression } from "../s
 const make = (vars: Record<string, string> = {}, nodes: Record<string, string> = {}): EchoResolvers => ({
   variableName: async (id) => vars[id],
   nodeName: async (id) => nodes[id],
+  overlayMeta: async () => undefined,
 });
 
 describe("encodeActionForListEcho — passthrough actions", () => {
@@ -155,6 +156,7 @@ describe("encodeReactionActions", () => {
   const resolvers = {
     variableName: async () => undefined,
     nodeName: async () => undefined,
+    overlayMeta: async () => undefined,
   };
 
   it("encodes every action of a reaction, in order", async () => {
@@ -176,5 +178,34 @@ describe("encodeReactionActions", () => {
   it("returns [] for a reaction with no actions", async () => {
     expect(await encodeReactionActions({}, resolvers)).toEqual([]);
     expect(await encodeReactionActions({ actions: [] }, resolvers)).toEqual([]);
+  });
+});
+
+const ovResolvers: EchoResolvers = {
+  variableName: async () => undefined,
+  nodeName: async (id: string) => (id === "1:2" ? "Sheet" : undefined),
+  overlayMeta: async (id: string) =>
+    id === "1:2"
+      ? { positionType: "BOTTOM_CENTER", background: "SOLID_COLOR", backgroundInteraction: "CLOSE_ON_CLICK_OUTSIDE" }
+      : undefined,
+};
+
+describe("encodeActionForListEcho overlay", () => {
+  it("echoes overlay position/background for an OVERLAY navigation", async () => {
+    const out: any = await encodeActionForListEcho(
+      { type: "NODE", navigation: "OVERLAY", destinationId: "1:2" },
+      ovResolvers,
+    );
+    expect(out.navigation).toBe("OVERLAY");
+    expect(out.overlayPositionType).toBe("BOTTOM_CENTER");
+    expect(out.overlayBackground).toBe("SOLID_COLOR");
+    expect(out.overlayBackgroundInteraction).toBe("CLOSE_ON_CLICK_OUTSIDE");
+  });
+  it("omits overlay fields for a plain NAVIGATE", async () => {
+    const out: any = await encodeActionForListEcho(
+      { type: "NODE", navigation: "NAVIGATE", destinationId: "1:2" },
+      ovResolvers,
+    );
+    expect(out.overlayPositionType).toBeUndefined();
   });
 });

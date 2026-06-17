@@ -125,3 +125,36 @@ describe("buildInteractionSpec", () => {
     ]);
   });
 });
+
+describe("interaction-spec overlay normalization", () => {
+  // RawFlow shape: interactions keyed by frameId + sourceNodeId/sourceNodeName
+  // (matches buildInteractionSpec(flow, screenIds), confirmed against the builder).
+  const flow = {
+    page: { id: "p", name: "P" },
+    frames: [{ id: "1:1", name: "Home" }, { id: "1:2", name: "Sheet" }],
+    interactions: [
+      { frameId: "1:1", sourceNodeId: "n1", sourceNodeName: "Open", trigger: { type: "ON_CLICK" }, actions: [
+        { type: "NODE", navigation: "OVERLAY", destinationId: "1:2", destinationName: "Sheet",
+          overlayPositionType: "BOTTOM_CENTER", overlayBackground: "SOLID_COLOR",
+          overlayBackgroundInteraction: "CLOSE_ON_CLICK_OUTSIDE" },
+      ] },
+    ],
+    truncated: false,
+  };
+  it("maps overlayPositionType/background/interaction to canonical OverlayMeta", () => {
+    const spec = buildInteractionSpec(flow as any, ["1:1", "1:2"]);
+    const act: any = spec.screens.find((s) => s.id === "1:1")!.interactions[0]!.actions[0];
+    expect(act.type).toBe("openOverlay");
+    expect(act.overlay).toEqual({ style: "sheet", scrim: true, dismissable: true });
+  });
+  it("CENTER → dialog; missing position → overlay undefined", () => {
+    const f2 = JSON.parse(JSON.stringify(flow));
+    f2.interactions[0].actions[0].overlayPositionType = "CENTER";
+    const a1: any = buildInteractionSpec(f2 as any, ["1:1","1:2"]).screens[0]!.interactions[0]!.actions[0];
+    expect(a1.overlay.style).toBe("dialog");
+    const f3 = JSON.parse(JSON.stringify(flow));
+    delete f3.interactions[0].actions[0].overlayPositionType;
+    const a2: any = buildInteractionSpec(f3 as any, ["1:1","1:2"]).screens[0]!.interactions[0]!.actions[0];
+    expect(a2.overlay).toBeUndefined();
+  });
+});
