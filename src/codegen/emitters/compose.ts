@@ -32,6 +32,9 @@ export function emitRouterKotlin(spec: InteractionSpec): string {
     return `    object ${comp} : Screen(${JSON.stringify(camelCase(comp))})`;
   }).join("\n");
   return [
+    `import androidx.compose.runtime.getValue`,
+    `import androidx.compose.runtime.mutableStateOf`,
+    `import androidx.compose.runtime.setValue`,
     `import androidx.navigation.NavHostController`,
     ``,
     `// Routes generated from the Figma prototype screen graph.`,
@@ -39,10 +42,18 @@ export function emitRouterKotlin(spec: InteractionSpec): string {
     objs,
     `}`,
     ``,
+    `enum class OverlayStyle { Sheet, Dialog }`,
+    `data class OverlayPresentation(val screen: Screen, val style: OverlayStyle, val dismissable: Boolean)`,
+    ``,
     `class Router(private val nav: NavHostController) {`,
+    `    var overlay by mutableStateOf<OverlayPresentation?>(null)`,
     `    fun navigate(screen: Screen) { nav.navigate(screen.route) }`,
     `    fun goBack() { nav.popBackStack() }`,
     `    fun reset() { nav.popBackStack(nav.graph.startDestinationId, inclusive = false) }`,
+    `    fun presentOverlay(style: OverlayStyle, screen: Screen, dismissable: Boolean) {`,
+    `        overlay = OverlayPresentation(screen, style, dismissable)`,
+    `    }`,
+    `    fun dismissOverlay() { overlay = null }`,
     `}`,
     ``,
   ].join("\n");
@@ -95,6 +106,11 @@ function renderActionKotlin(a: Action, indent: string, ids: Map<string, ScreenId
     const dest = to?.id ? ids.get(to.id) : undefined;
     return dest ? dest.component : to?.name ? pascalCase(to.name) : "Screen";
   };
+  const overlayCall = (a: any): string => {
+    const style = a.overlay?.style === "dialog" ? "OverlayStyle.Dialog" : "OverlayStyle.Sheet";
+    const dismissable = a.overlay?.dismissable === false ? "false" : "true";
+    return `${style}, Screen.${objFor(a.to)}, ${dismissable}`;
+  };
   switch (a.type) {
     case "navigate": {
       const known = a.to?.id ? ids.get(a.to.id) : undefined;
@@ -111,14 +127,14 @@ function renderActionKotlin(a: Action, indent: string, ids: Map<string, ScreenId
       const known = a.to?.id ? ids.get(a.to.id) : undefined;
       if (!known) {
         return [
-          `${indent}// TODO: overlay target "${a.to?.name ?? a.to?.id ?? ""}" is not in the Screen graph — add an object, then uncomment (present as a dialog / bottom sheet):`,
-          `${indent}// router.navigate(Screen.${objFor(a.to)})`,
+          `${indent}// TODO: overlay target "${a.to?.name ?? a.to?.id ?? ""}" is not in the Screen graph — add an object, then uncomment:`,
+          `${indent}// router.presentOverlay(${overlayCall(a)})`,
         ];
       }
-      return [`${indent}router.navigate(Screen.${objFor(a.to)}) // TODO: present as a dialog / bottom sheet`];
+      return [`${indent}router.presentOverlay(${overlayCall(a)})`];
     }
     case "closeOverlay":
-      return [`${indent}router.goBack() // close overlay`];
+      return [`${indent}router.dismissOverlay()`];
     case "back":
       return [`${indent}router.goBack()`];
     case "openUrl":
@@ -198,9 +214,17 @@ export function emitReadmeKotlin(spec: InteractionSpec): string {
     `- Files: \`Router.kt\` (sealed Screen + Router), \`PrototypeStore.kt\` (vars ViewModel),`,
     `  \`<Screen>Actions.kt\` (call e.g. \`HomeActions.goDetail(router, store)\` from your Buttons).`,
     ``,
+    `## Overlays`,
+    `- Observe \`router.overlay\` and present it. Sheet vs dialog by \`overlay.style\`:`,
+    `  \`\`\`kotlin`,
+    `  router.overlay?.let { o ->`,
+    `    if (o.style == OverlayStyle.Sheet) ModalBottomSheet(onDismissRequest = { if (o.dismissable) router.dismissOverlay() }) { /* o.screen */ }`,
+    `    else Dialog(onDismissRequest = { if (o.dismissable) router.dismissOverlay() }) { /* o.screen */ }`,
+    `  }`,
+    `  \`\`\``,
+    ``,
     `## Best-effort / manual`,
-    `- Overlays → plain navigate (present as a dialog/bottom sheet). \`openUrl\`, scroll-to, and`,
-    `  component variants are commented stubs. Navigation transitions use the default.`,
+    `- openUrl, scroll-to, and component variants are commented stubs. Navigation transitions use the default.`,
     ``,
     `## Unsupported interactions`,
     unsupported,

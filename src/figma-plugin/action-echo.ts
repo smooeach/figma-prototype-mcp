@@ -11,6 +11,10 @@ export interface EchoResolvers {
   variableName(id: string): Promise<string | undefined>;
   /** Node id -> name; undefined for a missing node. */
   nodeName(id: string): Promise<string | undefined>;
+  /** Overlay metadata read from a destination frame; undefined if not a frame / not an overlay. */
+  overlayMeta(id: string): Promise<
+    { positionType?: string; background?: string; backgroundInteraction?: string } | undefined
+  >;
 }
 
 /** Re-encode a built reaction action into the list_reactions wire/echo shape. */
@@ -62,9 +66,11 @@ export async function encodeActionForListEcho(action: any, resolvers: EchoResolv
     return { type: "set_variable", variable: varName ?? `<id:${action.variableId}>`, value };
   }
 
-  // NODE / CLOSE / BACK / URL / unknown passthrough — identical shape as before.
+  // NODE / CLOSE / BACK / URL / unknown passthrough.
   const destId = action.destinationId;
   const destName = destId ? await resolvers.nodeName(destId) : undefined;
+  const isOverlay = action.navigation === "OVERLAY" || action.navigation === "SWAP";
+  const ov = isOverlay && destId ? await resolvers.overlayMeta(destId) : undefined;
   return {
     type: action.type ?? "UNKNOWN",
     navigation: action.navigation,
@@ -74,6 +80,9 @@ export async function encodeActionForListEcho(action: any, resolvers: EchoResolv
     destinationName: destName,
     transition: action.transition,
     resetScrollPosition: action.resetScrollPosition,
+    overlayPositionType: ov?.positionType,
+    overlayBackground: ov?.background,
+    overlayBackgroundInteraction: ov?.backgroundInteraction,
   };
 }
 

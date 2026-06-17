@@ -12,11 +12,17 @@ export type ConditionNode =
   | { any: ConditionNode[] }
   | { raw: unknown };
 
+export interface OverlayMeta {
+  style: "dialog" | "sheet";
+  scrim: boolean;
+  dismissable: boolean;
+}
+
 export type Action =
   | { type: "navigate"; to: NodeRef; transition?: unknown }
   | { type: "scrollTo"; to: NodeRef; transition?: unknown }
-  | { type: "openOverlay"; to: NodeRef; transition?: unknown }
-  | { type: "swapOverlay"; to: NodeRef; transition?: unknown }
+  | { type: "openOverlay"; to: NodeRef; transition?: unknown; overlay?: OverlayMeta }
+  | { type: "swapOverlay"; to: NodeRef; transition?: unknown; overlay?: OverlayMeta }
   | { type: "changeVariant"; to: NodeRef }
   | { type: "back" }
   | { type: "closeOverlay" }
@@ -78,6 +84,16 @@ function mapCondition(c: any): ConditionNode {
   return { raw: c };
 }
 
+function normalizeOverlay(a: any): OverlayMeta | undefined {
+  const pos = a?.overlayPositionType;
+  if (pos === undefined || pos === null) return undefined;
+  return {
+    style: pos === "CENTER" ? "dialog" : "sheet",
+    scrim: a.overlayBackground === "SOLID_COLOR",
+    dismissable: a.overlayBackgroundInteraction === "CLOSE_ON_CLICK_OUTSIDE",
+  };
+}
+
 function mapAction(a: any, source: NodeRef, unsupported: Unsupported[]): Action | null {
   if (!a || typeof a !== "object") {
     unsupported.push({ source, reason: "non-object action", raw: a });
@@ -99,8 +115,8 @@ function mapAction(a: any, source: NodeRef, unsupported: Unsupported[]): Action 
       switch (a.navigation) {
         case "NAVIGATE": return { type: "navigate", to, transition: a.transition };
         case "SCROLL_TO": return { type: "scrollTo", to, transition: a.transition };
-        case "OVERLAY": return { type: "openOverlay", to, transition: a.transition };
-        case "SWAP": return { type: "swapOverlay", to, transition: a.transition };
+        case "OVERLAY": return { type: "openOverlay", to, transition: a.transition, overlay: normalizeOverlay(a) };
+        case "SWAP": return { type: "swapOverlay", to, transition: a.transition, overlay: normalizeOverlay(a) };
         case "CHANGE_TO": return { type: "changeVariant", to };
         default:
           unsupported.push({ source, reason: `unknown navigation: ${String(a.navigation)}`, raw: a });

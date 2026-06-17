@@ -56,10 +56,16 @@ function renderActionRN(a: Action, indent: string, ids: Map<string, ScreenIdenti
       return out;
     }
     case "openOverlay":
-    case "swapOverlay":
-      return [`${indent}navigation.navigate(${JSON.stringify(destName(a.to))}); // TODO: present as a modal (React Navigation: presentation:'modal')`];
+    case "swapOverlay": {
+      const known = a.to?.id ? ids.get(a.to.id) : undefined;
+      const screen = destName(a.to);
+      const style = (a as any).overlay?.style === "dialog" ? "dialog" : "sheet";
+      const dismissable = (a as any).overlay?.dismissable === false ? "false" : "true";
+      const line = `${indent}presentOverlay({ screen: ${JSON.stringify(screen)}, style: ${JSON.stringify(style)}, dismissable: ${dismissable} });`;
+      return known ? [line] : [line, `${indent}// TODO: overlay target "${a.to?.name ?? a.to?.id ?? ""}" is not in the generated navigator`];
+    }
     case "closeOverlay":
-      return [`${indent}navigation.goBack(); // close overlay`];
+      return [`${indent}dismissOverlay();`];
     case "back":
       return [`${indent}navigation.goBack();`];
     case "openUrl":
@@ -105,7 +111,7 @@ export function emitScreenInteractionsRN(spec: InteractionSpec): GeneratedFile[]
       `// Interaction handlers for the "${s.name ?? s.id}" screen, keyed by source node.`,
       `export function use${comp}Interactions() {`,
       `  const navigation = useNavigation<any>();`,
-      `  const { vars, set, toggle } = useProtoStore();`,
+      `  const { vars, set, toggle, presentOverlay, dismissOverlay } = useProtoStore();`,
       `  return {`,
       handlers,
       `  };`,
@@ -135,8 +141,8 @@ export function emitReadmeRN(spec: InteractionSpec): string {
     `- \`interactions/<Screen>.ts\` — \`use<Screen>Interactions()\` returns onPress handlers keyed by source node.`,
     ``,
     `## Best-effort / manual interactions`,
-    `- Overlays are emitted as plain navigates (add \`presentation:'modal'\` to the screen). Scroll-to and`,
-    `  component-variant changes are commented stubs — wire them by hand.`,
+    `- Overlays: read \`useProtoStore().overlay\` and render a <Modal> (sheet/dialog by \`overlay.style\`);`,
+    `  call \`dismissOverlay()\` to close. Scroll-to and component variants are commented stubs.`,
     ``,
     `## Unsupported interactions`,
     unsupported,

@@ -852,6 +852,18 @@ const echoResolvers: EchoResolvers = {
     }
   },
   nodeName: async (id) => (await figma.getNodeByIdAsync(id))?.name ?? undefined,
+  overlayMeta: async (id) => {
+    const node = await figma.getNodeByIdAsync(id);
+    // FRAME/COMPONENT/INSTANCE/SLOT all extend DefaultFrameMixin and carry overlay props —
+    // feature-detect instead of checking type === "FRAME" (else component-based overlays lose meta).
+    if (!node || !("overlayPositionType" in node)) return undefined;
+    const f = node as FrameNode;
+    return {
+      positionType: f.overlayPositionType,
+      background: (f.overlayBackground as { type?: string } | undefined)?.type,
+      backgroundInteraction: f.overlayBackgroundInteraction,
+    };
+  },
 };
 
 async function handleListReactions(params: ListReactionsInput) {
