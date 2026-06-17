@@ -37,11 +37,24 @@ export function emitRouter(spec: InteractionSpec): string {
     cases,
     `}`,
     ``,
+    `enum OverlayStyle { case sheet, dialog }`,
+    `struct OverlayPresentation: Identifiable {`,
+    `    let id = UUID()`,
+    `    let screen: Screen`,
+    `    let style: OverlayStyle`,
+    `    let dismissable: Bool`,
+    `}`,
+    ``,
     `final class Router: ObservableObject {`,
     `    @Published var path = NavigationPath()`,
+    `    @Published var overlay: OverlayPresentation?`,
     `    func navigate(_ screen: Screen) { path.append(screen) }`,
     `    func goBack() { if !path.isEmpty { path.removeLast() } }`,
     `    func reset() { path = NavigationPath() }`,
+    `    func presentOverlay(_ style: OverlayStyle, screen: Screen, dismissable: Bool) {`,
+    `        overlay = OverlayPresentation(screen: screen, style: style, dismissable: dismissable)`,
+    `    }`,
+    `    func dismissOverlay() { overlay = nil }`,
     `}`,
     ``,
   ].join("\n");
@@ -89,6 +102,11 @@ function renderActionSwift(a: Action, indent: string, ids: Map<string, ScreenIde
     const dest = to?.id ? ids.get(to.id) : undefined;
     return dest ? screenCase(dest.component) : to?.name ? screenCase(pascalCase(to.name)) : "screen";
   };
+  const overlayCall = (a: any): string => {
+    const style = a.overlay?.style === "dialog" ? ".dialog" : ".sheet";
+    const dismissable = a.overlay?.dismissable === false ? "false" : "true";
+    return `${style}, screen: .${caseFor(a.to)}, dismissable: ${dismissable}`;
+  };
   switch (a.type) {
     case "navigate": {
       const known = a.to?.id ? ids.get(a.to.id) : undefined;
@@ -107,14 +125,14 @@ function renderActionSwift(a: Action, indent: string, ids: Map<string, ScreenIde
       const known = a.to?.id ? ids.get(a.to.id) : undefined;
       if (!known) {
         return [
-          `${indent}// TODO: overlay target "${a.to?.name ?? a.to?.id ?? ""}" is not in the Screen enum — add a case, then uncomment (present as a .sheet / .fullScreenCover):`,
-          `${indent}// router.navigate(.${caseFor(a.to)})`,
+          `${indent}// TODO: overlay target "${a.to?.name ?? a.to?.id ?? ""}" is not in the Screen enum — add a case, then uncomment:`,
+          `${indent}// router.presentOverlay(${overlayCall(a)})`,
         ];
       }
-      return [`${indent}router.navigate(.${caseFor(a.to)}) // TODO: present as a .sheet / .fullScreenCover`];
+      return [`${indent}router.presentOverlay(${overlayCall(a)})`];
     }
     case "closeOverlay":
-      return [`${indent}router.goBack() // close overlay`];
+      return [`${indent}router.dismissOverlay()`];
     case "back":
       return [`${indent}router.goBack()`];
     case "openUrl":
@@ -191,9 +209,15 @@ export function emitReadmeSwift(spec: InteractionSpec): string {
     `- Files: \`Router.swift\` (Screen enum + Router), \`PrototypeStore.swift\` (vars),`,
     `  \`<Screen>Actions.swift\` (call e.g. \`HomeActions.goDetail(router:store:)\` from your Buttons).`,
     ``,
+    `## Overlays`,
+    `- Bind \`router.overlay\` to present it. Sheet vs dialog by \`overlay.style\`:`,
+    `  \`\`\`swift`,
+    `  .sheet(item: $router.overlay) { o in /* view for o.screen */ }`,
+    `  // for o.style == .dialog, use .fullScreenCover + a centered card instead`,
+    `  \`\`\``,
+    ``,
     `## Best-effort / manual`,
-    `- Overlays → plain navigate (use \`.sheet\`/\`.fullScreenCover\`). Scroll-to and component`,
-    `  variants are commented stubs. Navigation transitions use the default push.`,
+    `- Scroll-to and component variants are commented stubs. Navigation transitions use the default push.`,
     ``,
     `## Unsupported interactions`,
     unsupported,
