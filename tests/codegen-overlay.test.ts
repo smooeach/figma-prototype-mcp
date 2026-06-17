@@ -116,3 +116,34 @@ describe("emitReactNative overlay", () => {
     expect(hook).toContain('presentOverlay({ screen: "Sheet", style: "dialog", dismissable: false });');
   });
 });
+
+// --- review fixes: shared store ReactNode import + overlay unknown-target TODO ---
+
+const unknownOverlaySpec = {
+  schemaVersion: "1.0" as const,
+  page: { id: "p", name: "P" },
+  screens: [
+    { id: "1:1", name: "Home", interactions: [
+      { source: { id: "n1", name: "Open" }, trigger: { type: "ON_CLICK" },
+        actions: [{ type: "openOverlay", to: { id: "9:9", name: "Ghost" }, overlay: { style: "sheet", scrim: true, dismissable: true } }] },
+    ] },
+  ],
+  requestedScreens: ["1:1"], missingScreens: [], unsupported: [], truncated: false,
+};
+
+describe("overlay review fixes", () => {
+  it("React shared store imports ReactNode (not the React.* namespace)", () => {
+    const store = emitReact(overlaySpec({ style: "sheet", scrim: true, dismissable: true }) as any)
+      .find((f) => f.path === "prototype-store.tsx")!.content;
+    expect(store).toContain("type ReactNode");
+    expect(store).not.toContain("React.ReactNode");
+  });
+  it("React comments out an overlay to a target not in the routes", () => {
+    const hook = emitReact(unknownOverlaySpec as any).find((f) => f.path === "interactions/Home.ts")!.content;
+    expect(hook).toContain('// TODO: overlay target "Ghost" is not in the generated routes');
+  });
+  it("React Native comments out an overlay to a target not in the navigator", () => {
+    const hook = emitReactNative(unknownOverlaySpec as any).find((f) => f.path === "interactions/Home.ts")!.content;
+    expect(hook).toContain('// TODO: overlay target "Ghost" is not in the generated navigator');
+  });
+});

@@ -854,7 +854,9 @@ const echoResolvers: EchoResolvers = {
   nodeName: async (id) => (await figma.getNodeByIdAsync(id))?.name ?? undefined,
   overlayMeta: async (id) => {
     const node = await figma.getNodeByIdAsync(id);
-    if (!node || node.type !== "FRAME") return undefined;
+    // FRAME/COMPONENT/INSTANCE/SLOT all extend DefaultFrameMixin and carry overlay props —
+    // feature-detect instead of checking type === "FRAME" (else component-based overlays lose meta).
+    if (!node || !("overlayPositionType" in node)) return undefined;
     const f = node as FrameNode;
     return {
       positionType: f.overlayPositionType,

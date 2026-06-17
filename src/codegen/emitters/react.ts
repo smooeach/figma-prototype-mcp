@@ -72,7 +72,8 @@ function renderAction(a: Action, indent: string, identities: Map<string, ScreenI
       const screen = identity ? identity.component : (toName ? pascalCase(toName) : "Home");
       const style = (a as any).overlay?.style === "dialog" ? "dialog" : "sheet";
       const dismissable = (a as any).overlay?.dismissable === false ? "false" : "true";
-      return [`${indent}presentOverlay({ screen: ${JSON.stringify(screen)}, style: ${JSON.stringify(style)}, dismissable: ${dismissable} });`];
+      const line = `${indent}presentOverlay({ screen: ${JSON.stringify(screen)}, style: ${JSON.stringify(style)}, dismissable: ${dismissable} });`;
+      return identity ? [line] : [line, `${indent}// TODO: overlay target "${toName || id || ""}" is not in the generated routes`];
     }
     case "navigate":
     case "scrollTo": {

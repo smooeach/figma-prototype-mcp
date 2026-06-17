@@ -57,10 +57,12 @@ function renderActionRN(a: Action, indent: string, ids: Map<string, ScreenIdenti
     }
     case "openOverlay":
     case "swapOverlay": {
+      const known = a.to?.id ? ids.get(a.to.id) : undefined;
       const screen = destName(a.to);
       const style = (a as any).overlay?.style === "dialog" ? "dialog" : "sheet";
       const dismissable = (a as any).overlay?.dismissable === false ? "false" : "true";
-      return [`${indent}presentOverlay({ screen: ${JSON.stringify(screen)}, style: ${JSON.stringify(style)}, dismissable: ${dismissable} });`];
+      const line = `${indent}presentOverlay({ screen: ${JSON.stringify(screen)}, style: ${JSON.stringify(style)}, dismissable: ${dismissable} });`;
+      return known ? [line] : [line, `${indent}// TODO: overlay target "${a.to?.name ?? a.to?.id ?? ""}" is not in the generated navigator`];
     }
     case "closeOverlay":
       return [`${indent}dismissOverlay();`];
