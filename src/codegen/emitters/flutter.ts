@@ -55,9 +55,10 @@ export function emitRouterDart(spec: InteractionSpec): string {
     `  }`,
     `}`,
     ``,
-    `class Router {`,
+    `// Named ProtoRouter to avoid colliding with Flutter's own Router widget.`,
+    `class ProtoRouter {`,
     `  final GoRouter go;`,
-    `  Router(this.go);`,
+    `  ProtoRouter(this.go);`,
     `  void navigate(Screen screen) => go.push(screen.path);`,
     `  void goBack() => go.pop();`,
     `}`,
@@ -101,9 +102,11 @@ export function renderConditionDart(node: any): string {
     const op = OP[node.operator as string] ?? "==";
     const key = JSON.stringify(node.variable);
     const v = node.value;
-    if (typeof v === "boolean") return `((store.vars[${key}] as bool?) ?? false) ${op} ${dartLiteral(v)}`;
-    if (typeof v === "number") return `((store.vars[${key}] as num?) ?? 0) ${op} ${dartLiteral(v)}`;
-    return `((store.vars[${key}] as String?) ?? "") ${op} ${dartLiteral(v)}`;
+    // `is`-guarded read (not a hard `as` cast): vars default to `false`, so `false as num?`
+    // would THROW at runtime — Dart `as` is not a safe cast like Swift/Kotlin `as?`.
+    if (typeof v === "boolean") return `(store.vars[${key}] is bool ? store.vars[${key}] as bool : false) ${op} ${dartLiteral(v)}`;
+    if (typeof v === "number") return `(store.vars[${key}] is num ? store.vars[${key}] as num : 0) ${op} ${dartLiteral(v)}`;
+    return `(store.vars[${key}] is String ? store.vars[${key}] as String : "") ${op} ${dartLiteral(v)}`;
   }
   return "false";
 }
@@ -152,10 +155,12 @@ function renderActionDart(a: Action, indent: string, ids: Map<string, ScreenIden
     case "conditional": {
       const cond = renderConditionDart((a as any).if);
       const then = (a as any).then.flatMap((x: Action) => renderActionDart(x, indent + "  ", ids));
-      const out = [`${indent}if (${cond}) {`, ...then, `${indent}}`];
+      const out = [`${indent}if (${cond}) {`, ...then];
       if ((a as any).else && (a as any).else.length) {
         const els = (a as any).else.flatMap((x: Action) => renderActionDart(x, indent + "  ", ids));
-        out.push(`${indent}else {`, ...els, `${indent}}`);
+        out.push(`${indent}} else {`, ...els, `${indent}}`);
+      } else {
+        out.push(`${indent}}`);
       }
       return out;
     }
@@ -176,7 +181,7 @@ export function emitScreenActionsDart(spec: InteractionSpec): GeneratedFile[] {
           ? dartIdent(dartCase(pascalCase(it.source.name)))
           : dartIdent(it.source?.id ?? "node");
         const body = it.actions.flatMap((act) => renderActionDart(act, "  ", ids)).join("\n");
-        return [`void ${fn}(Router router, PrototypeStore store) {`, body, `}`].join("\n");
+        return [`void ${fn}(ProtoRouter router, PrototypeStore store) {`, body, `}`].join("\n");
       }).join("\n\n");
       const content = [
         `import 'router.dart';`,
@@ -201,15 +206,15 @@ export function emitReadmeDart(spec: InteractionSpec): string {
     ``,
     `## Wiring`,
     `- Add dependencies: \`go_router\`, \`provider\`.`,
-    `- Build a GoRouter, wrap it in Router, and bind MaterialApp.router:`,
+    `- Build a GoRouter, wrap it in ProtoRouter, and bind MaterialApp.router:`,
     `  \`\`\`dart`,
     `  final go = GoRouter(routes: [`,
     `    GoRoute(path: Screen.home.path, builder: (c, s) => const HomeScreen()),`,
     `  ]);`,
-    `  final router = Router(go);`,
+    `  final router = ProtoRouter(go);`,
     `  // MaterialApp.router(routerConfig: go) with a ChangeNotifierProvider<PrototypeStore>`,
     `  \`\`\``,
-    `- Files: \`router.dart\` (Screen enum + Router), \`prototype_store.dart\` (vars ChangeNotifier),`,
+    `- Files: \`router.dart\` (Screen enum + ProtoRouter), \`prototype_store.dart\` (vars ChangeNotifier),`,
     `  \`<screen>_actions.dart\` (call e.g. \`goDetail(router, store)\` from your widgets).`,
     ``,
     `## Best-effort / manual`,

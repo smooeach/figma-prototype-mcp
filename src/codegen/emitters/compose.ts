@@ -80,7 +80,11 @@ export function renderConditionKotlin(node: any): string {
     const key = JSON.stringify(node.variable);
     const v = node.value;
     if (typeof v === "boolean") return `((store.vars[${key}] as? Boolean) ?: false) ${op} ${kotlinLiteral(v)}`;
-    if (typeof v === "number") return `((store.vars[${key}] as? Double) ?: 0.0) ${op} ${kotlinLiteral(v)}`;
+    // Cast side is Double, so the literal must be Double too — `Double == 5` (Int) does not compile in Kotlin.
+    if (typeof v === "number") {
+      const numLit = Number.isInteger(v) ? `${v}.0` : String(v);
+      return `((store.vars[${key}] as? Double) ?: 0.0) ${op} ${numLit}`;
+    }
     return `((store.vars[${key}] as? String) ?: "") ${op} ${kotlinLiteral(v)}`;
   }
   return "false";
@@ -130,10 +134,13 @@ function renderActionKotlin(a: Action, indent: string, ids: Map<string, ScreenId
     case "conditional": {
       const cond = renderConditionKotlin((a as any).if);
       const then = (a as any).then.flatMap((x: Action) => renderActionKotlin(x, indent + "    ", ids));
-      const out = [`${indent}if (${cond}) {`, ...then, `${indent}}`];
+      // `} else {` on one line — a newline before `else` is fragile in Kotlin.
+      const out = [`${indent}if (${cond}) {`, ...then];
       if ((a as any).else && (a as any).else.length) {
         const els = (a as any).else.flatMap((x: Action) => renderActionKotlin(x, indent + "    ", ids));
-        out.push(`${indent}else {`, ...els, `${indent}}`);
+        out.push(`${indent}} else {`, ...els, `${indent}}`);
+      } else {
+        out.push(`${indent}}`);
       }
       return out;
     }

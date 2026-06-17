@@ -104,3 +104,26 @@ describe("emitCompose source without a name", () => {
     expect(a).not.toMatch(/fun 1_2\(/);
   });
 });
+
+describe("emitCompose conditional with else / numeric compare", () => {
+  const SPEC4 = {
+    schemaVersion: "1.0" as const,
+    page: { id: "p", name: "P" },
+    screens: [
+      { id: "1:1", name: "Home", interactions: [
+        { source: { id: "n1", name: "Toggle" }, trigger: { type: "ON_CLICK" },
+          actions: [{ type: "conditional", if: { variable: "count", operator: "==", value: 3 },
+                      then: [{ type: "back" }], else: [{ type: "setVariable", variable: "isOpen", value: true }] }] },
+      ] },
+    ],
+    requestedScreens: ["1:1"], missingScreens: [], unsupported: [], truncated: false,
+  };
+  it("emits `} else {` on one line and a Double literal for numeric equality", () => {
+    const a = emitCompose(SPEC4 as any).find((x) => x.path === "HomeActions.kt")!.content;
+    expect(a).toContain("} else {");
+    expect(a).not.toMatch(/^\s*else \{/m); // never a bare `else {` on its own line
+    // numeric literal must be Double (3.0) so it compiles against the `as? Double` cast
+    expect(a).toContain('((store.vars["count"] as? Double) ?: 0.0) == 3.0');
+    expect(a).toContain('store.set("isOpen", true)');
+  });
+});
