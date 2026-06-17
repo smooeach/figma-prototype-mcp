@@ -75,8 +75,12 @@ function renderAction(a: Action, indent: string, identities: Map<string, ScreenI
       const line = `${indent}presentOverlay({ screen: ${JSON.stringify(screen)}, style: ${JSON.stringify(style)}, dismissable: ${dismissable} });`;
       return identity ? [line] : [line, `${indent}// TODO: overlay target "${toName || id || ""}" is not in the generated routes`];
     }
-    case "navigate":
     case "scrollTo": {
+      const label = (a as any).to?.name ?? (a as any).to?.id ?? "";
+      const id = String((a as any).to?.id ?? "");
+      return [`${indent}// TODO: scroll to "${label}" — document.getElementById("${id}")?.scrollIntoView({ behavior: "smooth" })`];
+    }
+    case "navigate": {
       const t = mapTransition((a as any).transition);
       const toId: string | undefined = (a as any).to?.id;
       const toName: string | undefined = (a as any).to?.name;

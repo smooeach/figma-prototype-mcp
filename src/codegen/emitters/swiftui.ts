@@ -141,8 +141,11 @@ function renderActionSwift(a: Action, indent: string, ids: Map<string, ScreenIde
       return [`${indent}store.set(${JSON.stringify(String((a as any).variable))}, ${swiftLiteral((a as any).value)})`];
     case "toggleVariable":
       return [`${indent}store.toggle(${JSON.stringify(String((a as any).variable))})`];
-    case "scrollTo":
-      return [`${indent}// TODO: ScrollViewReader.scrollTo — no navigation equivalent`];
+    case "scrollTo": {
+      const label = (a as any).to?.name ?? (a as any).to?.id ?? "";
+      const id = String((a as any).to?.id ?? "");
+      return [`${indent}// TODO: scroll to "${label}" — wrap the list in ScrollViewReader { proxy in … } and call proxy.scrollTo("${id}")`];
+    }
     case "changeVariant":
       return [`${indent}// TODO: component variant — handle in the View`];
     case "conditional": {

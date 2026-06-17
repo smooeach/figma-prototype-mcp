@@ -170,8 +170,11 @@ function renderActionDart(a: Action, indent: string, ids: Map<string, ScreenIden
       return [`${indent}store.set(${JSON.stringify(String((a as any).variable))}, ${dartLiteral((a as any).value)});`];
     case "toggleVariable":
       return [`${indent}store.toggle(${JSON.stringify(String((a as any).variable))});`];
-    case "scrollTo":
-      return [`${indent}// TODO: ScrollController.animateTo — no navigation equivalent`];
+    case "scrollTo": {
+      const label = (a as any).to?.name ?? (a as any).to?.id ?? "";
+      const id = String((a as any).to?.id ?? "");
+      return [`${indent}// TODO: scroll to "${label}" — attach a ScrollController and call Scrollable.ensureVisible / animateTo for "${id}"`];
+    }
     case "changeVariant":
       return [`${indent}// TODO: component variant — handle in the Widget`];
     case "conditional": {
