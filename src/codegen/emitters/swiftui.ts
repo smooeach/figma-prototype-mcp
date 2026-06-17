@@ -8,6 +8,16 @@ export function screenCase(component: string): string {
   return component.charAt(0).toLowerCase() + component.slice(1);
 }
 
+/**
+ * A valid Swift identifier for a func/method name. Swift identifiers may not start with a
+ * digit, so a digit/empty start (e.g. node id "1:2" → "1_2", or name "2nd Button") is prefixed
+ * with "n" to keep the generated Swift compiling.
+ */
+export function swiftIdent(raw: string): string {
+  const cleaned = (raw ?? "").replace(/[^A-Za-z0-9]/g, "_");
+  return /^[A-Za-z]/.test(cleaned) ? cleaned : `n${cleaned}`;
+}
+
 /** A Swift literal for a JS boolean/number/string value. */
 function swiftLiteral(value: unknown): string {
   if (typeof value === "boolean") return value ? "true" : "false";
@@ -141,8 +151,8 @@ export function emitScreenActions(spec: InteractionSpec): GeneratedFile[] {
       const comp = ids.get(s.id)!.component;
       const funcs = s.interactions.map((it) => {
         const fn = it.source?.name
-          ? screenCase(pascalCase(it.source.name))
-          : (it.source?.id ?? "node").replace(/[^A-Za-z0-9]/g, "_");
+          ? swiftIdent(screenCase(pascalCase(it.source.name)))
+          : swiftIdent(it.source?.id ?? "node");
         const body = it.actions.flatMap((act) => renderActionSwift(act, "        ", ids)).join("\n");
         return [`    static func ${fn}(router: Router, store: PrototypeStore) {`, body, `    }`].join("\n");
       }).join("\n\n");

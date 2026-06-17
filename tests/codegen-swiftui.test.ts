@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { emitSwiftUI, screenCase } from "../src/codegen/emitters/swiftui.js";
+import { emitSwiftUI, screenCase, swiftIdent } from "../src/codegen/emitters/swiftui.js";
 
 const SPEC = {
   schemaVersion: "1.0" as const,
@@ -18,6 +18,15 @@ const SPEC = {
   ],
   requestedScreens: ["1:1", "1:2"], missingScreens: [], unsupported: [], truncated: false,
 };
+
+describe("swiftIdent", () => {
+  it("prefixes digit/empty starts so the func name is a valid Swift identifier", () => {
+    expect(swiftIdent("1:2")).toBe("n1_2"); // node id, no source name
+    expect(swiftIdent("2ndButton")).toBe("n2ndButton"); // name starting with a digit
+    expect(swiftIdent("GoDetail")).toBe("GoDetail"); // already valid — untouched
+    expect(/^[A-Za-z]/.test(swiftIdent(""))).toBe(true);
+  });
+});
 
 describe("screenCase", () => {
   it("lowercases the first char", () => {
@@ -76,5 +85,24 @@ describe("emitSwiftUI unknown navigate target", () => {
     expect(a).toContain("// TODO: target \"Elsewhere\" is not in the Screen enum");
     expect(a).toContain("// router.navigate(.elsewhere)");
     expect(a).not.toMatch(/^\s*router\.navigate\(\.elsewhere\)/m); // not an active (uncommented) call
+  });
+});
+
+describe("emitSwiftUI source without a name", () => {
+  const SPEC3 = {
+    schemaVersion: "1.0" as const,
+    page: { id: "p", name: "P" },
+    screens: [
+      { id: "1:1", name: "Home", interactions: [
+        { source: { id: "1:2" }, trigger: { type: "ON_CLICK" },
+          actions: [{ type: "back" }] },
+      ] },
+    ],
+    requestedScreens: ["1:1"], missingScreens: [], unsupported: [], truncated: false,
+  };
+  it("derives a valid Swift func name from a digit-leading node id (no name)", () => {
+    const a = emitSwiftUI(SPEC3 as any).find((x) => x.path === "HomeActions.swift")!.content;
+    expect(a).toContain("static func n1_2(router: Router, store: PrototypeStore)");
+    expect(a).not.toMatch(/static func 1_2\(/); // would not compile in Swift
   });
 });
