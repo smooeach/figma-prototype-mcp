@@ -26,11 +26,20 @@ export function kotlinIdent(raw: string): string {
   return guardKotlin(safe);
 }
 
+/**
+ * A Kotlin double-quoted string literal. JSON.stringify handles quotes/backslashes, but Kotlin
+ * also treats `$` as string-template interpolation inside "..." — so `$id`/`${…}` in a URL or
+ * variable value would break compilation. Escape `$` as `\$` (valid in a non-raw Kotlin string).
+ */
+function kotlinStringLit(value: string): string {
+  return JSON.stringify(value).replace(/\$/g, "\\$");
+}
+
 /** A Kotlin literal for a JS boolean/number/string value. */
 function kotlinLiteral(value: unknown): string {
   if (typeof value === "boolean") return value ? "true" : "false";
   if (typeof value === "number") return String(value);
-  return JSON.stringify(String(value));
+  return kotlinStringLit(String(value));
 }
 
 /** sealed Screen class + Router wrapping a NavHostController. */
@@ -72,7 +81,7 @@ export function emitRouterKotlin(spec: InteractionSpec): string {
 /** ViewModel variable store. */
 export function emitStoreKotlin(spec: InteractionSpec): string {
   const vars = collectVariables(spec);
-  const inits = vars.map((v) => `        ${JSON.stringify(v)} to false,`).join("\n");
+  const inits = vars.map((v) => `        ${kotlinStringLit(v)} to false,`).join("\n");
   return [
     `import androidx.compose.runtime.mutableStateMapOf`,
     `import androidx.lifecycle.ViewModel`,
@@ -98,7 +107,7 @@ export function renderConditionKotlin(node: any): string {
   if (typeof node.variable === "string") {
     const OP: Record<string, string> = { "==": "==", "!=": "!=", "<": "<", "<=": "<=", ">": ">", ">=": ">=" };
     const op = OP[node.operator as string] ?? "==";
-    const key = JSON.stringify(node.variable);
+    const key = kotlinStringLit(node.variable);
     const v = node.value;
     if (typeof v === "boolean") return `((store.vars[${key}] as? Boolean) ?: false) ${op} ${kotlinLiteral(v)}`;
     // Cast side is Double, so the literal must be Double too — `Double == 5` (Int) does not compile in Kotlin.
@@ -148,11 +157,11 @@ function renderActionKotlin(a: Action, indent: string, ids: Map<string, ScreenId
     case "back":
       return [`${indent}router.goBack()`];
     case "openUrl":
-      return [`${indent}router.onOpenUri(${JSON.stringify(String((a as any).url ?? ""))})`];
+      return [`${indent}router.onOpenUri(${kotlinStringLit(String((a as any).url ?? ""))})`];
     case "setVariable":
-      return [`${indent}store.set(${JSON.stringify(String((a as any).variable))}, ${kotlinLiteral((a as any).value)})`];
+      return [`${indent}store.set(${kotlinStringLit(String((a as any).variable))}, ${kotlinLiteral((a as any).value)})`];
     case "toggleVariable":
-      return [`${indent}store.toggle(${JSON.stringify(String((a as any).variable))})`];
+      return [`${indent}store.toggle(${kotlinStringLit(String((a as any).variable))})`];
     case "scrollTo": {
       const label = (a as any).to?.name ?? (a as any).to?.id ?? "";
       const id = String((a as any).to?.id ?? "");

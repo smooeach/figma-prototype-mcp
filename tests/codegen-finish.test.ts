@@ -73,6 +73,19 @@ describe("openUrl Compose", () => {
     expect(router).toContain("var onOpenUri: (String) -> Unit = {}");
     expect(actions).toContain('router.onOpenUri("https://x.com")');
   });
+  it("escapes `$` in a URL so Kotlin does not string-interpolate it", () => {
+    const spec = {
+      schemaVersion: "1.0" as const, page: { id: "p", name: "P" },
+      screens: [{ id: "1:1", name: "Home", interactions: [
+        { source: { id: "n1", name: "Site" }, trigger: { type: "ON_CLICK" },
+          actions: [{ type: "openUrl", url: "https://x.com/?u=$id" }] },
+      ] }],
+      requestedScreens: ["1:1"], missingScreens: [], unsupported: [], truncated: false,
+    };
+    const actions = emitCompose(spec as any).find((f) => f.path === "HomeActions.kt")!.content;
+    expect(actions).toContain('router.onOpenUri("https://x.com/?u=\\$id")'); // \$ — not interpolated
+    expect(actions).not.toContain('?u=$id"'); // never the bare, interpolating form
+  });
 });
 
 describe("openUrl Flutter", () => {
