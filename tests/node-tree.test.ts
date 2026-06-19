@@ -8,7 +8,11 @@ import {
   isScreenFrame,
   collectDescendantLayerPaths,
   framesShareLayer,
+  isDefaultName,
+  isWireableElement,
+  collectWireableElements,
   type NodeLike,
+  type ElementInfo,
 } from "../src/figma-plugin/node-tree.js";
 
 // Build a top-down chain: doc -> frame -> child
@@ -139,5 +143,87 @@ describe("collectDescendantLayerPaths", () => {
   });
   it("returns an empty set for a childless node", () => {
     expect(collectDescendantLayerPaths({ id: "x", name: "X", type: "FRAME", parent: null })).toEqual(new Set());
+  });
+});
+
+describe("isDefaultName", () => {
+  it("matches Figma auto-names (with/without number)", () => {
+    expect(isDefaultName("Frame")).toBe(true);
+    expect(isDefaultName("Frame 12")).toBe(true);
+    expect(isDefaultName("Rectangle 1")).toBe(true);
+    expect(isDefaultName("Ellipse 3")).toBe(true);
+  });
+  it("does not match intentional names", () => {
+    expect(isDefaultName("btn_pay")).toBe(false);
+    expect(isDefaultName("buttonClose")).toBe(false);
+    expect(isDefaultName("Frame Login")).toBe(false); // has a real word after
+  });
+});
+
+describe("isWireableElement", () => {
+  const n = (over: Partial<NodeLike>): NodeLike => ({ id: "x", name: "x", type: "TEXT", parent: null, ...over });
+  it("includes a node with reactions regardless of type", () => {
+    expect(isWireableElement(n({ type: "TEXT", reactions: [{}] }))).toBe(true);
+  });
+  it("includes a component INSTANCE", () => {
+    expect(isWireableElement(n({ type: "INSTANCE", name: "anything" }))).toBe(true);
+  });
+  it("includes a non-default-named FRAME/GROUP/COMPONENT", () => {
+    expect(isWireableElement(n({ type: "FRAME", name: "btn_pay" }))).toBe(true);
+    expect(isWireableElement(n({ type: "GROUP", name: "cardRow" }))).toBe(true);
+  });
+  it("excludes a default-named container", () => {
+    expect(isWireableElement(n({ type: "FRAME", name: "Frame 4" }))).toBe(false);
+  });
+  it("excludes pure visuals", () => {
+    expect(isWireableElement(n({ type: "TEXT", name: "label" }))).toBe(false);
+    expect(isWireableElement(n({ type: "RECTANGLE", name: "bg" }))).toBe(false);
+    expect(isWireableElement(n({ type: "VECTOR", name: "icon" }))).toBe(false);
+  });
+});
+
+describe("collectWireableElements", () => {
+  // screen > [button(FRAME, has INSTANCE+TEXT inside), label(TEXT), wrapper(default FRAME) > nestedBtn(INSTANCE)]
+  const screen: NodeLike = { id: "s", name: "screen01", type: "FRAME", parent: null, children: [] };
+  const button: NodeLike = { id: "b", name: "btn_pay", type: "FRAME", parent: screen,
+    children: [
+      { id: "bi", name: "icon", type: "INSTANCE", parent: null },
+      { id: "bt", name: "label", type: "TEXT", parent: null },
+    ] };
+  const label: NodeLike = { id: "l", name: "title", type: "TEXT", parent: screen };
+  const nestedBtn: NodeLike = { id: "nb", name: "backBtn", type: "INSTANCE", parent: null };
+  const wrapper: NodeLike = { id: "w", name: "Frame 9", type: "FRAME", parent: screen, children: [nestedBtn] };
+  (screen as unknown as { children: NodeLike[] }).children = [button, label, wrapper];
+
+  it("emits matched nodes and stops descending into them (button = 1 entry, not its children)", () => {
+    const r = collectWireableElements(screen, 20);
+    const ids = r.elements.map((e) => e.id);
+    expect(ids).toContain("b");      // the button frame
+    expect(ids).not.toContain("bi"); // not its inner instance
+    expect(ids).not.toContain("bt"); // not its inner text
+  });
+  it("finds a nested match through a non-matching (default-named) wrapper", () => {
+    const ids = collectWireableElements(screen, 20).elements.map((e) => e.id);
+    expect(ids).toContain("nb");
+  });
+  it("excludes pure-visual children of the screen", () => {
+    const ids = collectWireableElements(screen, 20).elements.map((e) => e.id);
+    expect(ids).not.toContain("l");
+  });
+  it("preserves document order", () => {
+    expect(collectWireableElements(screen, 20).elements.map((e) => e.id)).toEqual(["b", "nb"]);
+  });
+  it("caps the list but reports the true count + truncated flag", () => {
+    const many: NodeLike = { id: "m", name: "m", type: "FRAME", parent: null,
+      children: Array.from({ length: 25 }, (_, i) => ({ id: `e${i}`, name: `item${i}`, type: "INSTANCE", parent: null })) };
+    const r = collectWireableElements(many, 20);
+    expect(r.elements).toHaveLength(20);
+    expect(r.elementCount).toBe(25);
+    expect(r.truncated).toBe(true);
+  });
+  it("reports hasReactions per element", () => {
+    const sc: NodeLike = { id: "s2", name: "s2", type: "FRAME", parent: null,
+      children: [{ id: "wired", name: "x", type: "INSTANCE", parent: null, reactions: [{}] }] };
+    expect(collectWireableElements(sc, 20).elements[0]!.hasReactions).toBe(true);
   });
 });

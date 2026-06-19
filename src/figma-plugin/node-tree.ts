@@ -28,6 +28,65 @@ export function hasReactions(node: NodeLike): boolean {
   return Array.isArray(node.reactions) && node.reactions.length > 0;
 }
 
+export interface ElementInfo {
+  id: string;
+  name: string;
+  type: string;
+  hasReactions: boolean;
+}
+
+export interface WireableElementsResult {
+  elements: ElementInfo[];
+  elementCount: number;
+  truncated: boolean;
+}
+
+// Figma auto-generated layer names (e.g. "Frame", "Rectangle 12"). A container
+// with one of these names is decoration/layout, not an intentional UI element.
+const DEFAULT_NAME_RE =
+  /^(Frame|Group|Rectangle|Ellipse|Vector|Line|Image|Component|Star|Polygon|Slice)\s*\d*$/;
+
+export function isDefaultName(name: string): boolean {
+  return DEFAULT_NAME_RE.test(name);
+}
+
+const CONTAINER_TYPES = new Set(["FRAME", "GROUP", "COMPONENT"]);
+
+/** "Interactive-looking" (name-agnostic): already-wired, an instance, or a named container. */
+export function isWireableElement(node: NodeLike): boolean {
+  if (hasReactions(node)) return true;
+  if (node.type === "INSTANCE") return true;
+  if (CONTAINER_TYPES.has(node.type)) return !isDefaultName(node.name);
+  return false;
+}
+
+/**
+ * Depth-first, document-order collection of wireable elements under `screen`
+ * (the screen itself is excluded). Stops descending into a matched node so a
+ * button is one entry, not the button plus its internals. `elementCount` is the
+ * true total (pre-cap); `elements` holds at most `cap`.
+ */
+export function collectWireableElements(screen: NodeLike, cap: number): WireableElementsResult {
+  const elements: ElementInfo[] = [];
+  let elementCount = 0;
+  const visit = (nodes: readonly NodeLike[] | undefined): void => {
+    if (!nodes) return;
+    for (const n of nodes) {
+      if (isWireableElement(n)) {
+        elementCount++;
+        if (elements.length < cap) {
+          elements.push({ id: n.id, name: n.name, type: n.type, hasReactions: hasReactions(n) });
+        }
+        // stop-at-match: do not descend into a matched node
+      } else {
+        visit(n.children);
+      }
+    }
+  };
+  visit(screen.children);
+  return { elements, elementCount, truncated: elementCount > cap };
+}
+
 /** Nearest ancestor with a scrollable overflowDirection (not "NONE"), or null. */
 export function findScrollableAncestor(node: NodeLike): NodeLike | null {
   let cur: NodeLike | null = node.parent;
