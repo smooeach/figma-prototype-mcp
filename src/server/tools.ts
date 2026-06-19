@@ -30,6 +30,7 @@ import {
   ProtoConditionalInput,
   ProtoGetLastHistoryInput,
   ProtoChangeToInput,
+  ProtoSetVariableModeInput,
   compileProtoWire,
   compileProtoOverlay,
   compileProtoScroll,
@@ -39,6 +40,7 @@ import {
   compileProtoToggleVariable,
   compileProtoConditional,
   compileProtoChangeTo,
+  compileProtoSetVariableMode,
 } from "../mcp-server/protoTools.js";
 import type { CommandName } from "../mcp-server/types.js";
 import { buildInteractionSpec } from "./interaction-spec.js";
@@ -183,7 +185,8 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "(in this file) and `library` variables (from connected libraries) — library variables are usable " +
         "directly in set/toggle/conditional and are auto-imported on first use. " +
         "Call this BEFORE proto_set_variable / proto_toggle_variable / proto_conditional instead of guessing " +
-        "a variable name. `remoteEnumerated:false` means library enumeration was unavailable (local list still valid).",
+        "a variable name. `remoteEnumerated:false` means library enumeration was unavailable (local list still valid). " +
+        "Each collection's modes are listed in the `collections` field — use them with proto_set_variable_mode.",
       schema: ListVariablesInput,
       command: "LIST_VARIABLES" as CommandName,
     },
@@ -396,6 +399,23 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         const parsedInput = input as ProtoSetVariableInput;
         return recordedHandler(historyStore, "proto_set_variable", parsedInput, () =>
           session.sendCommand("CREATE_REACTIONS" as CommandName, compileProtoSetVariable(parsedInput)),
+        );
+      },
+    },
+    {
+      name: "proto_set_variable_mode",
+      description:
+        "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
+        "Switch a variable COLLECTION's active mode (e.g. Light↔Dark theme, density) when the source is " +
+        "triggered — Figma's SET_VARIABLE_MODE action. `mode` is the mode name (e.g. \"Dark\"); `collection` " +
+        "is optional and only needed to disambiguate when more than one collection has a mode of that name. " +
+        "Call list_variables first to see each collection's modes. No motion (mode switch has no transition). " +
+        "Defaults: trigger=ON_CLICK. Local collections only.",
+      schema: ProtoSetVariableModeInput,
+      handler: async (input, session) => {
+        const parsedInput = input as ProtoSetVariableModeInput;
+        return recordedHandler(historyStore, "proto_set_variable_mode", parsedInput, () =>
+          session.sendCommand("CREATE_REACTIONS" as CommandName, compileProtoSetVariableMode(parsedInput)),
         );
       },
     },

@@ -279,6 +279,12 @@ const ChangeToActionInput = z.object({
   targetVariantId: z.string().min(1),
 });
 
+const SetVariableModeActionInput = z.object({
+  type: z.literal("set_variable_mode"),
+  collection: z.string().min(1).optional(),
+  mode: z.string().min(1),
+});
+
 // The set of action types that may appear inside a conditional then/else branch.
 // Deliberately excludes ConditionalActionInput to block nesting.
 // Deliberately excludes ToggleVariableActionInput — toggle_variable may not appear inside conditionals.
@@ -291,6 +297,7 @@ const NonConditionalActionInput = z.discriminatedUnion("type", [
   UrlActionInput,
   SwapOverlayActionInput,
   SetVariableActionInput,
+  SetVariableModeActionInput,
   ChangeToActionInput,
 ]);
 
@@ -312,6 +319,7 @@ const ActionInput = z.discriminatedUnion("type", [
   ConditionalActionInput,
   SetVariableActionInput,
   ToggleVariableActionInput,
+  SetVariableModeActionInput,
   ChangeToActionInput,
 ]);
 

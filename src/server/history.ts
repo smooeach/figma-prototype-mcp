@@ -8,6 +8,7 @@ export type ProtoToolName =
   | "proto_back"
   | "proto_url"
   | "proto_set_variable"
+  | "proto_set_variable_mode"
   | "proto_toggle_variable"
   | "proto_conditional";
 
