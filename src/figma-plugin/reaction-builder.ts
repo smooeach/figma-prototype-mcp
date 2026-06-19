@@ -120,7 +120,8 @@ export type BuiltAction =
   | { type: "BACK" }
   | { type: "URL"; url: string; openInNewTab: boolean }
   | { type: "CONDITIONAL"; conditionalBlocks: ConditionalBlockShape[] }
-  | { type: "SET_VARIABLE"; variableId: string; variableValue: unknown };
+  | { type: "SET_VARIABLE"; variableId: string; variableValue: unknown }
+  | { type: "SET_VARIABLE_MODE"; variableCollectionId: string; variableModeId: string };
 
 export type TriggerShape =
   | { type: TriggerNoParamType }
