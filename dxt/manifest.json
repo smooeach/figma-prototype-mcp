@@ -2,7 +2,7 @@
   "manifest_version": "0.2",
   "name": "figma-prototype-mcp",
   "display_name": "Prototype MCP — wire prototypes with LLM",
-  "version": "0.38.0",
+  "version": "0.39.0",
   "description": "Wire Figma prototype interactions from natural language. Also install the 'Prototype MCP' Figma Community plugin and run it — the plugin connects to localhost:3000.",
   "author": {
     "name": "smooeach"
