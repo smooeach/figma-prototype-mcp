@@ -16,6 +16,7 @@ import {
 
 export const GetCanvasOverviewInput = z.object({
   pageId: z.string().optional(),
+  includeElements: z.boolean().optional(),
 });
 
 export const GetPrototypeFlowInput = z.object({

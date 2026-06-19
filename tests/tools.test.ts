@@ -1136,4 +1136,14 @@ describe("orient-skip steering", () => {
     expect(desc("get_canvas_overview")).not.toContain("first call in any scenario");
     expect(desc("get_canvas_overview")).toContain("Optional orientation");
   });
+
+  it("get_canvas_overview advertises includeElements for one-call element discovery", () => {
+    expect(desc("get_canvas_overview")).toContain("includeElements:true");
+    expect(desc("get_canvas_overview")).toContain("elementsTruncated");
+  });
+
+  it("GetCanvasOverviewInput accepts includeElements", () => {
+    expect(GetCanvasOverviewInput.parse({ includeElements: true })).toEqual({ includeElements: true });
+    expect(GetCanvasOverviewInput.parse({})).toEqual({}); // still optional
+  });
 });

@@ -83,7 +83,11 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         "Return the current Figma page, its top-level frames, and currently selected nodes. " +
         "Optional orientation: when the user already names the screens/elements to wire, the proto_* tools " +
         "accept those names directly — you can skip straight to wiring. Reach for this when the request is " +
-        "abstract (you need the screen list / start frame) or to recover from an ambiguous/not-found name.",
+        "abstract (you need the screen list / start frame) or to recover from an ambiguous/not-found name." +
+        " Set includeElements:true to also return each screen's wireable inner elements " +
+        "(buttons/instances/named containers, with id+name) — use it to resolve an abstract element " +
+        "reference across screens (e.g. 'every screen's back button') in one call instead of a find_nodes " +
+        "per screen. A screen with elementsTruncated:true has more than the cap; use find_nodes for the rest.",
       schema: GetCanvasOverviewInput,
       command: "GET_CANVAS_OVERVIEW" as CommandName,
     },

@@ -28,7 +28,7 @@ import {
   type LocalVarDescriptor,
   type LibraryVarDescriptor,
 } from "./variable-catalog.js";
-import { findEnclosingFrameId, hasReactions, findScrollableAncestor, pathOf, isScreenFrame, findTopLevelFrameNode } from "./node-tree.js";
+import { findEnclosingFrameId, hasReactions, findScrollableAncestor, pathOf, isScreenFrame, findTopLevelFrameNode, collectWireableElements, type NodeLike } from "./node-tree.js";
 import { selectNodeMatch, formatNodeNotFoundError, formatAmbiguousNodeError, type NodeCandidate } from "./node-catalog.js";
 import { encodeReactionActions, type EchoResolvers } from "./action-echo.js";
 import { resolveNavigateTransition } from "./motion-degrade.js";
@@ -488,6 +488,8 @@ function buildSetVariableData(
   );
 }
 
+const OVERVIEW_ELEMENT_CAP = 20;
+
 async function handleGetCanvasOverview(params: GetCanvasOverviewInput) {
   const page = await loadPage(params.pageId);
   // findAll (recursive) + isScreenFrame: include screens nested inside SECTIONs,
@@ -495,13 +497,18 @@ async function handleGetCanvasOverview(params: GetCanvasOverviewInput) {
   // which already enumerates via findAll.
   const frames = page
     .findAll((n) => isScreenFrame(n))
-    .map((f) => ({
-      id: f.id,
-      name: f.name,
-      width: (f as FrameNode).width,
-      height: (f as FrameNode).height,
-      isStartFrame: page.flowStartingPoints?.some((p) => p.nodeId === f.id) ?? false,
-    }));
+    .map((f) => {
+      const base = {
+        id: f.id,
+        name: f.name,
+        width: (f as FrameNode).width,
+        height: (f as FrameNode).height,
+        isStartFrame: page.flowStartingPoints?.some((p) => p.nodeId === f.id) ?? false,
+      };
+      if (!params.includeElements) return base;
+      const { elements, elementCount, truncated } = collectWireableElements(f as unknown as NodeLike, OVERVIEW_ELEMENT_CAP);
+      return { ...base, elements, elementCount, elementsTruncated: truncated };
+    });
 
   const selection = figma.currentPage.selection.map((n) => ({
     id: n.id,
