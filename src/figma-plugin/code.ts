@@ -50,6 +50,7 @@ import type {
   ClearReactionsInput,
   SetFrameScrollInput,
   NonConditionalActionInput,
+  SetVariableModeActionInput,
 } from "../mcp-server/tools.js";
 
 figma.showUI(__html__, { width: 320, height: 220 });
@@ -140,7 +141,7 @@ async function loadPage(pageId?: string): Promise<PageNode> {
  * try/catch.
  */
 async function buildNonConditionalAction(
-  action: NonConditionalActionInput,
+  action: NonConditionalActionInput | SetVariableModeActionInput,
   trigger: TriggerInput,
   afterTimeoutSeconds: number | undefined,
   transition: TransitionInput,
