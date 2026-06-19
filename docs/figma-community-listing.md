@@ -86,3 +86,17 @@ Only one plugin-facing change since then:
 (Everything else shipped since v0.30.1 — connection-guidance messages, --stdio mode,
 export_interactions, the Claude Desktop .mcpb extension — is server-side and needs no
 plugin re-publish.)
+
+### Update — richer canvas overview (sync with npm v0.38.0, published 2026-06-19)
+Only one plugin-facing change since the v0.36.0 publish (v0.37.0 validate_prototype and
+the v0.37.1 proto_scroll transition fix were both server-side).
+
+> 이제 캔버스 개요에서 각 화면의 와이어링 가능한 요소(버튼, 컴포넌트 인스턴스,
+> 이름 있는 프레임)를 ID와 함께 선택적으로 받을 수 있습니다. 덕분에 "모든 화면에
+> 뒤로가기 버튼 달아줘" 같은 추상적인 요청을 화면마다 따로 훑지 않고 한 번에
+> 처리합니다. 옵션(opt-in) 방식이라 기존 동작은 그대로입니다.
+
+(EN: Canvas overview can now optionally include each screen's wireable elements — buttons,
+component instances, named frames — with their IDs, so an abstract request like "add a back
+button to every screen" is resolved in one step instead of scanning each screen separately.
+Opt-in; default behavior unchanged.)
