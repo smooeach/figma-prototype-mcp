@@ -233,6 +233,77 @@ describe("compileProtoScroll", () => {
       type: "scroll", targetNodeId: "1:5", resetScrollPosition: false,
     });
   });
+
+  // Figma's runtime rejects SMART_ANIMATE / DISSOLVE / directional transitions on a
+  // SCROLL_TO action ("Reaction ... was invalid") — only INSTANT and SCROLL_ANIMATE are
+  // accepted (live-probed 2026-06-19). compileProtoScroll rewrites any animated transition
+  // to SCROLL_ANIMATE (object form — the bare "SCROLL_ANIMATE" string is not a valid
+  // TransitionInput shortcut), preserving easing+duration so the M3/HIG feel survives.
+  describe("→ SCROLL_ANIMATE rewrite (Figma SCROLL_TO constraint)", () => {
+    it("rewrites M3_EMPHASIZED (default) to SCROLL_ANIMATE preserving bezier+duration", () => {
+      const input = ProtoScrollInput.parse({ scrolls: [{ from: "1:1", to: "1:5" }] });
+      expect(compileProtoScroll(input).connections[0]!.transition).toEqual({
+        type: "SCROLL_ANIMATE",
+        duration: 0.5,
+        easing: { type: "CUSTOM_CUBIC_BEZIER", x1: 0.2, y1: 0, x2: 0, y2: 1 },
+      });
+    });
+
+    it("rewrites HIG_SNAPPY to SCROLL_ANIMATE preserving named easing", () => {
+      const input = ProtoScrollInput.parse({ scrolls: [{ from: "1:1", to: "1:5", motion: "HIG_SNAPPY" }] });
+      expect(compileProtoScroll(input).connections[0]!.transition).toEqual({
+        type: "SCROLL_ANIMATE",
+        easing: "QUICK",
+      });
+    });
+
+    it("rewrites string \"SMART_ANIMATE\" to SCROLL_ANIMATE object (not a bare string)", () => {
+      const input = ProtoScrollInput.parse({ scrolls: [{ from: "1:1", to: "1:5", motion: "SMART_ANIMATE" }] });
+      expect(compileProtoScroll(input).connections[0]!.transition).toEqual({ type: "SCROLL_ANIMATE" });
+    });
+
+    it("rewrites string \"DISSOLVE\" to SCROLL_ANIMATE object", () => {
+      const input = ProtoScrollInput.parse({ scrolls: [{ from: "1:1", to: "1:5", motion: "DISSOLVE" }] });
+      expect(compileProtoScroll(input).connections[0]!.transition).toEqual({ type: "SCROLL_ANIMATE" });
+    });
+
+    it("rewrites DISSOLVE-typed motion to SCROLL_ANIMATE preserving duration+easing", () => {
+      const input = ProtoScrollInput.parse({
+        scrolls: [{ from: "1:1", to: "1:5", motion: { type: "DISSOLVE", duration: 0.7, easing: "EASE_OUT" } }],
+      });
+      expect(compileProtoScroll(input).connections[0]!.transition).toEqual({
+        type: "SCROLL_ANIMATE", duration: 0.7, easing: "EASE_OUT",
+      });
+    });
+
+    it("rewrites directional (MOVE_IN) to SCROLL_ANIMATE, dropping direction", () => {
+      const input = ProtoScrollInput.parse({
+        scrolls: [{ from: "1:1", to: "1:5", motion: { type: "MOVE_IN", direction: "BOTTOM", duration: 0.4 } }],
+      });
+      expect(compileProtoScroll(input).connections[0]!.transition).toEqual({
+        type: "SCROLL_ANIMATE", duration: 0.4,
+      });
+    });
+
+    it("keeps INSTANT as INSTANT (no animation requested)", () => {
+      const input = ProtoScrollInput.parse({ scrolls: [{ from: "1:1", to: "1:5", motion: "INSTANT" }] });
+      expect(compileProtoScroll(input).connections[0]!.transition).toBe("INSTANT");
+    });
+
+    it("passes through SCROLL_ANIMATE-typed motion unchanged", () => {
+      const input = ProtoScrollInput.parse({
+        scrolls: [{ from: "1:1", to: "1:5", motion: { type: "SCROLL_ANIMATE", duration: 0.6, easing: "EASE_IN_AND_OUT" } }],
+      });
+      expect(compileProtoScroll(input).connections[0]!.transition).toEqual({
+        type: "SCROLL_ANIMATE", duration: 0.6, easing: "EASE_IN_AND_OUT",
+      });
+    });
+
+    it("produces a transition that still parses as a valid CreateReactions input", () => {
+      const out = compileProtoScroll(ProtoScrollInput.parse({ scrolls: [{ from: "1:1", to: "1:5" }] }));
+      expect(CreateReactionsInput.safeParse(out).success).toBe(true);
+    });
+  });
 });
 
 describe("compileProtoBack", () => {

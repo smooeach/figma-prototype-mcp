@@ -308,6 +308,23 @@ function rewriteForOverlay(t: Connection["transition"]): Connection["transition"
   return t;
 }
 
+// Figma's runtime accepts only INSTANT or SCROLL_ANIMATE on a SCROLL_TO action — SMART_ANIMATE,
+// DISSOLVE, and directional transitions are all rejected ("Reaction ... was invalid"; live-probed
+// 2026-06-19). Rewrite any animated transition to SCROLL_ANIMATE, preserving easing+duration so the
+// designer's M3/HIG feel survives. The result must be the OBJECT form — the bare "SCROLL_ANIMATE"
+// string is not a valid TransitionInput shortcut (TRANSITION_SHORTCUTS = INSTANT|DISSOLVE|SMART_ANIMATE).
+function rewriteForScroll(t: Connection["transition"]): Connection["transition"] {
+  if (t === "INSTANT") return t;
+  if (typeof t === "string") return { type: "SCROLL_ANIMATE" }; // "DISSOLVE" | "SMART_ANIMATE"
+  if (t.type === "SCROLL_ANIMATE") return t;
+  const { duration, easing } = t;
+  return {
+    type: "SCROLL_ANIMATE",
+    ...(duration !== undefined && { duration }),
+    ...(easing !== undefined && { easing }),
+  };
+}
+
 export function compileProtoWire(input: ProtoWireInput): CreateReactionsInputType {
   const connections: Connection[] = input.wires.map((w) => {
     const action: Connection["action"] = w.resetScrollPosition === undefined
@@ -353,7 +370,7 @@ export function compileProtoScroll(input: ProtoScrollInput): CreateReactionsInpu
       ? { type: "scroll", targetNodeId: s.to }
       : { type: "scroll", targetNodeId: s.to, resetScrollPosition: s.resetScrollPosition };
     return {
-      ...buildConnection(s.from, s.trigger, s.motion, action),
+      ...buildConnection(s.from, s.trigger, s.motion, action, rewriteForScroll),
       ...(s.fromScreen !== undefined && { fromScreen: s.fromScreen }),
     };
   });
