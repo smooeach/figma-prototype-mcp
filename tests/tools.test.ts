@@ -1123,6 +1123,14 @@ describe("GenerateInteractionCodeInput flutter", () => {
   });
 });
 
+describe("proto_set_variable_mode registration", () => {
+  it("registers proto_set_variable_mode and advertises modes on list_variables", () => {
+    const tools = makeTools(new HistoryStore());
+    expect(tools.find((t) => t.name === "proto_set_variable_mode")).toBeTruthy();
+    expect(tools.find((t) => t.name === "list_variables")!.description).toContain("collections");
+  });
+});
+
 describe("orient-skip steering", () => {
   const tools = makeTools(new HistoryStore());
   const desc = (name: string) => tools.find((t) => t.name === name)!.description;

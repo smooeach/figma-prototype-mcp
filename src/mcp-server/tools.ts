@@ -279,9 +279,16 @@ const ChangeToActionInput = z.object({
   targetVariantId: z.string().min(1),
 });
 
+const SetVariableModeActionInput = z.object({
+  type: z.literal("set_variable_mode"),
+  collection: z.string().min(1).optional(),
+  mode: z.string().min(1),
+});
+
 // The set of action types that may appear inside a conditional then/else branch.
 // Deliberately excludes ConditionalActionInput to block nesting.
 // Deliberately excludes ToggleVariableActionInput — toggle_variable may not appear inside conditionals.
+// Deliberately excludes SetVariableModeActionInput — mode switch may not appear inside conditionals (deferred).
 const NonConditionalActionInput = z.discriminatedUnion("type", [
   NavigateActionInput,
   ScrollActionInput,
@@ -312,6 +319,7 @@ const ActionInput = z.discriminatedUnion("type", [
   ConditionalActionInput,
   SetVariableActionInput,
   ToggleVariableActionInput,
+  SetVariableModeActionInput,
   ChangeToActionInput,
 ]);
 
@@ -377,5 +385,6 @@ export type ListReactionsInput = z.infer<typeof ListReactionsInput>;
 export type ClearReactionsInput = z.infer<typeof ClearReactionsInput>;
 export type SetFrameScrollInput = z.infer<typeof SetFrameScrollInput>;
 export type NonConditionalActionInput = z.infer<typeof NonConditionalActionInput>;
+export type SetVariableModeActionInput = z.infer<typeof SetVariableModeActionInput>;
 export type TriggerInput = z.infer<typeof TriggerInput>;
 export type TransitionInput = z.infer<typeof TransitionInput>;

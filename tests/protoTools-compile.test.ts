@@ -9,6 +9,7 @@ import {
   ProtoToggleVariableInput,
   ProtoConditionalInput,
   ProtoChangeToInput,
+  ProtoSetVariableModeInput,
   compileProtoWire,
   compileProtoOverlay,
   compileProtoScroll,
@@ -18,6 +19,7 @@ import {
   compileProtoToggleVariable,
   compileProtoConditional,
   compileProtoChangeTo,
+  compileProtoSetVariableMode,
 } from "../src/mcp-server/protoTools.js";
 import { CreateReactionsInput } from "../src/mcp-server/tools.js";
 
@@ -923,5 +925,30 @@ describe("proto cluster fromScreen threading", () => {
   it("omits fromScreen when not given (back)", () => {
     const out = compileProtoBack({ backs: [{ from: "Back" }], replaceExisting: false } as any);
     expect(out.connections[0]!.fromScreen).toBeUndefined();
+  });
+});
+
+describe("compileProtoSetVariableMode", () => {
+  it("compiles mode-only → set_variable_mode action (no transition, default ON_CLICK)", () => {
+    const input = ProtoSetVariableModeInput.parse({ modes: [{ from: "1:1", mode: "Dark" }] });
+    const conn = compileProtoSetVariableMode(input).connections[0]!;
+    expect(conn.action).toEqual({ type: "set_variable_mode", mode: "Dark" });
+    expect(conn.trigger).toBe("ON_CLICK");
+    expect((conn as any).transition).toBeUndefined();
+  });
+  it("threads collection, fromScreen, trigger, replaceExisting", () => {
+    const out = compileProtoSetVariableMode(ProtoSetVariableModeInput.parse({
+      modes: [{ from: "btn", mode: "Dark", collection: "Theme", fromScreen: "Home", trigger: "ON_HOVER" }],
+      replaceExisting: true,
+    }));
+    const conn = out.connections[0]! as any;
+    expect(conn.action).toEqual({ type: "set_variable_mode", collection: "Theme", mode: "Dark" });
+    expect(conn.fromScreen).toBe("Home");
+    expect(conn.trigger).toBe("ON_HOVER");
+    expect(out.replaceExisting).toBe(true);
+  });
+  it("output parses as valid CreateReactions input", () => {
+    const out = compileProtoSetVariableMode(ProtoSetVariableModeInput.parse({ modes: [{ from: "1:1", mode: "Dark" }] }));
+    expect(CreateReactionsInput.safeParse(out).success).toBe(true);
   });
 });

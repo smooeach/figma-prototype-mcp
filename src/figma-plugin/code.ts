@@ -38,6 +38,7 @@ import {
   type ComparisonOperator,
 } from "./condition-codec.js";
 import { assembleFlowGraph, type RawInteraction } from "./flow-graph.js";
+import { selectModeMatch } from "./mode-catalog.js";
 import type {
   GetCanvasOverviewInput,
   GetPrototypeFlowInput,
@@ -49,6 +50,7 @@ import type {
   ClearReactionsInput,
   SetFrameScrollInput,
   NonConditionalActionInput,
+  SetVariableModeActionInput,
 } from "../mcp-server/tools.js";
 
 figma.showUI(__html__, { width: 320, height: 220 });
@@ -139,7 +141,7 @@ async function loadPage(pageId?: string): Promise<PageNode> {
  * try/catch.
  */
 async function buildNonConditionalAction(
-  action: NonConditionalActionInput,
+  action: NonConditionalActionInput | SetVariableModeActionInput,
   trigger: TriggerInput,
   afterTimeoutSeconds: number | undefined,
   transition: TransitionInput,
@@ -231,6 +233,11 @@ async function buildNonConditionalAction(
       variableValue,
     };
     return { built, warning };
+  }
+  if (action.type === "set_variable_mode") {
+    const { variableCollectionId, variableModeId } = await resolveModeByName(action.mode, action.collection);
+    const built: BuiltAction = { type: "SET_VARIABLE_MODE", variableCollectionId, variableModeId };
+    return { built };
   }
   if (action.type === "swap_overlay") {
     let target = await figma.getNodeByIdAsync(action.targetFrameId);
@@ -382,6 +389,21 @@ async function resolveVariableByName(
 ): Promise<{ variable: Variable; warning?: string }> {
   const r = await findVariableByName(name, collection);
   if (r.kind === "match") return { variable: r.variable, warning: r.warning };
+  throw new Error(r.message);
+}
+
+async function resolveModeByName(
+  mode: string,
+  collection: string | undefined,
+): Promise<{ variableCollectionId: string; variableModeId: string }> {
+  const cols = await figma.variables.getLocalVariableCollectionsAsync();
+  const descriptors = cols.map((c) => ({
+    id: c.id,
+    name: c.name,
+    modes: c.modes.map((m) => ({ name: m.name, modeId: m.modeId, isDefault: m.modeId === c.defaultModeId })),
+  }));
+  const r = selectModeMatch(descriptors, mode, collection);
+  if (r.kind === "match") return { variableCollectionId: r.collectionId, variableModeId: r.modeId };
   throw new Error(r.message);
 }
 
@@ -639,7 +661,13 @@ async function handleListVariables(params: ListVariablesInput) {
     }
   }
 
-  return { local, library, remoteEnumerated };
+  const collectionList = await figma.variables.getLocalVariableCollectionsAsync();
+  const collections = collectionList.map((c) => ({
+    name: c.name,
+    modes: c.modes.map((m) => ({ name: m.name, isDefault: m.modeId === c.defaultModeId })),
+  }));
+
+  return { local, library, remoteEnumerated, collections };
 }
 
 async function handleEnsureVariable(params: CreateVariableInput) {
@@ -859,6 +887,17 @@ const echoResolvers: EchoResolvers = {
     }
   },
   nodeName: async (id) => (await figma.getNodeByIdAsync(id))?.name ?? undefined,
+  collectionMode: async (collectionId, modeId) => {
+    try {
+      const col = await figma.variables.getVariableCollectionByIdAsync(collectionId);
+      if (!col) return undefined;
+      const mode = col.modes.find((m) => m.modeId === modeId);
+      if (!mode) return undefined;
+      return { collection: col.name, mode: mode.name };
+    } catch {
+      return undefined;
+    }
+  },
   overlayMeta: async (id) => {
     const node = await figma.getNodeByIdAsync(id);
     // FRAME/COMPONENT/INSTANCE/SLOT all extend DefaultFrameMixin and carry overlay props —

@@ -187,6 +187,20 @@ export const ProtoToggleVariableInput = z.object({
   replaceExisting: z.boolean().default(false),
 });
 
+const ProtoSetVariableModeEntry = z.object({
+  from: z.string().min(1),
+  fromScreen: FROM_SCREEN_FIELD,
+  collection: COLLECTION_FIELD,
+  mode: z.string().min(1),
+  trigger: TriggerInput.optional(),
+}).strict();
+
+export const ProtoSetVariableModeInput = z.object({
+  modes: z.array(ProtoSetVariableModeEntry).min(1),
+  replaceExisting: z.boolean().default(false),
+});
+export type ProtoSetVariableModeInput = z.infer<typeof ProtoSetVariableModeInput>;
+
 const ComparisonOperator = z.enum(COMPARISON_OPERATORS);
 
 const ProtoConditionIf = z.object({
@@ -437,6 +451,24 @@ export function compileProtoToggleVariable(input: ProtoToggleVariableInput): Cre
       sourceNodeId: t.from,
       trigger: t.trigger ?? DEFAULT_TRIGGER,
       action,
+    } as Connection;
+  });
+  return { connections, replaceExisting: input.replaceExisting };
+}
+
+export function compileProtoSetVariableMode(input: ProtoSetVariableModeInput): CreateReactionsInputType {
+  const connections: Connection[] = input.modes.map((m) => {
+    const action: Connection["action"] = {
+      type: "set_variable_mode",
+      ...(m.collection !== undefined && { collection: m.collection }),
+      mode: m.mode,
+    };
+    // No `transition` — SET_VARIABLE_MODE is not a NODE navigation.
+    return {
+      sourceNodeId: m.from,
+      trigger: m.trigger ?? DEFAULT_TRIGGER,
+      action,
+      ...(m.fromScreen !== undefined && { fromScreen: m.fromScreen }),
     } as Connection;
   });
   return { connections, replaceExisting: input.replaceExisting };

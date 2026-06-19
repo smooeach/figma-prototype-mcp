@@ -29,6 +29,7 @@ export type Action =
   | { type: "openUrl"; url: unknown; openInNewTab?: unknown }
   | { type: "setVariable"; variable: unknown; value: unknown }
   | { type: "toggleVariable"; variable: unknown }
+  | { type: "setVariableMode"; collection: unknown; mode: unknown }
   | { type: "conditional"; if: ConditionNode; then: Action[]; else?: Action[] };
 
 export interface InteractionEntry {
@@ -110,6 +111,8 @@ function mapAction(a: any, source: NodeRef, unsupported: Unsupported[]): Action 
       return { type: "setVariable", variable: a.variable, value: a.value };
     case "toggle_variable":
       return { type: "toggleVariable", variable: a.variable };
+    case "set_variable_mode":
+      return { type: "setVariableMode", collection: a.collection, mode: a.mode };
     case "NODE": {
       const to: NodeRef = { id: a.destinationId ?? null, name: a.destinationName ?? null };
       switch (a.navigation) {

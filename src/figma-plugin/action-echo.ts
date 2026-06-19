@@ -15,6 +15,8 @@ export interface EchoResolvers {
   overlayMeta(id: string): Promise<
     { positionType?: string; background?: string; backgroundInteraction?: string } | undefined
   >;
+  /** Collection + mode id -> human-readable names; undefined if not found. */
+  collectionMode?(collectionId: string, modeId: string): Promise<{ collection: string; mode: string } | undefined>;
 }
 
 /** Re-encode a built reaction action into the list_reactions wire/echo shape. */
@@ -64,6 +66,15 @@ export async function encodeActionForListEcho(action: any, resolvers: EchoResolv
       value = vd?.value;
     }
     return { type: "set_variable", variable: varName ?? `<id:${action.variableId}>`, value };
+  }
+
+  if (action.type === "SET_VARIABLE_MODE") {
+    const names = await resolvers.collectionMode?.(action.variableCollectionId, action.variableModeId);
+    return {
+      type: "set_variable_mode",
+      collection: names?.collection ?? `<id:${action.variableCollectionId}>`,
+      mode: names?.mode ?? `<id:${action.variableModeId}>`,
+    };
   }
 
   // NODE / CLOSE / BACK / URL / unknown passthrough.
