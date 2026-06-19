@@ -1,6 +1,6 @@
 {
   "name": "figma-prototype-mcp",
-  "version": "0.37.1",
+  "version": "0.38.0",
   "description": "MCP server for creating Figma prototype interactions via natural language",
   "license": "MIT",
   "author": "smooeach",
