@@ -100,3 +100,16 @@ the v0.37.1 proto_scroll transition fix were both server-side).
 component instances, named frames — with their IDs, so an abstract request like "add a back
 button to every screen" is resolved in one step instead of scanning each screen separately.
 Opt-in; default behavior unchanged.)
+
+### Update — variable mode switching (sync with npm v0.39.0, published 2026-06-19)
+One plugin-facing change since v0.38.0: a new SET_VARIABLE_MODE action + collection-mode
+discovery in list_variables.
+
+> 이제 인터랙션으로 변수 컬렉션의 모드(예: Light↔Dark 테마, 밀도)를 전환할 수 있습니다 —
+> proto_set_variable_mode. 모드 이름만 주면 그 모드를 가진 컬렉션을 알아서 찾고(여러 개면
+> 되물음), list_variables에서 각 컬렉션의 모드를 확인할 수 있습니다. 로컬 컬렉션 대상.
+
+(EN: A new proto_set_variable_mode wires a reaction that switches a variable collection to a
+named mode (e.g. Light→Dark) on a trigger. Give just the mode name and it finds the owning
+collection (asks if ambiguous); list_variables now lists each collection's modes. Local
+collections only.)
