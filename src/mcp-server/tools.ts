@@ -372,7 +372,7 @@ const ConnectionInput = z.object({
   (v) => {
     if (v.action.type !== "media") return true;
     const ma = v.action.mediaAction;
-    const isSkipFB = ma === "SKIP_FORWARD" || ma === "SKIP_BACKWARD";
+    const isSkipFB = (MEDIA_SKIP_ACTIONS as readonly string[]).includes(ma);
     const isSkipTo = ma === "SKIP_TO";
     if (isSkipFB && v.action.amountToSkip === undefined) return false;
     if (!isSkipFB && v.action.amountToSkip !== undefined) return false;

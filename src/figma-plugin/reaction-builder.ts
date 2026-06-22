@@ -481,6 +481,7 @@ export interface MediaBuildInput {
 export function buildMediaReaction(input: MediaBuildInput): BuiltReaction {
   let action: BuiltAction;
   if (input.mediaAction === "SKIP_FORWARD" || input.mediaAction === "SKIP_BACKWARD") {
+    // Sole runtime guard for the proto_media path (ProtoMediaInput has no cross-field refine); do not remove.
     if (input.amountToSkip === undefined) {
       throw new Error("amountToSkip is required for SKIP_FORWARD/SKIP_BACKWARD");
     }
