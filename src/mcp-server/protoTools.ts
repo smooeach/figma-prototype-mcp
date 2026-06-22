@@ -201,6 +201,27 @@ export const ProtoSetVariableModeInput = z.object({
 });
 export type ProtoSetVariableModeInput = z.infer<typeof ProtoSetVariableModeInput>;
 
+const MEDIA_ACTION_ENUM = z.enum([
+  "PLAY", "PAUSE", "TOGGLE_PLAY_PAUSE", "MUTE", "UNMUTE", "TOGGLE_MUTE_UNMUTE",
+  "SKIP_FORWARD", "SKIP_BACKWARD", "SKIP_TO",
+]);
+
+const ProtoMediaEntry = z.object({
+  from: z.string().min(1),
+  fromScreen: FROM_SCREEN_FIELD,
+  action: MEDIA_ACTION_ENUM,
+  target: z.string().min(1).optional(),
+  amountToSkip: z.number().positive().optional(),
+  newTimestamp: z.number().nonnegative().optional(),
+  trigger: TriggerInput.optional(),
+}).strict();
+
+export const ProtoMediaInput = z.object({
+  medias: z.array(ProtoMediaEntry).min(1),
+  replaceExisting: z.boolean().default(false),
+});
+export type ProtoMediaInput = z.infer<typeof ProtoMediaInput>;
+
 const ComparisonOperator = z.enum(COMPARISON_OPERATORS);
 
 const ProtoConditionIf = z.object({
@@ -464,6 +485,26 @@ export function compileProtoSetVariableMode(input: ProtoSetVariableModeInput): C
       mode: m.mode,
     };
     // No `transition` — SET_VARIABLE_MODE is not a NODE navigation.
+    return {
+      sourceNodeId: m.from,
+      trigger: m.trigger ?? DEFAULT_TRIGGER,
+      action,
+      ...(m.fromScreen !== undefined && { fromScreen: m.fromScreen }),
+    } as Connection;
+  });
+  return { connections, replaceExisting: input.replaceExisting };
+}
+
+export function compileProtoMedia(input: ProtoMediaInput): CreateReactionsInputType {
+  const connections: Connection[] = input.medias.map((m) => {
+    const action: Connection["action"] = {
+      type: "media",
+      mediaAction: m.action,
+      ...(m.target !== undefined && { target: m.target }),
+      ...(m.amountToSkip !== undefined && { amountToSkip: m.amountToSkip }),
+      ...(m.newTimestamp !== undefined && { newTimestamp: m.newTimestamp }),
+    };
+    // No `transition` — UPDATE_MEDIA_RUNTIME is not a NODE navigation.
     return {
       sourceNodeId: m.from,
       trigger: m.trigger ?? DEFAULT_TRIGGER,

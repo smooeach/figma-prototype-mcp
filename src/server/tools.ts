@@ -31,6 +31,7 @@ import {
   ProtoGetLastHistoryInput,
   ProtoChangeToInput,
   ProtoSetVariableModeInput,
+  ProtoMediaInput,
   compileProtoWire,
   compileProtoOverlay,
   compileProtoScroll,
@@ -41,6 +42,7 @@ import {
   compileProtoConditional,
   compileProtoChangeTo,
   compileProtoSetVariableMode,
+  compileProtoMedia,
 } from "../mcp-server/protoTools.js";
 import type { CommandName } from "../mcp-server/types.js";
 import { buildInteractionSpec } from "./interaction-spec.js";
@@ -416,6 +418,24 @@ export function makeTools(historyStore: HistoryStore): ToolEntry[] {
         const parsedInput = input as ProtoSetVariableModeInput;
         return recordedHandler(historyStore, "proto_set_variable_mode", parsedInput, () =>
           session.sendCommand("CREATE_REACTIONS" as CommandName, compileProtoSetVariableMode(parsedInput)),
+        );
+      },
+    },
+    {
+      name: "proto_media",
+      description:
+        "이 도구는 오직 피그마의 프로토타입 인터랙션/애니메이션 생성·수정 목적으로만 사용합니다. " +
+        "Control media playback (video/GIF) when the source is triggered — Figma's UPDATE_MEDIA_RUNTIME action. " +
+        "`action` is one of PLAY, PAUSE, TOGGLE_PLAY_PAUSE, MUTE, UNMUTE, TOGGLE_MUTE_UNMUTE, SKIP_FORWARD, " +
+        "SKIP_BACKWARD, SKIP_TO. `target` is the media node (NAME or ID); omit it to control the media on the " +
+        "source node itself. SKIP_FORWARD/SKIP_BACKWARD require `amountToSkip` (seconds); SKIP_TO requires " +
+        "`newTimestamp` (seconds). No motion (media control has no transition). Defaults: trigger=ON_CLICK. " +
+        "Input `{ medias: [{ from, action }] }`.",
+      schema: ProtoMediaInput,
+      handler: async (input, session) => {
+        const parsedInput = input as ProtoMediaInput;
+        return recordedHandler(historyStore, "proto_media", parsedInput, () =>
+          session.sendCommand("CREATE_REACTIONS" as CommandName, compileProtoMedia(parsedInput)),
         );
       },
     },

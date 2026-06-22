@@ -10,7 +10,8 @@ export type ProtoToolName =
   | "proto_set_variable"
   | "proto_set_variable_mode"
   | "proto_toggle_variable"
-  | "proto_conditional";
+  | "proto_conditional"
+  | "proto_media";
 
 export interface HistoryEntry {
   historyId: string;
