@@ -823,4 +823,19 @@ describe("buildMediaReaction", () => {
     const r = buildMediaReaction({ trigger: "ON_CLICK", mediaAction: "MUTE", destinationId: null });
     expect((r.actions[0] as any).transition).toBeUndefined();
   });
+
+  it("builds SKIP_BACKWARD with amountToSkip", () => {
+    const r = buildMediaReaction({ trigger: "ON_CLICK", mediaAction: "SKIP_BACKWARD", destinationId: null, amountToSkip: 3 });
+    expect(r.actions).toEqual([
+      { type: "UPDATE_MEDIA_RUNTIME", destinationId: null, mediaAction: "SKIP_BACKWARD", amountToSkip: 3 },
+    ]);
+  });
+
+  it("throws when SKIP_FORWARD is missing amountToSkip", () => {
+    expect(() => buildMediaReaction({ trigger: "ON_CLICK", mediaAction: "SKIP_FORWARD", destinationId: null } as any)).toThrow(/amountToSkip/);
+  });
+
+  it("throws when SKIP_TO is missing newTimestamp", () => {
+    expect(() => buildMediaReaction({ trigger: "ON_CLICK", mediaAction: "SKIP_TO", destinationId: null } as any)).toThrow(/newTimestamp/);
+  });
 });

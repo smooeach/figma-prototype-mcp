@@ -481,18 +481,24 @@ export interface MediaBuildInput {
 export function buildMediaReaction(input: MediaBuildInput): BuiltReaction {
   let action: BuiltAction;
   if (input.mediaAction === "SKIP_FORWARD" || input.mediaAction === "SKIP_BACKWARD") {
+    if (input.amountToSkip === undefined) {
+      throw new Error("amountToSkip is required for SKIP_FORWARD/SKIP_BACKWARD");
+    }
     action = {
       type: "UPDATE_MEDIA_RUNTIME",
       destinationId: input.destinationId,
       mediaAction: input.mediaAction,
-      amountToSkip: input.amountToSkip!,
+      amountToSkip: input.amountToSkip,
     };
   } else if (input.mediaAction === "SKIP_TO") {
+    if (input.newTimestamp === undefined) {
+      throw new Error("newTimestamp is required for SKIP_TO");
+    }
     action = {
       type: "UPDATE_MEDIA_RUNTIME",
       destinationId: input.destinationId,
       mediaAction: "SKIP_TO",
-      newTimestamp: input.newTimestamp!,
+      newTimestamp: input.newTimestamp,
     };
   } else {
     action = {
