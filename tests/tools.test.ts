@@ -1155,3 +1155,54 @@ describe("orient-skip steering", () => {
     expect(GetCanvasOverviewInput.parse({})).toEqual({}); // still optional
   });
 });
+
+describe("media action (create_reactions)", () => {
+  const wrap = (action: unknown) => ({
+    connections: [{ sourceNodeId: "1:1", action }],
+  });
+
+  it("accepts a simple media action with no params", () => {
+    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "TOGGLE_PLAY_PAUSE" }));
+    expect(r.success).toBe(true);
+  });
+
+  it("accepts a media action with a target name", () => {
+    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "PLAY", target: "Hero Video" }));
+    expect(r.success).toBe(true);
+  });
+
+  it("accepts SKIP_FORWARD with amountToSkip", () => {
+    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "SKIP_FORWARD", amountToSkip: 5 }));
+    expect(r.success).toBe(true);
+  });
+
+  it("accepts SKIP_TO with newTimestamp", () => {
+    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "SKIP_TO", newTimestamp: 12 }));
+    expect(r.success).toBe(true);
+  });
+
+  it("rejects SKIP_FORWARD without amountToSkip", () => {
+    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "SKIP_FORWARD" }));
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects amountToSkip on a simple action", () => {
+    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "PLAY", amountToSkip: 5 }));
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects SKIP_TO without newTimestamp", () => {
+    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "SKIP_TO" }));
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects newTimestamp on a skip-forward action", () => {
+    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "SKIP_FORWARD", amountToSkip: 5, newTimestamp: 1 }));
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects an unknown mediaAction", () => {
+    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "REWIND" }));
+    expect(r.success).toBe(false);
+  });
+});

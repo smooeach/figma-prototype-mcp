@@ -285,6 +285,39 @@ const SetVariableModeActionInput = z.object({
   mode: z.string().min(1),
 });
 
+const MEDIA_SIMPLE_ACTIONS = [
+  "PLAY", "PAUSE", "TOGGLE_PLAY_PAUSE", "MUTE", "UNMUTE", "TOGGLE_MUTE_UNMUTE",
+] as const;
+const MEDIA_SKIP_ACTIONS = ["SKIP_FORWARD", "SKIP_BACKWARD"] as const;
+
+const MediaActionInput = z.object({
+  type: z.literal("media"),
+  mediaAction: z
+    .enum([...MEDIA_SIMPLE_ACTIONS, ...MEDIA_SKIP_ACTIONS, "SKIP_TO"])
+    .describe(
+      "Media playback control. PLAY/PAUSE/TOGGLE_PLAY_PAUSE/MUTE/UNMUTE/TOGGLE_MUTE_UNMUTE take no extra param; " +
+      "SKIP_FORWARD/SKIP_BACKWARD require amountToSkip (seconds); SKIP_TO requires newTimestamp (seconds)."
+    ),
+  target: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "The media node to control, by NAME or ID. Omit to control the media on the source node itself " +
+      "(Figma destinationId=null)."
+    ),
+  amountToSkip: z
+    .number()
+    .positive()
+    .optional()
+    .describe("Seconds to skip. Required for SKIP_FORWARD/SKIP_BACKWARD; forbidden otherwise."),
+  newTimestamp: z
+    .number()
+    .nonnegative()
+    .optional()
+    .describe("Absolute timestamp in seconds to jump to. Required for SKIP_TO; forbidden otherwise."),
+});
+
 // The set of action types that may appear inside a conditional then/else branch.
 // Deliberately excludes ConditionalActionInput to block nesting.
 // Deliberately excludes ToggleVariableActionInput — toggle_variable may not appear inside conditionals.
@@ -321,6 +354,7 @@ const ActionInput = z.discriminatedUnion("type", [
   ToggleVariableActionInput,
   SetVariableModeActionInput,
   ChangeToActionInput,
+  MediaActionInput,
 ]);
 
 const ConnectionInput = z.object({
@@ -334,6 +368,19 @@ const ConnectionInput = z.object({
 }).refine(
   (v) => v.trigger !== "AFTER_TIMEOUT" || typeof v.afterTimeoutSeconds === "number",
   { message: "afterTimeoutSeconds is required when trigger is the string \"AFTER_TIMEOUT\" (object form uses { type: \"AFTER_TIMEOUT\", timeout })" }
+).refine(
+  (v) => {
+    if (v.action.type !== "media") return true;
+    const ma = v.action.mediaAction;
+    const isSkipFB = ma === "SKIP_FORWARD" || ma === "SKIP_BACKWARD";
+    const isSkipTo = ma === "SKIP_TO";
+    if (isSkipFB && v.action.amountToSkip === undefined) return false;
+    if (!isSkipFB && v.action.amountToSkip !== undefined) return false;
+    if (isSkipTo && v.action.newTimestamp === undefined) return false;
+    if (!isSkipTo && v.action.newTimestamp !== undefined) return false;
+    return true;
+  },
+  { message: "media: amountToSkip is required only for SKIP_FORWARD/SKIP_BACKWARD; newTimestamp is required only for SKIP_TO" }
 );
 
 export const CreateReactionsInput = z.object({
@@ -386,5 +433,6 @@ export type ClearReactionsInput = z.infer<typeof ClearReactionsInput>;
 export type SetFrameScrollInput = z.infer<typeof SetFrameScrollInput>;
 export type NonConditionalActionInput = z.infer<typeof NonConditionalActionInput>;
 export type SetVariableModeActionInput = z.infer<typeof SetVariableModeActionInput>;
+export type MediaActionInput = z.infer<typeof MediaActionInput>;
 export type TriggerInput = z.infer<typeof TriggerInput>;
 export type TransitionInput = z.infer<typeof TransitionInput>;
