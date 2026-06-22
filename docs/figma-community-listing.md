@@ -113,3 +113,14 @@ discovery in list_variables.
 named mode (e.g. Light→Dark) on a trigger. Give just the mode name and it finds the owning
 collection (asks if ambiguous); list_variables now lists each collection's modes. Local
 collections only.)
+
+### Update — media playback control (sync with npm v0.40.0, published 2026-06-22)
+One plugin-facing change since v0.39.0: a new UPDATE_MEDIA_RUNTIME action (+ its read-path decode).
+
+> 이제 인터랙션으로 영상/GIF 미디어의 재생을 제어할 수 있습니다 — proto_media. 재생/일시정지/
+> 토글, 음소거/해제/토글, 앞뒤로 건너뛰기(초), 특정 시점으로 이동(초)을 지원합니다. 대상(target)은
+> 반드시 다른 미디어 노드를 지정해야 합니다(피그마가 null/자기 자신 대상을 거부). 모션 없음.
+
+(EN: A new proto_media wires a reaction that controls video/GIF playback on a trigger —
+play/pause/toggle, mute/unmute/toggle, skip forward/back (seconds), and skip-to (seconds).
+`target` must be a different media node — Figma rejects a null/self destination. No motion.)
