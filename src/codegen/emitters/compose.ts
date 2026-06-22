@@ -184,6 +184,10 @@ function renderActionKotlin(a: Action, indent: string, ids: Map<string, ScreenId
       }
       return out;
     }
+    case "media": {
+      const label = (a as any).target?.name ?? (a as any).target?.id ?? "current media";
+      return [`${indent}// TODO: media '${(a as any).mediaAction}' on '${label}' — control your ExoPlayer`];
+    }
     default:
       return [`${indent}// TODO: unsupported action ${JSON.stringify((a as any).type)}`];
   }

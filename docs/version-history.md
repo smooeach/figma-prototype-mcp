@@ -3,9 +3,9 @@
 프로젝트가 각 버전에서 **무엇을 했고 그래서 무엇이 만들어졌는지** 정리한 문서입니다.
 (공식 Figma MCP가 화면을 *만들면*, 이 도구는 그 화면들을 *엮습니다* — 노드/스크린 생성은 설계상 범위 밖.)
 
-> 한 줄 요약: **navigate-only 위어링(v0.1.0)** 에서 출발 → 인터랙션 표면 전체 + 트랜지션/트리거 + 변수/조건/모드 + 읽기·코드젠·정적 검증을 갖춘 **23개 도구 + 3채널 배포(npm·GitHub·Figma Community)** 제품으로.
+> 한 줄 요약: **navigate-only 위어링(v0.1.0)** 에서 출발 → 인터랙션 표면 전체 + 트랜지션/트리거 + 변수/조건/모드 + 읽기·코드젠·정적 검증을 갖춘 **24개 도구 + 3채널 배포(npm·GitHub·Figma Community)** 제품으로.
 
-도구 수 추이: v0.1.0 wiring MVP → v0.27.0 **17** → get_prototype_flow **18** → create_variable **19** → generate_interaction_code **20** → export_interactions 계열 정리 → v0.37.0 validate_prototype **22** → v0.39.0 proto_set_variable_mode **23**.
+도구 수 추이: v0.1.0 wiring MVP → v0.27.0 **17** → get_prototype_flow **18** → create_variable **19** → generate_interaction_code **20** → export_interactions 계열 정리 → v0.37.0 validate_prototype **22** → v0.39.0 proto_set_variable_mode **23** → proto_media **24**.
 
 ---
 
@@ -174,6 +174,19 @@ LLM이 변수를 더 잘 다루도록.
 
 - **v0.39.0** — **`proto_set_variable_mode`** (23번째 도구) — 인터랙션으로 변수 컬렉션의 **모드 전환** (예: Light → Dark) via `SET_VARIABLE_MODE`. 모드는 이름으로 해석(`collection` 옵션, 모호하면 LLM이 질문); `list_variables`에 `collections[]` 추가. 라이브 프로브 PASS, 701 테스트.
   - Opus 리뷰가 plan-vs-spec 불일치 포착: set_variable_mode를 conditional-branch 액션 union에서 제외(스펙 non-goal), 대신 interaction-spec read 경로에만 매핑.
+
+---
+
+## Phase 18 — 미디어 런타임 제어 (v0.40.0)
+
+- **v0.40.0** — **`proto_media`** (24번째 도구) + 저수준 `media` 액션 — 인터랙션으로 **미디어 재생 제어**
+  (`UPDATE_MEDIA_RUNTIME`): PLAY/PAUSE/TOGGLE_PLAY_PAUSE/MUTE/UNMUTE/TOGGLE_MUTE_UNMUTE +
+  SKIP_FORWARD/SKIP_BACKWARD(`amountToSkip` 초) + SKIP_TO(`newTimestamp` 초). `target`(대상 미디어 노드)은
+  **필수** — 다른 유효한 미디어 노드여야 함. 조건부 분기 제외. 읽기 완전 디코딩 + 코드젠 5타깃 가이드 스텁.
+  **이로써 buildable한 마지막 인터랙션 표면 갭이 닫힘** (나머지 미구현은 전부 플랫폼 차단).
+  **라이브 프로브 PASS** (2026-06-22, 실제 비디오 노드): targeted 3-shape + echo round-trip ✅, no-target 거부 ✅.
+  **라이브 finding** = Figma는 `destinationId:null`/self를 write 시점에 거부("Invalid format")하므로 typings의
+  `string|null`과 달리 target 필수로 수정(`fix(media)`). 코드 변경(code.ts/reaction-builder/action-echo) → Figma 재배포 필요.
 
 ---
 

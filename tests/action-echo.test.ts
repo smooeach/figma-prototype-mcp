@@ -190,6 +190,44 @@ const ovResolvers: EchoResolvers = {
       : undefined,
 };
 
+describe("encodeActionForListEcho — media actions", () => {
+  it("decodes a simple media action with a resolved target", async () => {
+    const out = await encodeActionForListEcho(
+      { type: "UPDATE_MEDIA_RUNTIME", destinationId: "m1", mediaAction: "TOGGLE_PLAY_PAUSE" },
+      make({}, { m1: "Hero Video" }),
+    );
+    expect(out).toEqual({
+      type: "media", mediaAction: "TOGGLE_PLAY_PAUSE", target: { id: "m1", name: "Hero Video" },
+    });
+  });
+
+  it("omits target when destinationId is null (self)", async () => {
+    const out = await encodeActionForListEcho(
+      { type: "UPDATE_MEDIA_RUNTIME", destinationId: null, mediaAction: "PLAY" },
+      make(),
+    );
+    expect(out).toEqual({ type: "media", mediaAction: "PLAY" });
+  });
+
+  it("decodes SKIP_FORWARD with amountToSkip", async () => {
+    const out = await encodeActionForListEcho(
+      { type: "UPDATE_MEDIA_RUNTIME", destinationId: null, mediaAction: "SKIP_FORWARD", amountToSkip: 5 },
+      make(),
+    );
+    expect(out).toEqual({ type: "media", mediaAction: "SKIP_FORWARD", amountToSkip: 5 });
+  });
+
+  it("decodes SKIP_TO with newTimestamp", async () => {
+    const out = await encodeActionForListEcho(
+      { type: "UPDATE_MEDIA_RUNTIME", destinationId: "m1", mediaAction: "SKIP_TO", newTimestamp: 12 },
+      make({}, { m1: "Clip" }),
+    );
+    expect(out).toEqual({
+      type: "media", mediaAction: "SKIP_TO", target: { id: "m1", name: "Clip" }, newTimestamp: 12,
+    });
+  });
+});
+
 describe("encodeActionForListEcho overlay", () => {
   it("echoes overlay position/background for an OVERLAY navigation", async () => {
     const out: any = await encodeActionForListEcho(

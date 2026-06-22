@@ -12,6 +12,7 @@ import {
   buildUrlReaction,
   buildSwapOverlayReaction,
   buildConditionalReaction,
+  buildMediaReaction,
   buildTrigger,
   type BuiltReaction,
   type BuiltAction,
@@ -51,6 +52,7 @@ import type {
   SetFrameScrollInput,
   NonConditionalActionInput,
   SetVariableModeActionInput,
+  MediaActionInput,
 } from "../mcp-server/tools.js";
 
 figma.showUI(__html__, { width: 320, height: 220 });
@@ -141,7 +143,7 @@ async function loadPage(pageId?: string): Promise<PageNode> {
  * try/catch.
  */
 async function buildNonConditionalAction(
-  action: NonConditionalActionInput | SetVariableModeActionInput,
+  action: NonConditionalActionInput | SetVariableModeActionInput | MediaActionInput,
   trigger: TriggerInput,
   afterTimeoutSeconds: number | undefined,
   transition: TransitionInput,
@@ -288,6 +290,25 @@ async function buildNonConditionalAction(
       ? undefined
       : `Change-to source ${sourceNode.id} is not (and is not inside) a component instance; the reaction will not animate at runtime`;
     return { built: reaction.actions[0]!, warning };
+  }
+  if (action.type === "media") {
+    // `target` is required: Figma rejects a null/self media destination at write time
+    // ("Invalid format"), verified by live probe 2026-06-22. Always resolve to a real node id.
+    let target = await figma.getNodeByIdAsync(action.target);
+    if (!target) {
+      const resolvedId = await resolveNodeByName(action.target, undefined);
+      target = await figma.getNodeByIdAsync(resolvedId);
+    }
+    if (!target) throw new Error(`Media target node not found: ${action.target}`);
+    const reaction = buildMediaReaction({
+      trigger,
+      afterTimeoutSeconds,
+      mediaAction: action.mediaAction,
+      destinationId: target.id,
+      amountToSkip: action.amountToSkip,
+      newTimestamp: action.newTimestamp,
+    });
+    return { built: reaction.actions[0]! };
   }
   throw new Error(`Unhandled action type: ${(action as { type: string }).type}`);
 }

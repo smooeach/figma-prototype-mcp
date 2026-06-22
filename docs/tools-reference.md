@@ -1,6 +1,6 @@
 # 🧰 도구 레퍼런스 — figma-prototype-mcp
 
-23개 도구를 **한눈에 보는 표 → 그룹별 상세 → 업데이트 내역** 순으로 정리. (v0.39.0 기준)
+24개 도구를 **한눈에 보는 표 → 그룹별 상세 → 업데이트 내역** 순으로 정리. (v0.40.0 기준)
 
 > 공식 Figma MCP가 **화면을 만들면**, 이 도구는 그 화면들을 **엮습니다(wiring)**.
 > 노드/스크린 생성은 설계상 범위 밖.
@@ -21,7 +21,7 @@
 | `list_reactions` | v0.1.0 🟦 | 단일 노드의 리액션 목록 |
 | `list_variables` | v0.24.0 🟦 | 쓸 수 있는 변수 + 컬렉션/모드 목록 |
 
-### 🔗 엮기 — 고수준 `proto_*` — 11개
+### 🔗 엮기 — 고수준 `proto_*` — 12개
 | 도구 | 도입 | 한 줄 역할 |
 |---|---|---|
 | `proto_wire` | v0.19.0 🟦 | 버튼 → 화면 이동 (Navigate) |
@@ -34,6 +34,7 @@
 | `proto_toggle_variable` | v0.22.0 🟦 | BOOLEAN 변수 토글 (켜고 끄기) |
 | `proto_set_variable_mode` | v0.39.0 🟩⚠️ | 변수 컬렉션 모드 전환 (Light↔Dark) |
 | `proto_conditional` | v0.23.0 🟦 | 조건 분기 (if/then/else, AND/OR) |
+| `proto_media` | v0.40.0 🟩⚠️ | 미디어 재생 제어 (PLAY/PAUSE/SKIP 등) |
 | `proto_get_last_history` | v0.20.0 🟦 | 방금 한 proto_* 작업 기록 조회 |
 
 ### 🛠 엮기 — 저수준 — 4개
@@ -51,7 +52,7 @@
 | `export_interactions` | v0.31.0 🟩 | 인터랙션 → 정규 JSON (개발자 핸드오프) |
 | `generate_interaction_code` | v0.34.0 🟩 | 인터랙션 → 프레임워크 코드 (5타깃) |
 
-**합계: 읽기 5 + 고수준 11 + 저수준 4 + 검증/내보내기 3 = 23**
+**합계: 읽기 5 + 고수준 12 + 저수준 4 + 검증/내보내기 3 = 24**
 
 > 공통 기본값(고수준 proto_*): `trigger=ON_CLICK`, 모션 있는 도구는 `motion=M3_EMPHASIZED`. 전부 `create_reactions`로 컴파일.
 > **이름 직접 수용:** 사용자가 노드/화면 이름을 대면 orient 없이 이름을 바로 넘겨도 됨(중복 시 `fromScreen` 스코핑). 추상 요청·이름 모호 시에만 먼저 orient.
@@ -105,13 +106,20 @@
 - `if` = 단일 `{variable, operator?, value}` 또는 1단계 `{all:[…]}`(AND, ≥2) / `{any:[…]}`(OR, ≥2). 혼용·중첩 불가.
 - `operator` 기본 `==`. 분기 sugar: navigate/scroll/overlay/swap/close/back/url/set. 다중 액션은 `create_reactions`.
 
+**`proto_media`** — `{ medias: [{ from, action, target, amountToSkip?, newTimestamp? }] }`.
+- `action`: PLAY / PAUSE / TOGGLE_PLAY_PAUSE / MUTE / UNMUTE / TOGGLE_MUTE_UNMUTE / SKIP_FORWARD / SKIP_BACKWARD / SKIP_TO.
+- `target`(NAME 또는 ID) **필수** — 다른 유효한 미디어 노드(영상/GIF fill). Figma가 null/self destination을 거부하므로 컨트롤러와 미디어 노드는 서로 달라야 함(live-verified).
+- `amountToSkip`(초): SKIP_FORWARD / SKIP_BACKWARD 전용. `newTimestamp`(초): SKIP_TO 전용.
+- 조건부 분기(`proto_conditional`) 안에는 사용 불가. `motion` 없음(INSTANT).
+- ⚠️ 플러그인 변경 → Figma Community 재배포 필요.
+
 **`proto_get_last_history`** — 최근 proto_* 호출 배열(newest-last). "방금 만든 거" → ID·모션 복구 후 `replaceExisting=true`로 수정.
 
 ---
 
 ## 🛠 상세 — 저수준
 
-**`create_reactions`** — 리액션 배치 저수준 생성. action: navigate(`targetFrameId`) / scroll(`targetNodeId`). 각 독립 성공/실패. **escape hatch.**
+**`create_reactions`** — 리액션 배치 저수준 생성. action: navigate(`targetFrameId`) / scroll(`targetNodeId`) / media(`mediaAction`, `target?`, `amountToSkip?`, `newTimestamp?`). 각 독립 성공/실패. **escape hatch.**
 
 **`clear_reactions`** — 리액션 제거. `indices` 주면 nodeId 하나만.
 
@@ -145,7 +153,8 @@
 | `get_canvas_overview` | (초기) → **v0.35.0** 🐛 Section 중첩 프레임 포함 → **v0.38.0** `includeElements` ⚠️ |
 | `export_interactions` | v0.31.0 도입 → **v0.32.0** `action`→`actions[]` (출력 형태 BREAKING) |
 | `generate_interaction_code` | v0.34.0 React → **v0.35.0** 5타깃 → **v0.36.0** overlay 1급화 + 전체 타입 커버 |
-| `create_reactions` | v0.1.0 Navigate → 액션 타입이 계속 누적된 곳: scroll(v0.2) · overlay(v0.3~5) · 트리거/트랜지션(v0.9~12) · 조건·변수(v0.15~17) · change_to(v0.27) · 복합조건(v0.28) · set_variable_mode(v0.39) |
+| `proto_media` | v0.40.0 도입 ⚠️ |
+| `create_reactions` | v0.1.0 Navigate → 액션 타입이 계속 누적된 곳: scroll(v0.2) · overlay(v0.3~5) · 트리거/트랜지션(v0.9~12) · 조건·변수(v0.15~17) · change_to(v0.27) · 복합조건(v0.28) · set_variable_mode(v0.39) · **media(v0.40)** |
 
 > **진화 패턴:** 핵심 `proto_*` = NL 스티어링 + 이름 수용 + 모션 강등 / 조건·변수 = 충돌 해소 + 모드 / 코드젠·내보내기 = 타깃·커버리지 확장.
 > 전체 버전 연대기는 [version-history.md](version-history.md) 참조.

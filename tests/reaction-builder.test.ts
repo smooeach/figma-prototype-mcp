@@ -12,6 +12,7 @@ import {
   buildConditionalReaction,
   buildSetVariableReaction,
   buildChangeToReaction,
+  buildMediaReaction,
   changeToCurrentVariantError,
   resolveEasing,
   isSmartAnimate,
@@ -777,5 +778,64 @@ describe("changeToCurrentVariantError", () => {
   });
   it("returns undefined when the current variant is unknown (null)", () => {
     expect(changeToCurrentVariantError(null, "1404:34002")).toBeUndefined();
+  });
+});
+
+describe("buildMediaReaction", () => {
+  it("builds a simple TOGGLE_PLAY_PAUSE with a target destinationId", () => {
+    const r = buildMediaReaction({
+      trigger: "ON_CLICK",
+      mediaAction: "TOGGLE_PLAY_PAUSE",
+      destinationId: "10:20",
+    });
+    expect(r.trigger).toEqual({ type: "ON_CLICK" });
+    expect(r.actions).toEqual([
+      { type: "UPDATE_MEDIA_RUNTIME", destinationId: "10:20", mediaAction: "TOGGLE_PLAY_PAUSE" },
+    ]);
+  });
+
+  it("builds a simple PLAY with a target destinationId", () => {
+    const r = buildMediaReaction({ trigger: "ON_CLICK", mediaAction: "PLAY", destinationId: "10:20" });
+    expect(r.actions).toEqual([
+      { type: "UPDATE_MEDIA_RUNTIME", destinationId: "10:20", mediaAction: "PLAY" },
+    ]);
+  });
+
+  it("builds SKIP_FORWARD with amountToSkip", () => {
+    const r = buildMediaReaction({
+      trigger: "ON_CLICK", mediaAction: "SKIP_FORWARD", destinationId: "10:20", amountToSkip: 5,
+    });
+    expect(r.actions).toEqual([
+      { type: "UPDATE_MEDIA_RUNTIME", destinationId: "10:20", mediaAction: "SKIP_FORWARD", amountToSkip: 5 },
+    ]);
+  });
+
+  it("builds SKIP_TO with newTimestamp", () => {
+    const r = buildMediaReaction({
+      trigger: "ON_CLICK", mediaAction: "SKIP_TO", destinationId: "10:20", newTimestamp: 12,
+    });
+    expect(r.actions).toEqual([
+      { type: "UPDATE_MEDIA_RUNTIME", destinationId: "10:20", mediaAction: "SKIP_TO", newTimestamp: 12 },
+    ]);
+  });
+
+  it("never emits a transition field", () => {
+    const r = buildMediaReaction({ trigger: "ON_CLICK", mediaAction: "MUTE", destinationId: "10:20" });
+    expect((r.actions[0] as any).transition).toBeUndefined();
+  });
+
+  it("builds SKIP_BACKWARD with amountToSkip", () => {
+    const r = buildMediaReaction({ trigger: "ON_CLICK", mediaAction: "SKIP_BACKWARD", destinationId: "10:20", amountToSkip: 3 });
+    expect(r.actions).toEqual([
+      { type: "UPDATE_MEDIA_RUNTIME", destinationId: "10:20", mediaAction: "SKIP_BACKWARD", amountToSkip: 3 },
+    ]);
+  });
+
+  it("throws when SKIP_FORWARD is missing amountToSkip", () => {
+    expect(() => buildMediaReaction({ trigger: "ON_CLICK", mediaAction: "SKIP_FORWARD", destinationId: "10:20" } as any)).toThrow(/amountToSkip/);
+  });
+
+  it("throws when SKIP_TO is missing newTimestamp", () => {
+    expect(() => buildMediaReaction({ trigger: "ON_CLICK", mediaAction: "SKIP_TO", destinationId: "10:20" } as any)).toThrow(/newTimestamp/);
   });
 });

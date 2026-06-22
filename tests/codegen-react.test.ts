@@ -117,6 +117,25 @@ const SPEC_ACTIONS = {
 } as unknown as InteractionSpec;
 
 describe("emitScreenInteractions", () => {
+  it("emits a media guide stub", () => {
+    const spec = {
+      schemaVersion: "1.0" as const,
+      page: { id: "p1", name: "Page 1" },
+      screens: [{
+        id: "1:1", name: "Home",
+        interactions: [{
+          source: { id: "n1", name: "PlayBtn" }, trigger: { type: "ON_CLICK" },
+          actions: [{ type: "media", mediaAction: "TOGGLE_PLAY_PAUSE", target: { id: "m1", name: "Hero Video" } }],
+        }],
+      }],
+      requestedScreens: ["1:1"], missingScreens: [], unsupported: [], truncated: false,
+    };
+    const files = emitScreenInteractions(spec as any);
+    expect(files[0]!.content).toContain(
+      `// TODO: media 'TOGGLE_PLAY_PAUSE' on 'Hero Video' — wire to your <video> element (play/pause/mute/skip)`
+    );
+  });
+
   it("emits one file per screen with a hook and handlers", () => {
     const files = emitScreenInteractions(SPEC_ACTIONS);
     expect(files).toHaveLength(1);

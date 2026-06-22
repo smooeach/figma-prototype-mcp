@@ -30,6 +30,7 @@ export type Action =
   | { type: "setVariable"; variable: unknown; value: unknown }
   | { type: "toggleVariable"; variable: unknown }
   | { type: "setVariableMode"; collection: unknown; mode: unknown }
+  | { type: "media"; mediaAction: unknown; target?: NodeRef; amountToSkip?: unknown; newTimestamp?: unknown }
   | { type: "conditional"; if: ConditionNode; then: Action[]; else?: Action[] };
 
 export interface InteractionEntry {
@@ -113,6 +114,14 @@ function mapAction(a: any, source: NodeRef, unsupported: Unsupported[]): Action 
       return { type: "toggleVariable", variable: a.variable };
     case "set_variable_mode":
       return { type: "setVariableMode", collection: a.collection, mode: a.mode };
+    case "media":
+      return {
+        type: "media",
+        mediaAction: a.mediaAction,
+        target: a.target,
+        amountToSkip: a.amountToSkip,
+        newTimestamp: a.newTimestamp,
+      };
     case "NODE": {
       const to: NodeRef = { id: a.destinationId ?? null, name: a.destinationName ?? null };
       switch (a.navigation) {

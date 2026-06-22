@@ -122,6 +122,10 @@ function renderAction(a: Action, indent: string, identities: Map<string, ScreenI
       }
       return out;
     }
+    case "media": {
+      const label = (a as any).target?.name ?? (a as any).target?.id ?? "current media";
+      return [`${indent}// TODO: media '${(a as any).mediaAction}' on '${label}' — wire to your <video> element (play/pause/mute/skip)`];
+    }
     default:
       return [`${indent}// TODO: unsupported action ${JSON.stringify((a as any).type)}`];
   }

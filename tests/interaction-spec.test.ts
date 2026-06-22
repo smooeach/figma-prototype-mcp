@@ -126,6 +126,26 @@ describe("buildInteractionSpec", () => {
   });
 });
 
+describe("media", () => {
+  const f = (action: unknown) => ({
+    page: { id: "0:1", name: "P" },
+    frames: [{ id: "S", name: "S", isStartFrame: false }],
+    interactions: [{ frameId: "S", sourceNodeId: "n", sourceNodeName: "n", trigger: {}, actions: [action] }],
+    truncated: false,
+  });
+  const only = (action: unknown) => buildInteractionSpec(f(action), ["S"]).screens[0]!.interactions[0]!.actions[0];
+
+  it("maps TOGGLE_PLAY_PAUSE with target", () => {
+    expect(only({ type: "media", mediaAction: "TOGGLE_PLAY_PAUSE", target: { id: "m1", name: "Hero Video" } }))
+      .toEqual({ type: "media", mediaAction: "TOGGLE_PLAY_PAUSE", target: { id: "m1", name: "Hero Video" }, amountToSkip: undefined, newTimestamp: undefined });
+  });
+
+  it("maps SKIP_TO carrying newTimestamp", () => {
+    expect(only({ type: "media", mediaAction: "SKIP_TO", newTimestamp: 12 }))
+      .toEqual({ type: "media", mediaAction: "SKIP_TO", target: undefined, amountToSkip: undefined, newTimestamp: 12 });
+  });
+});
+
 describe("interaction-spec overlay normalization", () => {
   // RawFlow shape: interactions keyed by frameId + sourceNodeId/sourceNodeName
   // (matches buildInteractionSpec(flow, screenIds), confirmed against the builder).
