@@ -181,10 +181,12 @@ LLM이 변수를 더 잘 다루도록.
 
 - **v0.40.0** — **`proto_media`** (24번째 도구) + 저수준 `media` 액션 — 인터랙션으로 **미디어 재생 제어**
   (`UPDATE_MEDIA_RUNTIME`): PLAY/PAUSE/TOGGLE_PLAY_PAUSE/MUTE/UNMUTE/TOGGLE_MUTE_UNMUTE +
-  SKIP_FORWARD/SKIP_BACKWARD(`amountToSkip` 초) + SKIP_TO(`newTimestamp` 초). `target` 생략 시 트리거
-  노드 자신의 미디어. 조건부 분기 제외. 읽기 완전 디코딩 + 코드젠 5타깃 가이드 스텁.
+  SKIP_FORWARD/SKIP_BACKWARD(`amountToSkip` 초) + SKIP_TO(`newTimestamp` 초). `target`(대상 미디어 노드)은
+  **필수** — 다른 유효한 미디어 노드여야 함. 조건부 분기 제외. 읽기 완전 디코딩 + 코드젠 5타깃 가이드 스텁.
   **이로써 buildable한 마지막 인터랙션 표면 갭이 닫힘** (나머지 미구현은 전부 플랫폼 차단).
-  라이브 프로브: (사용자 검증 대기).
+  **라이브 프로브 PASS** (2026-06-22, 실제 비디오 노드): targeted 3-shape + echo round-trip ✅, no-target 거부 ✅.
+  **라이브 finding** = Figma는 `destinationId:null`/self를 write 시점에 거부("Invalid format")하므로 typings의
+  `string|null`과 달리 target 필수로 수정(`fix(media)`). 코드 변경(code.ts/reaction-builder/action-echo) → Figma 재배포 필요.
 
 ---
 

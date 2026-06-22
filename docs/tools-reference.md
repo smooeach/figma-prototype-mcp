@@ -106,9 +106,9 @@
 - `if` = 단일 `{variable, operator?, value}` 또는 1단계 `{all:[…]}`(AND, ≥2) / `{any:[…]}`(OR, ≥2). 혼용·중첩 불가.
 - `operator` 기본 `==`. 분기 sugar: navigate/scroll/overlay/swap/close/back/url/set. 다중 액션은 `create_reactions`.
 
-**`proto_media`** — `{ medias: [{ from, action, target?, amountToSkip?, newTimestamp? }] }`.
+**`proto_media`** — `{ medias: [{ from, action, target, amountToSkip?, newTimestamp? }] }`.
 - `action`: PLAY / PAUSE / TOGGLE_PLAY_PAUSE / MUTE / UNMUTE / TOGGLE_MUTE_UNMUTE / SKIP_FORWARD / SKIP_BACKWARD / SKIP_TO.
-- `target` 생략 시 트리거 노드 자신의 미디어(영상 fill). `target`=대상 노드 ID.
+- `target`(NAME 또는 ID) **필수** — 다른 유효한 미디어 노드(영상/GIF fill). Figma가 null/self destination을 거부하므로 컨트롤러와 미디어 노드는 서로 달라야 함(live-verified).
 - `amountToSkip`(초): SKIP_FORWARD / SKIP_BACKWARD 전용. `newTimestamp`(초): SKIP_TO 전용.
 - 조건부 분기(`proto_conditional`) 안에는 사용 불가. `motion` 없음(INSTANT).
 - ⚠️ 플러그인 변경 → Figma Community 재배포 필요.
