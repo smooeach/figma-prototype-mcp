@@ -3,7 +3,7 @@
 프로젝트가 각 버전에서 **무엇을 했고 그래서 무엇이 만들어졌는지** 정리한 문서입니다.
 (공식 Figma MCP가 화면을 *만들면*, 이 도구는 그 화면들을 *엮습니다* — 노드/스크린 생성은 설계상 범위 밖.)
 
-> 한 줄 요약: **navigate-only 위어링(v0.1.0)** 에서 출발 → 인터랙션 표면 전체 + 트랜지션/트리거 + 변수/조건/모드 + 읽기·코드젠·정적 검증을 갖춘 **23개 도구 + 3채널 배포(npm·GitHub·Figma Community)** 제품으로.
+> 한 줄 요약: **navigate-only 위어링(v0.1.0)** 에서 출발 → 인터랙션 표면 전체 + 트랜지션/트리거 + 변수/조건/모드 + 읽기·코드젠·정적 검증을 갖춘 **24개 도구 + 3채널 배포(npm·GitHub·Figma Community)** 제품으로.
 
 도구 수 추이: v0.1.0 wiring MVP → v0.27.0 **17** → get_prototype_flow **18** → create_variable **19** → generate_interaction_code **20** → export_interactions 계열 정리 → v0.37.0 validate_prototype **22** → v0.39.0 proto_set_variable_mode **23** → proto_media **24**.
 
