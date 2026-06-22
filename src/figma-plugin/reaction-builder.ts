@@ -121,7 +121,10 @@ export type BuiltAction =
   | { type: "URL"; url: string; openInNewTab: boolean }
   | { type: "CONDITIONAL"; conditionalBlocks: ConditionalBlockShape[] }
   | { type: "SET_VARIABLE"; variableId: string; variableValue: unknown }
-  | { type: "SET_VARIABLE_MODE"; variableCollectionId: string; variableModeId: string };
+  | { type: "SET_VARIABLE_MODE"; variableCollectionId: string; variableModeId: string }
+  | { type: "UPDATE_MEDIA_RUNTIME"; destinationId: string | null; mediaAction: "PLAY" | "PAUSE" | "TOGGLE_PLAY_PAUSE" | "MUTE" | "UNMUTE" | "TOGGLE_MUTE_UNMUTE" }
+  | { type: "UPDATE_MEDIA_RUNTIME"; destinationId: string | null; mediaAction: "SKIP_FORWARD" | "SKIP_BACKWARD"; amountToSkip: number }
+  | { type: "UPDATE_MEDIA_RUNTIME"; destinationId: string | null; mediaAction: "SKIP_TO"; newTimestamp: number };
 
 export type TriggerShape =
   | { type: TriggerNoParamType }
@@ -463,5 +466,43 @@ export function buildSetVariableReaction(input: SetVariableBuildInput): BuiltRea
       variableId: input.variableId,
       variableValue: input.variableValue,
     }],
+  };
+}
+
+export interface MediaBuildInput {
+  trigger: TriggerInput;
+  afterTimeoutSeconds?: number;
+  mediaAction: "PLAY" | "PAUSE" | "TOGGLE_PLAY_PAUSE" | "MUTE" | "UNMUTE" | "TOGGLE_MUTE_UNMUTE" | "SKIP_FORWARD" | "SKIP_BACKWARD" | "SKIP_TO";
+  destinationId: string | null;
+  amountToSkip?: number;
+  newTimestamp?: number;
+}
+
+export function buildMediaReaction(input: MediaBuildInput): BuiltReaction {
+  let action: BuiltAction;
+  if (input.mediaAction === "SKIP_FORWARD" || input.mediaAction === "SKIP_BACKWARD") {
+    action = {
+      type: "UPDATE_MEDIA_RUNTIME",
+      destinationId: input.destinationId,
+      mediaAction: input.mediaAction,
+      amountToSkip: input.amountToSkip!,
+    };
+  } else if (input.mediaAction === "SKIP_TO") {
+    action = {
+      type: "UPDATE_MEDIA_RUNTIME",
+      destinationId: input.destinationId,
+      mediaAction: "SKIP_TO",
+      newTimestamp: input.newTimestamp!,
+    };
+  } else {
+    action = {
+      type: "UPDATE_MEDIA_RUNTIME",
+      destinationId: input.destinationId,
+      mediaAction: input.mediaAction,
+    };
+  }
+  return {
+    trigger: buildTrigger(input.trigger, input.afterTimeoutSeconds),
+    actions: [action],
   };
 }
