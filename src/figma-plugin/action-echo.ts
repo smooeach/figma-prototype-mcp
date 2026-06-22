@@ -77,6 +77,20 @@ export async function encodeActionForListEcho(action: any, resolvers: EchoResolv
     };
   }
 
+  if (action.type === "UPDATE_MEDIA_RUNTIME") {
+    const out: Record<string, unknown> = { type: "media", mediaAction: action.mediaAction };
+    if (action.destinationId) {
+      const name = await resolvers.nodeName(action.destinationId);
+      out.target = { id: action.destinationId, name: name ?? null };
+    }
+    if (action.mediaAction === "SKIP_FORWARD" || action.mediaAction === "SKIP_BACKWARD") {
+      out.amountToSkip = action.amountToSkip;
+    } else if (action.mediaAction === "SKIP_TO") {
+      out.newTimestamp = action.newTimestamp;
+    }
+    return out;
+  }
+
   // NODE / CLOSE / BACK / URL / unknown passthrough.
   const destId = action.destinationId;
   const destName = destId ? await resolvers.nodeName(destId) : undefined;
