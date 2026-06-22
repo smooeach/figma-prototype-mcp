@@ -301,10 +301,10 @@ const MediaActionInput = z.object({
   target: z
     .string()
     .min(1)
-    .optional()
     .describe(
-      "The media node to control, by NAME or ID. Omit to control the media on the source node itself " +
-      "(Figma destinationId=null)."
+      "The media node to control, by NAME or ID. REQUIRED and must be a different, valid media node " +
+      "(video/GIF fill). Figma rejects a null/self destination at write time (\"Invalid format\"); there is " +
+      "no self-target — the controller node and the media node must be distinct."
     ),
   amountToSkip: z
     .number()

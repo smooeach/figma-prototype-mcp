@@ -1161,8 +1161,8 @@ describe("media action (create_reactions)", () => {
     connections: [{ sourceNodeId: "1:1", action }],
   });
 
-  it("accepts a simple media action with no params", () => {
-    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "TOGGLE_PLAY_PAUSE" }));
+  it("accepts a simple media action with a target", () => {
+    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "TOGGLE_PLAY_PAUSE", target: "Hero Video" }));
     expect(r.success).toBe(true);
   });
 
@@ -1171,38 +1171,43 @@ describe("media action (create_reactions)", () => {
     expect(r.success).toBe(true);
   });
 
-  it("accepts SKIP_FORWARD with amountToSkip", () => {
-    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "SKIP_FORWARD", amountToSkip: 5 }));
+  it("accepts SKIP_FORWARD with amountToSkip + target", () => {
+    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "SKIP_FORWARD", amountToSkip: 5, target: "Hero Video" }));
     expect(r.success).toBe(true);
   });
 
-  it("accepts SKIP_TO with newTimestamp", () => {
-    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "SKIP_TO", newTimestamp: 12 }));
+  it("accepts SKIP_TO with newTimestamp + target", () => {
+    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "SKIP_TO", newTimestamp: 12, target: "Hero Video" }));
     expect(r.success).toBe(true);
+  });
+
+  it("rejects a media action with no target (Figma rejects null/self destination)", () => {
+    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "TOGGLE_PLAY_PAUSE" }));
+    expect(r.success).toBe(false);
   });
 
   it("rejects SKIP_FORWARD without amountToSkip", () => {
-    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "SKIP_FORWARD" }));
+    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "SKIP_FORWARD", target: "Hero Video" }));
     expect(r.success).toBe(false);
   });
 
   it("rejects amountToSkip on a simple action", () => {
-    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "PLAY", amountToSkip: 5 }));
+    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "PLAY", amountToSkip: 5, target: "Hero Video" }));
     expect(r.success).toBe(false);
   });
 
   it("rejects SKIP_TO without newTimestamp", () => {
-    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "SKIP_TO" }));
+    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "SKIP_TO", target: "Hero Video" }));
     expect(r.success).toBe(false);
   });
 
   it("rejects newTimestamp on a skip-forward action", () => {
-    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "SKIP_FORWARD", amountToSkip: 5, newTimestamp: 1 }));
+    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "SKIP_FORWARD", amountToSkip: 5, newTimestamp: 1, target: "Hero Video" }));
     expect(r.success).toBe(false);
   });
 
   it("rejects an unknown mediaAction", () => {
-    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "REWIND" }));
+    const r = CreateReactionsInput.safeParse(wrap({ type: "media", mediaAction: "REWIND", target: "Hero Video" }));
     expect(r.success).toBe(false);
   });
 });

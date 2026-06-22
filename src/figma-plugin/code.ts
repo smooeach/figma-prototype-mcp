@@ -292,21 +292,19 @@ async function buildNonConditionalAction(
     return { built: reaction.actions[0]!, warning };
   }
   if (action.type === "media") {
-    let destinationId: string | null = null;
-    if (action.target !== undefined) {
-      let target = await figma.getNodeByIdAsync(action.target);
-      if (!target) {
-        const resolvedId = await resolveNodeByName(action.target, undefined);
-        target = await figma.getNodeByIdAsync(resolvedId);
-      }
-      if (!target) throw new Error(`Media target node not found: ${action.target}`);
-      destinationId = target.id;
+    // `target` is required: Figma rejects a null/self media destination at write time
+    // ("Invalid format"), verified by live probe 2026-06-22. Always resolve to a real node id.
+    let target = await figma.getNodeByIdAsync(action.target);
+    if (!target) {
+      const resolvedId = await resolveNodeByName(action.target, undefined);
+      target = await figma.getNodeByIdAsync(resolvedId);
     }
+    if (!target) throw new Error(`Media target node not found: ${action.target}`);
     const reaction = buildMediaReaction({
       trigger,
       afterTimeoutSeconds,
       mediaAction: action.mediaAction,
-      destinationId,
+      destinationId: target.id,
       amountToSkip: action.amountToSkip,
       newTimestamp: action.newTimestamp,
     });

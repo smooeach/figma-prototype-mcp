@@ -958,10 +958,10 @@ describe("compileProtoSetVariableMode", () => {
 describe("compileProtoMedia", () => {
   it("compiles a simple toggle to a media action (ON_CLICK default, no transition)", () => {
     const out = compileProtoMedia(ProtoMediaInput.parse({
-      medias: [{ from: "PlayBtn", action: "TOGGLE_PLAY_PAUSE" }],
+      medias: [{ from: "PlayBtn", action: "TOGGLE_PLAY_PAUSE", target: "Hero Video" }],
     }));
     expect(out.connections).toEqual([
-      { sourceNodeId: "PlayBtn", trigger: "ON_CLICK", action: { type: "media", mediaAction: "TOGGLE_PLAY_PAUSE" } },
+      { sourceNodeId: "PlayBtn", trigger: "ON_CLICK", action: { type: "media", mediaAction: "TOGGLE_PLAY_PAUSE", target: "Hero Video" } },
     ]);
     expect(out.replaceExisting).toBe(false);
   });
@@ -978,15 +978,19 @@ describe("compileProtoMedia", () => {
 
   it("carries amountToSkip for SKIP_FORWARD", () => {
     const out = compileProtoMedia(ProtoMediaInput.parse({
-      medias: [{ from: "Fwd", action: "SKIP_FORWARD", amountToSkip: 5 }],
+      medias: [{ from: "Fwd", action: "SKIP_FORWARD", amountToSkip: 5, target: "Hero Video" }],
     }));
-    expect(out.connections[0].action).toEqual({ type: "media", mediaAction: "SKIP_FORWARD", amountToSkip: 5 });
+    expect(out.connections[0].action).toEqual({ type: "media", mediaAction: "SKIP_FORWARD", target: "Hero Video", amountToSkip: 5 });
   });
 
   it("carries newTimestamp for SKIP_TO", () => {
     const out = compileProtoMedia(ProtoMediaInput.parse({
-      medias: [{ from: "Seek", action: "SKIP_TO", newTimestamp: 12 }],
+      medias: [{ from: "Seek", action: "SKIP_TO", newTimestamp: 12, target: "Hero Video" }],
     }));
-    expect(out.connections[0].action).toEqual({ type: "media", mediaAction: "SKIP_TO", newTimestamp: 12 });
+    expect(out.connections[0].action).toEqual({ type: "media", mediaAction: "SKIP_TO", target: "Hero Video", newTimestamp: 12 });
+  });
+
+  it("rejects a media entry with no target (Figma rejects null/self destination)", () => {
+    expect(() => ProtoMediaInput.parse({ medias: [{ from: "Btn", action: "PLAY" }] })).toThrow();
   });
 });

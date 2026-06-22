@@ -122,9 +122,11 @@ export type BuiltAction =
   | { type: "CONDITIONAL"; conditionalBlocks: ConditionalBlockShape[] }
   | { type: "SET_VARIABLE"; variableId: string; variableValue: unknown }
   | { type: "SET_VARIABLE_MODE"; variableCollectionId: string; variableModeId: string }
-  | { type: "UPDATE_MEDIA_RUNTIME"; destinationId: string | null; mediaAction: "PLAY" | "PAUSE" | "TOGGLE_PLAY_PAUSE" | "MUTE" | "UNMUTE" | "TOGGLE_MUTE_UNMUTE" }
-  | { type: "UPDATE_MEDIA_RUNTIME"; destinationId: string | null; mediaAction: "SKIP_FORWARD" | "SKIP_BACKWARD"; amountToSkip: number }
-  | { type: "UPDATE_MEDIA_RUNTIME"; destinationId: string | null; mediaAction: "SKIP_TO"; newTimestamp: number };
+  // destinationId is always a real media node id — Figma rejects null/self ("Invalid format",
+  // live-verified 2026-06-22), so the typings' `string | null` is narrowed to `string` here.
+  | { type: "UPDATE_MEDIA_RUNTIME"; destinationId: string; mediaAction: "PLAY" | "PAUSE" | "TOGGLE_PLAY_PAUSE" | "MUTE" | "UNMUTE" | "TOGGLE_MUTE_UNMUTE" }
+  | { type: "UPDATE_MEDIA_RUNTIME"; destinationId: string; mediaAction: "SKIP_FORWARD" | "SKIP_BACKWARD"; amountToSkip: number }
+  | { type: "UPDATE_MEDIA_RUNTIME"; destinationId: string; mediaAction: "SKIP_TO"; newTimestamp: number };
 
 export type TriggerShape =
   | { type: TriggerNoParamType }
@@ -473,7 +475,7 @@ export interface MediaBuildInput {
   trigger: TriggerInput;
   afterTimeoutSeconds?: number;
   mediaAction: "PLAY" | "PAUSE" | "TOGGLE_PLAY_PAUSE" | "MUTE" | "UNMUTE" | "TOGGLE_MUTE_UNMUTE" | "SKIP_FORWARD" | "SKIP_BACKWARD" | "SKIP_TO";
-  destinationId: string | null;
+  destinationId: string;
   amountToSkip?: number;
   newTimestamp?: number;
 }

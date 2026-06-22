@@ -794,19 +794,19 @@ describe("buildMediaReaction", () => {
     ]);
   });
 
-  it("builds a self-targeted action with destinationId null", () => {
-    const r = buildMediaReaction({ trigger: "ON_CLICK", mediaAction: "PLAY", destinationId: null });
+  it("builds a simple PLAY with a target destinationId", () => {
+    const r = buildMediaReaction({ trigger: "ON_CLICK", mediaAction: "PLAY", destinationId: "10:20" });
     expect(r.actions).toEqual([
-      { type: "UPDATE_MEDIA_RUNTIME", destinationId: null, mediaAction: "PLAY" },
+      { type: "UPDATE_MEDIA_RUNTIME", destinationId: "10:20", mediaAction: "PLAY" },
     ]);
   });
 
   it("builds SKIP_FORWARD with amountToSkip", () => {
     const r = buildMediaReaction({
-      trigger: "ON_CLICK", mediaAction: "SKIP_FORWARD", destinationId: null, amountToSkip: 5,
+      trigger: "ON_CLICK", mediaAction: "SKIP_FORWARD", destinationId: "10:20", amountToSkip: 5,
     });
     expect(r.actions).toEqual([
-      { type: "UPDATE_MEDIA_RUNTIME", destinationId: null, mediaAction: "SKIP_FORWARD", amountToSkip: 5 },
+      { type: "UPDATE_MEDIA_RUNTIME", destinationId: "10:20", mediaAction: "SKIP_FORWARD", amountToSkip: 5 },
     ]);
   });
 
@@ -820,22 +820,22 @@ describe("buildMediaReaction", () => {
   });
 
   it("never emits a transition field", () => {
-    const r = buildMediaReaction({ trigger: "ON_CLICK", mediaAction: "MUTE", destinationId: null });
+    const r = buildMediaReaction({ trigger: "ON_CLICK", mediaAction: "MUTE", destinationId: "10:20" });
     expect((r.actions[0] as any).transition).toBeUndefined();
   });
 
   it("builds SKIP_BACKWARD with amountToSkip", () => {
-    const r = buildMediaReaction({ trigger: "ON_CLICK", mediaAction: "SKIP_BACKWARD", destinationId: null, amountToSkip: 3 });
+    const r = buildMediaReaction({ trigger: "ON_CLICK", mediaAction: "SKIP_BACKWARD", destinationId: "10:20", amountToSkip: 3 });
     expect(r.actions).toEqual([
-      { type: "UPDATE_MEDIA_RUNTIME", destinationId: null, mediaAction: "SKIP_BACKWARD", amountToSkip: 3 },
+      { type: "UPDATE_MEDIA_RUNTIME", destinationId: "10:20", mediaAction: "SKIP_BACKWARD", amountToSkip: 3 },
     ]);
   });
 
   it("throws when SKIP_FORWARD is missing amountToSkip", () => {
-    expect(() => buildMediaReaction({ trigger: "ON_CLICK", mediaAction: "SKIP_FORWARD", destinationId: null } as any)).toThrow(/amountToSkip/);
+    expect(() => buildMediaReaction({ trigger: "ON_CLICK", mediaAction: "SKIP_FORWARD", destinationId: "10:20" } as any)).toThrow(/amountToSkip/);
   });
 
   it("throws when SKIP_TO is missing newTimestamp", () => {
-    expect(() => buildMediaReaction({ trigger: "ON_CLICK", mediaAction: "SKIP_TO", destinationId: null } as any)).toThrow(/newTimestamp/);
+    expect(() => buildMediaReaction({ trigger: "ON_CLICK", mediaAction: "SKIP_TO", destinationId: "10:20" } as any)).toThrow(/newTimestamp/);
   });
 });

@@ -210,7 +210,7 @@ const ProtoMediaEntry = z.object({
   from: z.string().min(1),
   fromScreen: FROM_SCREEN_FIELD,
   action: MEDIA_ACTION_ENUM,
-  target: z.string().min(1).optional(),
+  target: z.string().min(1),
   amountToSkip: z.number().positive().optional(),
   newTimestamp: z.number().nonnegative().optional(),
   trigger: TriggerInput.optional(),
@@ -500,7 +500,7 @@ export function compileProtoMedia(input: ProtoMediaInput): CreateReactionsInputT
     const action: Connection["action"] = {
       type: "media",
       mediaAction: m.action,
-      ...(m.target !== undefined && { target: m.target }),
+      target: m.target,
       ...(m.amountToSkip !== undefined && { amountToSkip: m.amountToSkip }),
       ...(m.newTimestamp !== undefined && { newTimestamp: m.newTimestamp }),
     };
