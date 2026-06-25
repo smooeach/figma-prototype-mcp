@@ -26,16 +26,16 @@ Works ALONGSIDE the official Figma MCP: that one *creates* screens, this one *wi
 This plugin is a bridge — it talks to a small local server you run, which an AI client (e.g. Claude) drives.
 
 1. Install & run the server (Node ≥ 18):
-     npx figma-prototype-mcp        → starts it on localhost:3000
+     npx figma-prototype-mcp        → starts it on localhost:3939
 2. In your MCP client (Claude Desktop / Claude Code), add the SSE endpoint:
-     { "mcpServers": { "figma-prototype": { "url": "http://localhost:3000/sse" } } }
+     { "mcpServers": { "figma-prototype": { "url": "http://localhost:3939/sse" } } }
 3. Run THIS plugin in your file — it auto-connects to the local server and shows "Connected".
 4. Ask the AI in plain language; the interactions appear in your file's Prototype tab.
 
 Full setup, examples, and troubleshooting:
 https://github.com/smooeach/figma-prototype-mcp
 
-Open source (MIT). No data leaves your machine — the plugin only connects to your local server (ws://localhost:3000).
+Open source (MIT). No data leaves your machine — the plugin only connects to your local server (ws://localhost:3939).
 ```
 
 ## Tags / category
@@ -57,7 +57,7 @@ Open source (MIT). No data leaves your machine — the plugin only connects to y
 
 ## Manifest publish-readiness
 - `networkAccess.reasoning` should read for a human reviewer (no internal version jargon). Proposed:
-  > "Connects only to a local companion server (ws://localhost:3000) that the user runs themselves; no external network access. The server bridges this plugin to an MCP client. See https://github.com/smooeach/figma-prototype-mcp"
+  > "Connects only to a local companion server (ws://localhost:3939) that the user runs themselves; no external network access. The server bridges this plugin to an MCP client. See https://github.com/smooeach/figma-prototype-mcp"
 - `permissions: ["teamlibrary"]` is used to resolve team-library variables for variable-based interactions — fine; mention in review notes if asked.
 - `editorType: ["figma"]`, `api: "1.0.0"` — OK.
 

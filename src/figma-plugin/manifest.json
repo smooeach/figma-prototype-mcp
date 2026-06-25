@@ -8,7 +8,7 @@
   "documentAccess": "dynamic-page",
   "permissions": ["teamlibrary"],
   "networkAccess": {
-    "allowedDomains": ["ws://localhost:3000"],
-    "reasoning": "Connects only to a local companion server (ws://localhost:3000) that the user runs themselves; no external network access. The server bridges this plugin to an MCP client. https://github.com/smooeach/figma-prototype-mcp"
+    "allowedDomains": ["ws://localhost:3939"],
+    "reasoning": "Connects only to a local companion server (ws://localhost:3939) that the user runs themselves; no external network access. The server bridges this plugin to an MCP client. https://github.com/smooeach/figma-prototype-mcp"
   }
 }

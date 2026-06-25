@@ -6,13 +6,13 @@ export const PLUGIN_NOT_CONNECTED = [
   `To connect: in Figma, open your file → Plugins → run "Prototype MCP".`,
   `If you haven't installed it, get it from Figma Community:`,
   COMMUNITY_URL,
-  `The plugin auto-connects to ws://localhost:3000/ws — once it shows "Connected", retry your request.`,
+  `The plugin auto-connects to ws://localhost:3939/ws — once it shows "Connected", retry your request.`,
   ``,
   `Figma 플러그인이 연결되지 않았습니다. MCP 서버는 실행 중이지만 플러그인이 아직 연결되지 않았어요.`,
   `연결 방법: Figma에서 파일을 열고 → Plugins → "Prototype MCP" 실행.`,
   `설치 전이라면 Figma Community에서 받으세요:`,
   COMMUNITY_URL,
-  `플러그인은 ws://localhost:3000/ws에 자동 연결됩니다 — "Connected"가 뜨면 다시 시도하세요.`,
+  `플러그인은 ws://localhost:3939/ws에 자동 연결됩니다 — "Connected"가 뜨면 다시 시도하세요.`,
 ].join("\n");
 
 export const PLUGIN_DISCONNECTED = [

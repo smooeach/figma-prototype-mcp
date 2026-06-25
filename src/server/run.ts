@@ -93,7 +93,7 @@ export function logStartup(port: number, mode: "sse" | "stdio"): void {
 /** SSE mode (default): Express /sse + /messages, newest-wins single-active client. */
 export async function runSse(
   deps: Deps,
-  port = Number(process.env.PORT ?? 3000),
+  port = Number(process.env.PORT ?? 3939),
 ): Promise<http.Server> {
   const sse = new SseSession<SSEServerTransport>();
   const app = express();
@@ -135,7 +135,7 @@ export async function runSse(
  */
 export async function runStdio(
   deps: Deps,
-  port = Number(process.env.PORT ?? 3000),
+  port = Number(process.env.PORT ?? 3939),
   transport: Transport = new StdioServerTransport(),
 ): Promise<{
   httpServer: http.Server;

@@ -15,27 +15,30 @@ You connect three local pieces: a **server**, the **Figma plugin**, and your **A
 **1. Start the server** (terminal — leave it running):
 ```bash
 npx figma-prototype-mcp
-# → [server] listening on http://localhost:3000
+# → [server] listening on http://localhost:3939
 ```
 
 **2. Install & run the plugin:**
 - Install from Figma Community: **[Prototype MCP — wire prototypes with LLM](https://www.figma.com/community/plugin/1647184714488719280/prototype-mcp-wire-prototypes-with-llm)**
 - Open a Figma **design file** → run the plugin (Plugins → Prototype MCP) → it should show **Connected** (needs step 1 running).
 
-**3. Point your AI client at the server** — add this to your MCP client config, then restart it:
-```json
-{ "mcpServers": { "figma-prototype": { "url": "http://localhost:3000/sse" } } }
-```
+**3. Point your AI client at the server** — add the matching config, then restart the client.
 
-**Claude Desktop (one-click install):** download `figma-prototype-mcp.mcpb` from the [latest GitHub release](https://github.com/smooeach/figma-prototype-mcp/releases/latest) and double-click it — Claude Desktop installs and auto-runs the server (no terminal, no JSON config). You still install the Figma plugin from Community and run it. (The manual `--stdio` command config below also works if you prefer.)
+**Claude Desktop (one-click install — easiest):** download `figma-prototype-mcp.mcpb` from the [latest GitHub release](https://github.com/smooeach/figma-prototype-mcp/releases/latest) and double-click it — Claude Desktop installs and auto-runs the server (no terminal, no JSON config). You still install the Figma plugin from Community and run it. (The manual `--stdio` command config below also works if you prefer.)
 
 > **Org-managed Claude Desktop?** If double-click / "Install Extension" does nothing (managed accounts often allow only registry-sourced extensions), use **Settings → Extensions → Extension Developer → Load unpacked** and point it at the **unzipped** `.mcpb` folder (a `.mcpb` is a zip containing `manifest.json` + `server/`). Or clone this repo, run `npm run build:dxt`, and load-unpacked the `dxt/` folder. This sideloads the extension without the registry.
 
-**Claude Desktop** has no native SSE support, so point it at the server over stdio — it launches the server for you (no separate `npx figma-prototype-mcp` needed):
+Prefer manual config? **Claude Desktop** has no native SSE support, so point it at the server over stdio — it launches the server for you (no separate `npx figma-prototype-mcp` needed):
 ```json
 { "mcpServers": { "figma-prototype": { "command": "npx", "args": ["-y", "figma-prototype-mcp", "--stdio"] } } }
 ```
-In `--stdio` mode the client starts the server and talks to it over stdio; the server still hosts the Figma plugin WebSocket on `ws://localhost:3000/ws`. Don't also run a separate SSE server (`npx figma-prototype-mcp`) on the same port — pick one. (Claude Code can use either the SSE `url` above or this stdio command.)
+In `--stdio` mode the client starts the server and talks to it over stdio; the server still hosts the Figma plugin WebSocket on `ws://localhost:3939/ws`. Don't also run a separate SSE server (`npx figma-prototype-mcp`) on the same port — pick one.
+
+**Claude Code (or any SSE client):** add this to your MCP client config — it connects to the server you started in step 1:
+```json
+{ "mcpServers": { "figma-prototype": { "url": "http://localhost:3939/sse" } } }
+```
+(Claude Code can use either the SSE `url` here or the `--stdio` command above.)
 
 **4. Wire it by talking.** In a file with ≥2 frames, ask Claude:
 > "Home의 버튼을 누르면 Detail 화면으로 가게 해줘"
@@ -49,7 +52,7 @@ The interaction appears in Figma's **Prototype** tab. That's the loop — descri
 MCP client (Claude)  <-- SSE/HTTP -->  unified server (Express)  <-- ws -->  Figma plugin
 ```
 
-Since v0.18.0 the MCP server, the WebSocket relay, and the HTTP layer are a **single Express process** on one port (default 3000) — `/sse` for the MCP client, `/ws` for the plugin. The earlier stdio-MCP + standalone-relay split was removed.
+Since v0.18.0 the MCP server, the WebSocket relay, and the HTTP layer are a **single Express process** on one port (default 3939) — `/sse` for the MCP client, `/ws` for the plugin. The earlier stdio-MCP + standalone-relay split was removed.
 
 ## Install
 
@@ -61,7 +64,7 @@ npm run build
 **Or from npm (no clone):**
 
 ```bash
-npx figma-prototype-mcp        # starts the server on :3000
+npx figma-prototype-mcp        # starts the server on :3939
 ```
 
 The server prints the path to the bundled Figma plugin manifest on startup (under `node_modules/figma-prototype-mcp/dist/figma-plugin/manifest.json`) — import it in Figma via **Plugins → Development → Import plugin from manifest…**.
@@ -74,14 +77,14 @@ Phase A (v0.18.0+) ships a single unified server: Express + MCP SSE + Figma plug
 
 ```bash
 npm start
-# [server] listening on http://localhost:3000
+# [server] listening on http://localhost:3939
 # [server]   MCP SSE endpoint: GET /sse
-# [server]   Plugin WebSocket:  ws://localhost:3000/ws
+# [server]   Plugin WebSocket:  ws://localhost:3939/ws
 ```
 
 The server is designed to run 24/7. Wrap with PM2/systemd if you want it to auto-restart.
 
-`PORT` can be overridden: `PORT=4000 npm start`. **Note:** the Figma plugin connects to `ws://localhost:3000` (hard-coded in its manifest's `networkAccess.allowedDomains`), so if you change the port you must also update `src/figma-plugin/manifest.json` and rebuild (`npm run build`) for the plugin to reach the server.
+`PORT` can be overridden: `PORT=4000 npm start`. **Note:** the Figma plugin connects to `ws://localhost:3939` (hard-coded in its manifest's `networkAccess.allowedDomains`), so if you change the port you must also update `src/figma-plugin/manifest.json` and rebuild (`npm run build`) for the plugin to reach the server.
 
 Requires **Node ≥ 18**.
 
@@ -89,7 +92,7 @@ Requires **Node ≥ 18**.
 
 - **Easiest — install from Figma Community:** [Prototype MCP — wire prototypes with LLM](https://www.figma.com/community/plugin/1647184714488719280/prototype-mcp-wire-prototypes-with-llm) → **Open in…** / **Run**.
 - **Or load locally (for development):** Figma desktop → Plugins → Development → Import plugin from manifest… → choose `dist/figma-plugin/manifest.json` (after `npm run build`).
-- Run the plugin. It auto-connects to `ws://localhost:3000/ws` (single-active session — only one plugin at a time, latest connection wins). Click **Connect** if it doesn't auto-connect on launch.
+- Run the plugin. It auto-connects to `ws://localhost:3939/ws` (single-active session — only one plugin at a time, latest connection wins). Click **Connect** if it doesn't auto-connect on launch.
 
 **3. MCP client** (Claude Desktop or Claude Code):
 
@@ -99,7 +102,7 @@ Configure your client to connect to the SSE endpoint:
 {
   "mcpServers": {
     "figma-prototype": {
-      "url": "http://localhost:3000/sse"
+      "url": "http://localhost:3939/sse"
     }
   }
 }
@@ -113,7 +116,7 @@ Connecting a new MCP client automatically replaces any previous one (single-acti
 
 ## Your first wire
 
-A 60-second end-to-end check once the server is running, the plugin is connected ("Connected" in the plugin UI), and your MCP client points at `http://localhost:3000/sse`:
+A 60-second end-to-end check once the server is running, the plugin is connected ("Connected" in the plugin UI), and your MCP client points at `http://localhost:3939/sse`:
 
 1. **Open a Figma file with at least two frames** on the current page — say `Home` and `Detail` — and a button (or any node) inside `Home`.
 2. **Ask your MCP client** (Claude) in plain language:
@@ -190,13 +193,13 @@ To bypass the preset system (e.g. for `MOVE_IN`/`PUSH`/`SLIDE_*` directional tra
 | Symptom | Cause / fix |
 |---|---|
 | A tool returns `피그마 플러그인 연결을 확인해주세요` (check the plugin connection) | The plugin isn't connected. Make sure the server is running, the plugin is open in Figma, and its UI shows **Connected** (click **Connect** if not). The server waits ~3s for the plugin before returning this. |
-| Plugin UI won't connect / keeps retrying | The server must be running first (`npm start`) and reachable at `ws://localhost:3000`. The port is **hard-coded in the plugin manifest** — if you ran on a non-default `PORT`, update `src/figma-plugin/manifest.json` and `npm run build`, then reload the plugin. |
-| Server won't start: `EADDRINUSE :3000` | Another process holds port 3000. Stop it, or run on another port (`PORT=4000 npm start`) — and update the plugin manifest as above. |
-| MCP client shows no tools | Confirm the client is configured with `{"url": "http://localhost:3000/sse"}` and the server is up. Re-open the connection after starting the server. |
+| Plugin UI won't connect / keeps retrying | The server must be running first (`npm start`) and reachable at `ws://localhost:3939`. The port is **hard-coded in the plugin manifest** — if you ran on a non-default `PORT`, update `src/figma-plugin/manifest.json` and `npm run build`, then reload the plugin. |
+| Server won't start: `EADDRINUSE :3939` | Another process holds port 3939. Stop it, or run on another port (`PORT=4000 npm start`) — and update the plugin manifest as above. |
+| MCP client shows no tools | Confirm the client is configured with `{"url": "http://localhost:3939/sse"}` and the server is up. Re-open the connection after starting the server. |
 | A tool call hangs, then the client falls back to another tool | A **second MCP client** connected and evicted the first (single-active, newest-wins). Keep one client per server; reconnect the one you want to use. A stdio↔SSE bridge (e.g. supergateway) may not surface the eviction — the server logs `a second MCP client connected — evicted the prior SSE connection`. |
 | `get_canvas_overview` shows `frames: []` but the page clearly has frames | `get_canvas_overview` lists only **top-level** frames, so frames nested inside a **Section** don't appear. `get_prototype_flow` lists frames recursively (Sections included) and is the better read for a populated page; pass `pageId` if you're not on the intended page. |
 | Cryptic crash on startup (syntax / module errors) | Check your Node version — this needs **Node ≥ 18** (`node -v`). |
-| Client shows a zod `invalid_union` error mentioning `error.code` expected number, or `ECONNREFUSED ...:3000`, at startup | Your `:3000` server isn't running. For **Claude Desktop**, use the `--stdio` command config (it launches the server for you). For **Claude Code** over SSE, start `npx figma-prototype-mcp` first. (A stdio↔SSE bridge like supergateway reports a missing server as this malformed frame.) |
+| Client shows a zod `invalid_union` error mentioning `error.code` expected number, or `ECONNREFUSED ...:3939`, at startup | Your `:3939` server isn't running. For **Claude Desktop**, use the `--stdio` command config (it launches the server for you). For **Claude Code** over SSE, start `npx figma-prototype-mcp` first. (A stdio↔SSE bridge like supergateway reports a missing server as this malformed frame.) |
 
 ## Known limitations
 
