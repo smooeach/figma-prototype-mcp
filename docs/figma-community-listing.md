@@ -124,3 +124,17 @@ One plugin-facing change since v0.39.0: a new UPDATE_MEDIA_RUNTIME action (+ its
 (EN: A new proto_media wires a reaction that controls video/GIF playback on a trigger —
 play/pause/toggle, mute/unmute/toggle, skip forward/back (seconds), and skip-to (seconds).
 `target` must be a different media node — Figma rejects a null/self destination. No motion.)
+
+### Update — default port 3000 → 3939 (sync with npm v0.41.0, published 2026-06-25)
+One plugin-facing change since v0.40.0: the connection port moved from 3000 to 3939
+(manifest `allowedDomains` + ui.html). No new tools.
+
+> 서버 연결 포트가 3000에서 **3939**로 바뀌었습니다. 이 버전의 플러그인을 쓰려면 서버도
+> v0.41.0 이상으로 업데이트하세요(npm 또는 .mcpb 확장 재설치). 포트 3000은 다른 개발 서버나
+> 피그마 공식 Dev Mode MCP(3845)와 자주 겹쳐서, 충돌을 피하려고 변경했습니다. 기능 변화는
+> 없습니다.
+
+(EN: The connection port moved from 3000 to **3939**. To use this plugin version, update the
+server to v0.41.0+ as well (npm, or reinstall the .mcpb extension). Port 3000 frequently
+collided with other dev servers and Figma's official Dev Mode MCP (3845); 3939 avoids that.
+No functional changes.)
